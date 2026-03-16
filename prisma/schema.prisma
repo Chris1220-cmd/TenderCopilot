@@ -24,8 +24,9 @@ model Tenant {
   legalDocs      LegalDocument[]
   projects       Project[]
   contentLibrary ContentLibraryItem[]
-  tenders        Tender[]
-  invitations    Invitation[]
+  tenders           Tender[]
+  invitations       Invitation[]
+  financialProfiles FinancialProfile[]
 }
 
 model User {
@@ -273,6 +274,16 @@ model Tender {
   tasks              Task[]
   activities         Activity[]
 
+  // AI Role models
+  brief              TenderBrief?
+  goNoGoDecisions    GoNoGoDecision[]
+  legalClauses       LegalClause[]
+  clarifications     ClarificationQuestion[]
+  pricingScenarios   PricingScenario[]
+  technicalSections  TechnicalProposalSection[]
+  technicalRisks     TechnicalRisk[]
+  teamRequirements   TeamRequirement[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -302,6 +313,8 @@ model TenderRequirement {
   type             RequirementType     @default(DOCUMENT)
   coverageStatus   CoverageStatus      @default(UNMAPPED)
   aiConfidence     Float?              // 0-1 confidence from AI extraction
+  criticality      Int?                // 1-5 importance score
+  evidenceRefs     Json?               // [{ docId, page, paragraph }]
   notes            String?             @db.Text
 
   tenderId String
@@ -418,6 +431,8 @@ model Task {
   status      TaskStatus   @default(TODO)
   priority    TaskPriority @default(MEDIUM)
   dueDate     DateTime?
+  assigneeRole String?    // "legal", "financial", "technical", "compliance", "admin"
+  isAiGenerated Boolean   @default(false)
 
   tenderId    String
   tender      Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
@@ -448,11 +463,215 @@ enum TaskPriority {
   URGENT
 }
 
+// ─── AI Bid Orchestrator ────────────────────────────────────
+
+model TenderBrief {
+  id          String @id @default(cuid())
+  summaryText String @db.Text
+  keyPoints   Json   // { sector, mandatoryCriteria[], awardType, duration, deadlines[] }
+  sector      String?
+  awardType   String? // "lowest_price" | "best_value"
+  duration    String?
+
+  tenderId String @unique
+  tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GoNoGoDecision {
+  id             String       @id @default(cuid())
+  decision       GoNoGoResult
+  overallScore   Float?       // 0-100
+  reasons        Json         // [{ factor, score, weight, explanation }]
+  recommendation String?      @db.Text
+  createdBy      String       @default("AI") // "AI" or userId
+  approvedById   String?
+  approvedAt     DateTime?
+
+  tenderId String
+  tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum GoNoGoResult {
+  GO
+  NO_GO
+  BORDERLINE
+}
+
+// ─── AI Legal Analyzer ──────────────────────────────────────
+
+model LegalClause {
+  id              String            @id @default(cuid())
+  clauseText      String            @db.Text
+  category        LegalClauseCategory
+  articleRef      String?
+  pageNumber      Int?
+  riskLevel       RiskLevel         @default(LOW)
+  riskReason      String?           @db.Text
+  recommendation  String?           @db.Text
+
+  tenderId        String
+  tender          Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  sourceDocumentId String?
+
+  clarifications ClarificationQuestion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum LegalClauseCategory {
+  LIABILITY
+  TERMINATION
+  IP_RIGHTS
+  CONFIDENTIALITY
+  PENALTIES
+  INSURANCE
+  DATA_PROTECTION
+  GUARANTEES
+  SUBCONTRACTING
+  FORCE_MAJEURE
+  PAYMENT_TERMS
+  DISPUTE_RESOLUTION
+  OTHER
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model ClarificationQuestion {
+  id           String              @id @default(cuid())
+  questionText String              @db.Text
+  answerText   String?             @db.Text
+  status       ClarificationStatus @default(DRAFT)
+  priority     Int                 @default(0)
+
+  tenderId String
+  tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  clauseId String?
+  clause   LegalClause? @relation(fields: [clauseId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum ClarificationStatus {
+  DRAFT
+  APPROVED
+  SENT
+  ANSWERED
+}
+
+// ─── AI Financial Modeller ──────────────────────────────────
+
+model FinancialProfile {
+  id          String @id @default(cuid())
+  year        Int
+  turnover    Float?
+  ebitda      Float?
+  equity      Float?
+  debt        Float?
+  employees   Int?
+  bankRating  String?
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, year])
+}
+
+model PricingScenario {
+  id         String @id @default(cuid())
+  name       String
+  baseCosts  Json   // { labor, materials, subcontracting, overhead, other }
+  margin     Float  // percentage
+  totalPrice Float
+  winProbability Float? // 0-100 AI-estimated
+  comments   String? @db.Text
+  isSelected Boolean @default(false)
+
+  tenderId String
+  tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── AI Technical Engine ────────────────────────────────────
+
+model TechnicalProposalSection {
+  id       String              @id @default(cuid())
+  title    String
+  ordering Int                 @default(0)
+  content  String              @db.Text // markdown
+  status   ProposalSectionStatus @default(AI_DRAFT)
+  aiNotes  String?             @db.Text
+
+  tenderId String
+  tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum ProposalSectionStatus {
+  AI_DRAFT
+  HUMAN_EDITING
+  REVIEWED
+  APPROVED
+}
+
+model TechnicalRisk {
+  id          String    @id @default(cuid())
+  title       String
+  description String    @db.Text
+  riskLevel   RiskLevel @default(MEDIUM)
+  mitigation  String?   @db.Text
+  relatedRequirementId String?
+
+  tenderId String
+  tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+// ─── AI Team/Resource Planning ──────────────────────────────
+
+model TeamRequirement {
+  id             String @id @default(cuid())
+  role           String // "Project Manager", "Senior Developer", etc.
+  qualifications String? @db.Text // required degrees, certifications
+  minExperience  Int?    // years
+  count          Int     @default(1)
+  isMandatory    Boolean @default(true)
+  mappedStaffName String? // which company person fills this
+  cvFileKey      String?
+  status         CoverageStatus @default(UNMAPPED)
+
+  tenderId String
+  tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // ─── Activity Log ───────────────────────────────────────────
 
 model Activity {
   id      String @id @default(cuid())
-  action  String // e.g. "uploaded_document", "requirement_mapped", "task_completed"
+  action  String
   details String? @db.Text
 
   tenderId String

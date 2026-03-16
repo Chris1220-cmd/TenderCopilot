@@ -23,6 +23,12 @@ import { RequirementsTab } from '@/components/tender/requirements-tab';
 import { DocumentsTab } from '@/components/tender/documents-tab';
 import { TasksTab } from '@/components/tender/tasks-tab';
 import { ActivityTab } from '@/components/tender/activity-tab';
+import { AIBriefPanel } from '@/components/tender/ai-brief-panel';
+import { GoNoGoPanel } from '@/components/tender/go-no-go-panel';
+import { LegalTab } from '@/components/tender/legal-tab';
+import { FinancialTab } from '@/components/tender/financial-tab';
+import { TechnicalTabEnhanced } from '@/components/tender/technical-tab-enhanced';
+import { AIAssistantButton, AIAssistantPanel } from '@/components/tender/ai-assistant-panel';
 import {
   ChevronRight,
   Pencil,
@@ -35,6 +41,9 @@ import {
   ListTodo,
   Activity,
   Eye,
+  Scale,
+  Banknote,
+  Wrench,
 } from 'lucide-react';
 
 // Mock tender for graceful fallback
@@ -107,6 +116,7 @@ export default function TenderDetailPage() {
   const router = useRouter();
   const tenderId = params.id as string;
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -305,33 +315,55 @@ export default function TenderDetailPage() {
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger value="overview" className="gap-1.5">
+          <TabsTrigger value="overview" className="gap-1.5 cursor-pointer">
             <Eye className="h-3.5 w-3.5" />
             Επισκόπηση
           </TabsTrigger>
-          <TabsTrigger value="requirements" className="gap-1.5">
+          <TabsTrigger value="requirements" className="gap-1.5 cursor-pointer">
             <ClipboardList className="h-3.5 w-3.5" />
             Απαιτήσεις
           </TabsTrigger>
-          <TabsTrigger value="documents" className="gap-1.5">
+          <TabsTrigger value="documents" className="gap-1.5 cursor-pointer">
             <FileText className="h-3.5 w-3.5" />
             Έγγραφα
           </TabsTrigger>
-          <TabsTrigger value="tasks" className="gap-1.5">
+          <TabsTrigger value="tasks" className="gap-1.5 cursor-pointer">
             <ListTodo className="h-3.5 w-3.5" />
             Εργασίες
           </TabsTrigger>
-          <TabsTrigger value="activity" className="gap-1.5">
+          <TabsTrigger value="legal" className="gap-1.5 cursor-pointer">
+            <Scale className="h-3.5 w-3.5" />
+            Νομικά & Σύμβαση
+          </TabsTrigger>
+          <TabsTrigger value="financial" className="gap-1.5 cursor-pointer">
+            <Banknote className="h-3.5 w-3.5" />
+            Οικονομικά
+          </TabsTrigger>
+          <TabsTrigger value="technical" className="gap-1.5 cursor-pointer">
+            <Wrench className="h-3.5 w-3.5" />
+            Τεχνική Πρόταση
+          </TabsTrigger>
+          <TabsTrigger value="activity" className="gap-1.5 cursor-pointer">
             <Activity className="h-3.5 w-3.5" />
             Δραστηριότητα
           </TabsTrigger>
         </TabsList>
 
+        {/* Overview Tab - Now includes AI Brief + Go/No-Go panels */}
         <TabsContent value="overview">
           {isLoading ? (
             <OverviewTabSkeleton />
           ) : (
-            <OverviewTab tender={tender} />
+            <div className="space-y-6">
+              {/* AI Panels Row */}
+              <div className="grid gap-4 lg:grid-cols-2">
+                <AIBriefPanel tenderId={tenderId} />
+                <GoNoGoPanel tenderId={tenderId} />
+              </div>
+
+              {/* Existing Overview Content */}
+              <OverviewTab tender={tender} />
+            </div>
           )}
         </TabsContent>
 
@@ -345,6 +377,21 @@ export default function TenderDetailPage() {
 
         <TabsContent value="tasks">
           <TasksTab tenderId={tenderId} />
+        </TabsContent>
+
+        {/* New: Legal & Contract Tab */}
+        <TabsContent value="legal">
+          <LegalTab tenderId={tenderId} />
+        </TabsContent>
+
+        {/* New: Financial Tab */}
+        <TabsContent value="financial">
+          <FinancialTab tenderId={tenderId} />
+        </TabsContent>
+
+        {/* New: Enhanced Technical Tab */}
+        <TabsContent value="technical">
+          <TechnicalTabEnhanced tenderId={tenderId} />
         </TabsContent>
 
         <TabsContent value="activity">
@@ -381,6 +428,14 @@ export default function TenderDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Floating AI Assistant */}
+      <AIAssistantButton onClick={() => setAssistantOpen(true)} />
+      <AIAssistantPanel
+        tenderId={tenderId}
+        open={assistantOpen}
+        onOpenChange={setAssistantOpen}
+      />
     </div>
   );
 }

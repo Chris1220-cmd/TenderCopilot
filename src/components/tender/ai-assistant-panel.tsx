@@ -1,0 +1,638 @@
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import { cn } from '@/lib/utils';
+import { trpc } from '@/lib/trpc';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+} from '@/components/ui/glass-card';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
+import {
+  MessageCircle,
+  Send,
+  Sparkles,
+  Loader2,
+  X,
+  AlertCircle,
+  Clock,
+  ArrowRight,
+  Bot,
+  User,
+  Lightbulb,
+  Bell,
+  ChevronRight,
+  HelpCircle,
+  CheckSquare,
+  ShieldCheck,
+  Timer,
+} from 'lucide-react';
+
+// ─── Types ────────────────────────────────────────────────────
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
+interface SuggestedAction {
+  id: string;
+  title: string;
+  description: string;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  category: string;
+}
+
+interface Reminder {
+  id: string;
+  title: string;
+  dueDate: string;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  completed: boolean;
+}
+
+// ─── Mock Data ────────────────────────────────────────────────
+const mockActions: SuggestedAction[] = [
+  {
+    id: 'act-1',
+    title: 'Ολοκλήρωση τεχνικής πρότασης',
+    description: 'Η ενότητα "Μεθοδολογία" χρειάζεται αναθεώρηση και έγκριση.',
+    priority: 'HIGH',
+    category: 'Τεχνική',
+  },
+  {
+    id: 'act-2',
+    title: 'Ανάθεση Systems Administrator',
+    description: 'Δεν έχει αντιστοιχιστεί στέλεχος για τον ρόλο Systems Administrator.',
+    priority: 'HIGH',
+    category: 'Ομάδα',
+  },
+  {
+    id: 'act-3',
+    title: 'Αποστολή διευκρινίσεων',
+    description: '3 ερωτήματα περιμένουν έγκριση για αποστολή στην αναθέτουσα αρχή.',
+    priority: 'MEDIUM',
+    category: 'Νομική',
+  },
+  {
+    id: 'act-4',
+    title: 'Οριστικοποίηση τιμολόγησης',
+    description: 'Επιλέξτε σενάριο τιμολόγησης και ελέγξτε τα κοστολογικά στοιχεία.',
+    priority: 'MEDIUM',
+    category: 'Οικονομικά',
+  },
+];
+
+const mockReminders: Reminder[] = [
+  { id: 'rem-1', title: 'Προθεσμία υποβολής διευκρινίσεων', dueDate: '2026-03-25', priority: 'HIGH', completed: false },
+  { id: 'rem-2', title: 'Εγγυητική επιστολή - αίτημα σε τράπεζα', dueDate: '2026-03-28', priority: 'HIGH', completed: false },
+  { id: 'rem-3', title: 'Τελική αναθεώρηση τεχνικής πρότασης', dueDate: '2026-04-05', priority: 'MEDIUM', completed: false },
+  { id: 'rem-4', title: 'Υποβολή προσφοράς', dueDate: '2026-04-15', priority: 'HIGH', completed: false },
+];
+
+const mockAnswers: Record<string, string> = {
+  'Τι λείπει;': 'Βάσει της τρέχουσας ανάλυσης, λείπουν:\n\n1. **Systems Administrator** - Δεν έχει αντιστοιχιστεί στέλεχος\n2. **1 Τεχνικός Εγκατάστασης** - Χρειάζεστε ακόμη 1 άτομο\n3. **ISO 27001** - Δεν έχει επιβεβαιωθεί η κατοχή\n4. **2 Διευκρινίσεις** - Περιμένουν έγκριση\n5. **Οριστική Τιμολόγηση** - Δεν έχει επιλεγεί σενάριο',
+  'Είμαστε έτοιμοι;': 'Η ετοιμότητα είναι στο **72%**.\n\nΕπιτυχώς:\n- Τεχνική πρόταση: 4/5 ενότητες\n- Νομικός έλεγχος: Ολοκληρωμένος\n- Οικονομική επιλεξιμότητα: Επιλέξιμοι\n\nΕκκρεμούν:\n- Αντιστοίχιση ομάδας (1 κενό)\n- Τελική τιμολόγηση\n- Εγγυητική επιστολή',
+  'Ποιες εργασίες καθυστερούν;': 'Καθυστερημένες εργασίες:\n\n1. **Ανάθεση Systems Admin** - Εκκρεμεί 5+ ημέρες\n2. **Αποστολή Διευκρινίσεων** - Η προθεσμία πλησιάζει (25/03)\n3. **Αίτηση Εγγυητικής** - Πρέπει να σταλεί αυτή την εβδομάδα',
+  'Πόσο compliance έχουμε;': 'Compliance Score: **72%**\n\nΑνάλυση:\n- Κριτήρια Αποκλεισμού: 2/2 (100%)\n- Δικαιολογητικά: 1/1 (100%)\n- Τεχνικές Απαιτήσεις: 0/1 (0%) - ISO λείπει\n- Κριτήρια Συμμετοχής: 0/1 (0%) - 3 ομοειδή έργα\n- Οικονομικά: 0/1 (0%) - Κύκλος εργασιών\n\nΣυνολικά: 3/6 απαιτήσεις καλύπτονται πλήρως.',
+};
+
+// ─── Helpers ──────────────────────────────────────────────────
+const priorityConfig = {
+  HIGH: { label: 'Υψηλή', bg: 'bg-red-500/15', text: 'text-red-700 dark:text-red-400', border: 'border-red-500/20', dot: 'bg-red-500' },
+  MEDIUM: { label: 'Μέτρια', bg: 'bg-amber-500/15', text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-500/20', dot: 'bg-amber-500' },
+  LOW: { label: 'Χαμηλή', bg: 'bg-emerald-500/15', text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-500/20', dot: 'bg-emerald-500' },
+};
+
+const quickQuestions = [
+  { text: 'Τι λείπει;', icon: HelpCircle },
+  { text: 'Είμαστε έτοιμοι;', icon: CheckSquare },
+  { text: 'Ποιες εργασίες καθυστερούν;', icon: Timer },
+  { text: 'Πόσο compliance έχουμε;', icon: ShieldCheck },
+];
+
+// ─── Floating Button ──────────────────────────────────────────
+interface AIAssistantButtonProps {
+  onClick: () => void;
+}
+
+export function AIAssistantButton({ onClick }: AIAssistantButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'fixed bottom-6 right-6 z-50',
+        'flex h-14 w-14 items-center justify-center',
+        'rounded-2xl shadow-2xl',
+        'bg-gradient-to-br from-blue-700 to-blue-500',
+        'hover:from-blue-600 hover:to-blue-400',
+        'text-white',
+        'transition-all duration-300 ease-out',
+        'hover:scale-105 hover:shadow-blue-500/30',
+        'active:scale-95',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
+        'cursor-pointer',
+        'group'
+      )}
+      aria-label="AI Βοηθός"
+    >
+      <Sparkles className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />
+
+      {/* Pulse Animation */}
+      <span className="absolute inset-0 rounded-2xl bg-blue-400/30 animate-ping opacity-30" />
+
+      {/* Badge */}
+      <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white shadow-lg">
+        AI
+      </span>
+    </button>
+  );
+}
+
+// ─── Assistant Panel ──────────────────────────────────────────
+interface AIAssistantPanelProps {
+  tenderId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPanelProps) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [actions, setActions] = useState<SuggestedAction[]>(mockActions);
+  const [reminders, setReminders] = useState<Reminder[]>(mockReminders);
+  const [activeTab, setActiveTab] = useState<'chat' | 'actions' | 'reminders'>('chat');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // tRPC mutations with fallback
+  const askMutation = trpc.aiRoles?.askQuestion?.useMutation?.({
+    onSuccess: (data: any) => {
+      const answer: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: data?.answer ?? 'Δεν μπόρεσα να βρω απάντηση.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, answer]);
+      setIsTyping(false);
+    },
+    onError: () => {
+      handleMockAnswer(inputValue);
+    },
+  }) ?? null;
+
+  // suggestNextActions and getReminders are queries - use with enabled:false for manual trigger
+  const nextActionsQuery = trpc.aiRoles?.suggestNextActions?.useQuery?.(
+    { tenderId },
+    { enabled: false, retry: false }
+  ) ?? null;
+
+  const remindersQuery = trpc.aiRoles?.getReminders?.useQuery?.(
+    { tenderId },
+    { enabled: false, retry: false }
+  ) ?? null;
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 300);
+    }
+  }, [open]);
+
+  const handleMockAnswer = (question: string) => {
+    const mockAnswer = mockAnswers[question] ?? `Βάσει της ανάλυσης του διαγωνισμού, η ερώτησή σας "${question}" αφορά ένα σημαντικό θέμα. Παρακαλώ ελέγξτε τις σχετικές ενότητες (Νομικά, Οικονομικά, Τεχνικά) για λεπτομερή στοιχεία.`;
+    setTimeout(() => {
+      const answer: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: mockAnswer,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, answer]);
+      setIsTyping(false);
+    }, 1200);
+  };
+
+  const handleSend = (text?: string) => {
+    const question = text ?? inputValue.trim();
+    if (!question) return;
+
+    const userMsg: ChatMessage = {
+      id: `msg-${Date.now()}-user`,
+      role: 'user',
+      content: question,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setInputValue('');
+    setIsTyping(true);
+
+    if (askMutation) {
+      askMutation.mutate({ tenderId, question });
+    } else {
+      handleMockAnswer(question);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className={cn(
+          'sm:max-w-md w-full p-0 flex flex-col',
+          'bg-white/80 dark:bg-gray-950/90',
+          'backdrop-blur-2xl'
+        )}
+      >
+        {/* Header */}
+        <div className="px-5 pt-5 pb-3 border-b border-border/50">
+          <SheetHeader className="space-y-1">
+            <SheetTitle className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600/20 to-cyan-500/20 ring-1 ring-blue-500/20">
+                <Bot className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <span className="bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-cyan-300">
+                  AI Βοηθός
+                </span>
+                <p className="text-[10px] text-muted-foreground font-normal">
+                  Tender Copilot Assistant
+                </p>
+              </div>
+            </SheetTitle>
+            <SheetDescription className="sr-only">
+              AI Βοηθός για τον διαγωνισμό
+            </SheetDescription>
+          </SheetHeader>
+
+          {/* Tab Bar */}
+          <div className="flex gap-1 mt-3 bg-muted/30 rounded-lg p-0.5">
+            {[
+              { key: 'chat' as const, label: 'Συνομιλία', icon: MessageCircle },
+              { key: 'actions' as const, label: 'Ενέργειες', icon: Lightbulb },
+              { key: 'reminders' as const, label: 'Υπενθυμίσεις', icon: Bell },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-all duration-200 cursor-pointer',
+                  activeTab === tab.key
+                    ? 'bg-background shadow-sm text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <tab.icon className="h-3.5 w-3.5" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {/* Chat Tab */}
+          {activeTab === 'chat' && (
+            <>
+              <ScrollArea className="flex-1 px-4 py-4">
+                <div className="space-y-4">
+                  {/* Welcome message */}
+                  {messages.length === 0 && (
+                    <div className="text-center py-6">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 mx-auto mb-3">
+                        <Sparkles className="h-7 w-7 text-blue-500/50" />
+                      </div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">
+                        Ρωτήστε οτιδήποτε για τον διαγωνισμό
+                      </p>
+                      <p className="text-xs text-muted-foreground/60">
+                        Χρησιμοποιήστε τα γρήγορα ερωτήματα ή γράψτε δικά σας
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Messages */}
+                  {messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={cn(
+                        'flex gap-2.5',
+                        msg.role === 'user' ? 'justify-end' : 'justify-start'
+                      )}
+                    >
+                      {msg.role === 'assistant' && (
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600/20 to-cyan-500/20 mt-0.5">
+                          <Bot className="h-4 w-4 text-blue-500" />
+                        </div>
+                      )}
+                      <div
+                        className={cn(
+                          'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed',
+                          msg.role === 'user'
+                            ? 'bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-br-md'
+                            : 'bg-muted/50 border border-border/50 text-foreground rounded-bl-md'
+                        )}
+                      >
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                        <p className={cn(
+                          'text-[9px] mt-1.5 tabular-nums',
+                          msg.role === 'user' ? 'text-blue-200' : 'text-muted-foreground/50'
+                        )}>
+                          {msg.timestamp.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      {msg.role === 'user' && (
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/50 mt-0.5">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Typing indicator */}
+                  {isTyping && (
+                    <div className="flex gap-2.5">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600/20 to-cyan-500/20">
+                        <Bot className="h-4 w-4 text-blue-500" />
+                      </div>
+                      <div className="rounded-2xl rounded-bl-md bg-muted/50 border border-border/50 px-4 py-3">
+                        <div className="flex gap-1">
+                          <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:0ms]" />
+                          <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:150ms]" />
+                          <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:300ms]" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
+
+              {/* Quick Questions */}
+              {messages.length < 3 && (
+                <div className="px-4 py-2 border-t border-border/30">
+                  <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2">
+                    Γρήγορα Ερωτήματα
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {quickQuestions.map((q) => (
+                      <button
+                        key={q.text}
+                        onClick={() => handleSend(q.text)}
+                        disabled={isTyping}
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium',
+                          'bg-white/50 dark:bg-white/[0.06]',
+                          'border border-white/40 dark:border-white/10',
+                          'backdrop-blur-sm',
+                          'transition-all duration-200',
+                          'hover:bg-blue-50/50 dark:hover:bg-blue-500/10',
+                          'hover:border-blue-300/40 dark:hover:border-blue-500/20',
+                          'disabled:opacity-50 disabled:cursor-not-allowed',
+                          'cursor-pointer'
+                        )}
+                      >
+                        <q.icon className="h-3 w-3 text-blue-500/70" />
+                        {q.text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Input */}
+              <div className="px-4 py-3 border-t border-border/50 bg-background/50">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 relative">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Γράψτε μια ερώτηση..."
+                      disabled={isTyping}
+                      className={cn(
+                        'w-full rounded-xl border px-4 py-2.5 text-xs',
+                        'bg-white/60 dark:bg-white/[0.06]',
+                        'border-white/40 dark:border-white/10',
+                        'placeholder:text-muted-foreground/50',
+                        'focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30',
+                        'transition-all duration-200',
+                        'disabled:opacity-50'
+                      )}
+                    />
+                  </div>
+                  <Button
+                    onClick={() => handleSend()}
+                    disabled={!inputValue.trim() || isTyping}
+                    size="icon"
+                    className={cn(
+                      'h-10 w-10 rounded-xl shrink-0 cursor-pointer',
+                      'bg-gradient-to-br from-blue-700 to-blue-500',
+                      'hover:from-blue-600 hover:to-blue-400',
+                      'border-0 text-white shadow-lg shadow-blue-500/20',
+                      'disabled:opacity-50 disabled:shadow-none'
+                    )}
+                  >
+                    {isTyping ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Actions Tab */}
+          {activeTab === 'actions' && (
+            <ScrollArea className="flex-1 px-4 py-4">
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Προτεινόμενες Ενέργειες
+                </p>
+                {actions.map((action) => {
+                  const pCfg = priorityConfig[action.priority];
+                  return (
+                    <div
+                      key={action.id}
+                      className={cn(
+                        'rounded-xl border p-3.5',
+                        'bg-white/40 dark:bg-white/[0.03]',
+                        'border-white/30 dark:border-white/10',
+                        'transition-all duration-200',
+                        'hover:border-blue-300/30 dark:hover:border-blue-500/15',
+                        'cursor-pointer group'
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className={cn('mt-1 h-2.5 w-2.5 rounded-full shrink-0', pCfg.dot)} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-semibold text-foreground">
+                              {action.title}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className={cn('text-[9px]', pCfg.bg, pCfg.text, pCfg.border)}
+                            >
+                              {pCfg.label}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground leading-relaxed">
+                            {action.description}
+                          </p>
+                          <div className="flex items-center gap-1 mt-1.5">
+                            <Badge variant="secondary" className="text-[9px] h-4 px-1.5">
+                              {action.category}
+                            </Badge>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors duration-150 shrink-0 mt-0.5" />
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {actions.length === 0 && (
+                  <div className="text-center py-8">
+                    <Lightbulb className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground">
+                      Δεν υπάρχουν εκκρεμείς ενέργειες
+                    </p>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          )}
+
+          {/* Reminders Tab */}
+          {activeTab === 'reminders' && (
+            <ScrollArea className="flex-1 px-4 py-4">
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Υπενθυμίσεις & Προθεσμίες
+                </p>
+                {reminders.map((reminder) => {
+                  const pCfg = priorityConfig[reminder.priority];
+                  const dueDate = new Date(reminder.dueDate);
+                  const now = new Date();
+                  const daysUntil = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                  const isUrgent = daysUntil <= 3;
+                  const isOverdue = daysUntil < 0;
+
+                  return (
+                    <div
+                      key={reminder.id}
+                      className={cn(
+                        'rounded-xl border p-3.5',
+                        'bg-white/40 dark:bg-white/[0.03]',
+                        'border-white/30 dark:border-white/10',
+                        'transition-all duration-200',
+                        isOverdue && 'border-red-300/30 dark:border-red-500/20 bg-red-50/20 dark:bg-red-500/5',
+                        isUrgent && !isOverdue && 'border-amber-300/30 dark:border-amber-500/20'
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={cn(
+                          'mt-0.5 flex h-6 w-6 items-center justify-center rounded-lg shrink-0',
+                          isOverdue ? 'bg-red-500/10' :
+                          isUrgent ? 'bg-amber-500/10' :
+                          'bg-blue-500/10'
+                        )}>
+                          <Clock className={cn(
+                            'h-3.5 w-3.5',
+                            isOverdue ? 'text-red-500' :
+                            isUrgent ? 'text-amber-500' :
+                            'text-blue-500'
+                          )} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className={cn(
+                            'text-xs font-semibold',
+                            reminder.completed ? 'text-muted-foreground line-through' : 'text-foreground'
+                          )}>
+                            {reminder.title}
+                          </span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={cn(
+                              'text-[10px] font-medium tabular-nums',
+                              isOverdue ? 'text-red-600 dark:text-red-400' :
+                              isUrgent ? 'text-amber-600 dark:text-amber-400' :
+                              'text-muted-foreground'
+                            )}>
+                              {dueDate.toLocaleDateString('el-GR')}
+                            </span>
+                            {isOverdue && (
+                              <Badge variant="outline" className="text-[9px] bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20">
+                                Εκπρόθεσμο
+                              </Badge>
+                            )}
+                            {isUrgent && !isOverdue && (
+                              <Badge variant="outline" className="text-[9px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20">
+                                {daysUntil} ημέρ{daysUntil === 1 ? 'α' : 'ες'}
+                              </Badge>
+                            )}
+                            {!isUrgent && !isOverdue && (
+                              <span className="text-[10px] text-muted-foreground/60">
+                                σε {daysUntil} ημέρες
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={cn('text-[9px] shrink-0', pCfg.bg, pCfg.text, pCfg.border)}
+                        >
+                          {pCfg.label}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {reminders.length === 0 && (
+                  <div className="text-center py-8">
+                    <Bell className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground">
+                      Δεν υπάρχουν υπενθυμίσεις
+                    </p>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}

@@ -8,6 +8,7 @@ import { taskRouter } from '@/server/routers/task';
 import { documentRouter } from '@/server/routers/document';
 import { analyticsRouter } from '@/server/routers/analytics';
 import { discoveryRouter } from '@/server/routers/discovery';
+import { aiRolesRouter } from '@/server/routers/ai-roles';
 
 export const appRouter = router({
   auth: authRouter,
@@ -19,6 +20,7 @@ export const appRouter = router({
   document: documentRouter,
   analytics: analyticsRouter,
   discovery: discoveryRouter,
+  aiRoles: aiRolesRouter,
 });
 
 export type AppRouter = typeof appRouter;
