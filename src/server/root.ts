@@ -7,6 +7,7 @@ import { requirementRouter } from '@/server/routers/requirement';
 import { taskRouter } from '@/server/routers/task';
 import { documentRouter } from '@/server/routers/document';
 import { analyticsRouter } from '@/server/routers/analytics';
+import { discoveryRouter } from '@/server/routers/discovery';
 
 export const appRouter = router({
   auth: authRouter,
@@ -17,6 +18,7 @@ export const appRouter = router({
   task: taskRouter,
   document: documentRouter,
   analytics: analyticsRouter,
+  discovery: discoveryRouter,
 });
 
 export type AppRouter = typeof appRouter;

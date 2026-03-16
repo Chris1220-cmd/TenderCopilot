@@ -1,99 +1,167 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useDropzone } from 'react-dropzone';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency, fileSize } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
+import { DiscoveryResults } from '@/components/tender/discovery-results';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  ArrowLeft,
-  ArrowRight,
+  Sparkles,
+  Radar,
+  Link as LinkIcon,
   Upload,
+  ClipboardPaste,
   FileText,
   X,
   Loader2,
   Check,
-  ClipboardList,
-  FileUp,
+  ArrowLeft,
+  Globe,
+  ArrowRight,
+  AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 
-const tenderSchema = z.object({
-  title: z.string().min(1, 'Ο τίτλος είναι υποχρεωτικός'),
-  referenceNumber: z.string().min(1, 'Ο αριθμός αναφοράς είναι υποχρεωτικός'),
-  contractingAuthority: z
-    .string()
-    .min(1, 'Η αναθέτουσα αρχή είναι υποχρεωτική'),
-  platform: z.string().min(1, 'Η πλατφόρμα είναι υποχρεωτική'),
-  budget: z.string().optional(),
-  submissionDeadline: z
-    .string()
-    .min(1, 'Η ημερομηνία υποβολής είναι υποχρεωτική'),
-  awardCriteria: z.string().optional(),
-});
+// ─── Types ──────────────────────────────────────────────────────────────────
 
-type TenderForm = z.infer<typeof tenderSchema>;
+type IntakeMode = 'discover' | 'link' | 'upload' | null;
 
-const steps = [
-  { id: 1, title: 'Βασικά στοιχεία', icon: ClipboardList },
-  { id: 2, title: 'Αρχεία προδιαγραφών', icon: FileUp },
+interface ProgressStep {
+  label: string;
+  status: 'pending' | 'active' | 'done';
+}
+
+// ─── Platform detection for URL import ──────────────────────────────────────
+
+const platformPatterns: { pattern: RegExp; label: string; key: string; color: string }[] = [
+  { pattern: /promitheas\.gov\.gr/i, label: 'ΠΡΟΜΗΘΕΥΣ', key: 'PROMITHEUS', color: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20' },
+  { pattern: /esidis|isupplies\.gr/i, label: 'ΕΣΗΔΗΣ', key: 'ESIDIS', color: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20' },
+  { pattern: /cosmo-one\.gr|cosmoone/i, label: 'cosmoONE', key: 'COSMOONE', color: 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20' },
+  { pattern: /diavgeia\.gov\.gr/i, label: 'ΔΙΑΥΓΕΙΑ', key: 'DIAVGEIA', color: 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20' },
+  { pattern: /ted\.europa\.eu/i, label: 'TED Europa', key: 'TED', color: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/20' },
 ];
+
+function detectPlatform(url: string) {
+  for (const p of platformPatterns) {
+    if (p.pattern.test(url)) return p;
+  }
+  return null;
+}
+
+// ─── Mode card definitions ──────────────────────────────────────────────────
+
+const modes: { id: IntakeMode; icon: typeof Radar; title: string; subtitle: string }[] = [
+  {
+    id: 'discover',
+    icon: Radar,
+    title: 'Αυτόματη Εύρεση',
+    subtitle: 'Βρείτε διαγωνισμούς που ταιριάζουν στην εταιρεία σας',
+  },
+  {
+    id: 'link',
+    icon: LinkIcon,
+    title: 'Εισαγωγή από Link',
+    subtitle: 'Επικολλήστε σύνδεσμο από ΕΣΗΔΗΣ, cosmoONE, κ.λπ.',
+  },
+  {
+    id: 'upload',
+    icon: Upload,
+    title: 'Μεταφόρτωση Αρχείων',
+    subtitle: 'Σύρετε αρχεία διακήρυξης (PDF, DOCX, ZIP)',
+  },
+];
+
+// ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function NewTenderPage() {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [activeMode, setActiveMode] = useState<IntakeMode>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // URL import state
+  const [url, setUrl] = useState('');
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [urlImporting, setUrlImporting] = useState(false);
+  const [urlSteps, setUrlSteps] = useState<ProgressStep[]>([]);
+
+  // File upload state
   const [files, setFiles] = useState<File[]>([]);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fileImporting, setFileImporting] = useState(false);
+  const [fileSteps, setFileSteps] = useState<ProgressStep[]>([]);
+  const [fileError, setFileError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    trigger,
-    formState: { errors },
-  } = useForm<TenderForm>({
-    resolver: zodResolver(tenderSchema),
-    defaultValues: {
-      platform: '',
-      awardCriteria: '',
-    },
-  });
+  const detectedPlatform = url.trim() ? detectPlatform(url) : null;
 
-  const platformValue = watch('platform');
-  const awardCriteriaValue = watch('awardCriteria');
+  // tRPC mutations
+  const importFromUrl = trpc.discovery.importFromUrl.useMutation();
+  const importFromFiles = trpc.discovery.importFromFiles.useMutation();
 
-  const createMutation = trpc.tender.create.useMutation({
-    onSuccess: (data: { id: string }) => {
-      router.push(`/tenders/${data.id}`);
-    },
-    onError: (err) => {
-      setSubmitError(err.message || 'Αποτυχία δημιουργίας διαγωνισμού');
-    },
-  });
+  // Scroll to content when mode changes
+  useEffect(() => {
+    if (activeMode && contentRef.current) {
+      setTimeout(() => {
+        contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 200);
+    }
+  }, [activeMode]);
+
+  // ─── URL Import Logic ─────────────────────────────────────────────────────
+
+  async function handleUrlImport() {
+    if (!url.trim()) {
+      setUrlError('Εισαγάγετε ένα σύνδεσμο');
+      return;
+    }
+    try {
+      new URL(url);
+    } catch {
+      setUrlError('Μη έγκυρος σύνδεσμος');
+      return;
+    }
+
+    setUrlError(null);
+    setUrlImporting(true);
+    const steps: ProgressStep[] = [
+      { label: 'Λήψη σελίδας...', status: 'active' },
+      { label: 'Εξαγωγή στοιχείων...', status: 'pending' },
+      { label: 'Λήψη εγγράφων...', status: 'pending' },
+      { label: 'Ανάλυση...', status: 'pending' },
+    ];
+    setUrlSteps([...steps]);
+
+    // Simulate step progression
+    for (let i = 0; i < steps.length; i++) {
+      await new Promise((r) => setTimeout(r, 800 + Math.random() * 600));
+      steps[i].status = 'done';
+      if (i + 1 < steps.length) steps[i + 1].status = 'active';
+      setUrlSteps([...steps]);
+    }
+
+    try {
+      const result = await importFromUrl.mutateAsync({ url });
+      router.push(`/tenders/${result.tenderId}`);
+    } catch (err: any) {
+      setUrlImporting(false);
+      setUrlError(err.message || 'Αποτυχία εισαγωγής');
+      setUrlSteps([]);
+    }
+  }
+
+  // ─── File Upload Logic ────────────────────────────────────────────────────
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles((prev) => [...prev, ...acceptedFiles]);
+    setFileError(null);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -101,12 +169,10 @@ export default function NewTenderPage() {
     accept: {
       'application/pdf': ['.pdf'],
       'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-        ['.docx'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [
-        '.xlsx',
-      ],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/zip': ['.zip'],
     },
   });
 
@@ -114,32 +180,72 @@ export default function NewTenderPage() {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
-  async function goToNextStep() {
-    const valid = await trigger([
-      'title',
-      'referenceNumber',
-      'contractingAuthority',
-      'platform',
-      'submissionDeadline',
-    ]);
-    if (valid) {
-      setCurrentStep(2);
+  async function handleFileImport() {
+    if (files.length === 0) {
+      setFileError('Προσθέστε τουλάχιστον ένα αρχείο');
+      return;
+    }
+
+    setFileError(null);
+    setFileImporting(true);
+    const steps: ProgressStep[] = [
+      { label: 'Μεταφόρτωση αρχείων...', status: 'active' },
+      { label: 'Εξαγωγή κειμένου...', status: 'pending' },
+      { label: 'Ανάλυση απαιτήσεων...', status: 'pending' },
+      { label: 'Δημιουργία φακέλου...', status: 'pending' },
+    ];
+    setFileSteps([...steps]);
+
+    try {
+      // Upload files first
+      const formData = new FormData();
+      files.forEach((f) => formData.append('files', f));
+
+      steps[0].status = 'done';
+      steps[1].status = 'active';
+      setFileSteps([...steps]);
+
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadRes.ok) throw new Error('Αποτυχία μεταφόρτωσης αρχείων');
+      const uploadData = await uploadRes.json();
+
+      // Step through remaining progress
+      for (let i = 1; i < steps.length; i++) {
+        await new Promise((r) => setTimeout(r, 700 + Math.random() * 500));
+        steps[i].status = 'done';
+        if (i + 1 < steps.length) steps[i + 1].status = 'active';
+        setFileSteps([...steps]);
+      }
+
+      const result = await importFromFiles.mutateAsync({
+        files: (uploadData.files || []).map((f: any) => ({
+          key: f.key,
+          name: f.name,
+          mimeType: f.mimeType,
+        })),
+      });
+      router.push(`/tenders/${result.tenderId}`);
+    } catch (err: any) {
+      setFileImporting(false);
+      setFileError(err.message || 'Αποτυχία επεξεργασίας αρχείων');
+      setFileSteps([]);
     }
   }
 
-  function onSubmit(data: TenderForm) {
-    setSubmitError(null);
-    createMutation.mutate({
-      ...data,
-      budget: data.budget ? parseFloat(data.budget) : undefined,
-      submissionDeadline: data.submissionDeadline ? new Date(data.submissionDeadline) : undefined,
-    } as any);
+  // ─── Discovery import handler ─────────────────────────────────────────────
+
+  function handleDiscoveryImport(tender: any) {
+    router.push(`/tenders/${tender.id}`);
   }
 
-  const isLoading = createMutation.isPending;
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-8 pb-12">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
@@ -153,356 +259,377 @@ export default function NewTenderPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Νέος Διαγωνισμός
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Δημιουργήστε νέο φάκελο διαγωνισμού σε 2 βήματα
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 shadow-md shadow-blue-500/25">
+              <Sparkles className="h-4.5 w-4.5 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Νέος Διαγωνισμός
+            </h1>
+          </div>
+          <p className="mt-1.5 text-sm text-muted-foreground ml-[46px]">
+            Επιλέξτε πώς θέλετε να προσθέσετε τον διαγωνισμό
           </p>
         </div>
       </div>
 
-      {/* Step indicator */}
-      <div className="flex items-center gap-2">
-        {steps.map((step, idx) => {
-          const StepIcon = step.icon;
-          const isActive = step.id === currentStep;
-          const isCompleted = step.id < currentStep;
+      {/* Mode selector cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {modes.map((mode) => {
+          const Icon = mode.icon;
+          const isActive = activeMode === mode.id;
 
           return (
-            <div key={step.id} className="flex items-center gap-2">
-              {idx > 0 && (
-                <div
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => setActiveMode(isActive ? null : mode.id)}
+              className={cn(
+                'group relative flex flex-col items-center text-center rounded-2xl border p-6 cursor-pointer',
+                'bg-white/60 dark:bg-white/[0.06] backdrop-blur-xl',
+                'transition-all duration-300 ease-out',
+                'hover:shadow-lg hover:scale-[1.01]',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
+                isActive
+                  ? 'border-blue-500/50 shadow-xl shadow-blue-500/10 scale-[1.02] bg-white/80 dark:bg-white/[0.1]'
+                  : 'border-white/30 dark:border-white/10 hover:border-blue-500/20'
+              )}
+            >
+              {/* Glow effect when active */}
+              {isActive && (
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+              )}
+
+              <div
+                className={cn(
+                  'relative flex h-14 w-14 items-center justify-center rounded-xl transition-all duration-300',
+                  isActive
+                    ? 'bg-gradient-to-br from-blue-600 to-blue-500 shadow-lg shadow-blue-500/25'
+                    : 'bg-blue-500/10 group-hover:bg-blue-500/15'
+                )}
+              >
+                <Icon
                   className={cn(
-                    'h-px w-12 transition-colors duration-300',
-                    isCompleted ? 'bg-primary' : 'bg-border'
+                    'h-6 w-6 transition-colors duration-300',
+                    isActive ? 'text-white' : 'text-blue-600 dark:text-blue-400'
                   )}
                 />
-              )}
-              <div className="flex items-center gap-2">
-                <div
-                  className={cn(
-                    'flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-all duration-300',
-                    isActive &&
-                      'bg-primary text-primary-foreground shadow-md shadow-primary/25',
-                    isCompleted && 'bg-primary/10 text-primary',
-                    !isActive && !isCompleted && 'bg-muted text-muted-foreground'
-                  )}
-                >
-                  {isCompleted ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <StepIcon className="h-4 w-4" />
-                  )}
-                </div>
-                <span
-                  className={cn(
-                    'text-sm font-medium transition-colors duration-200',
-                    isActive ? 'text-foreground' : 'text-muted-foreground'
-                  )}
-                >
-                  {step.title}
-                </span>
               </div>
-            </div>
+
+              <h3
+                className={cn(
+                  'mt-4 text-sm font-semibold transition-colors duration-200',
+                  isActive ? 'text-blue-700 dark:text-blue-300' : 'text-foreground'
+                )}
+              >
+                {mode.title}
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                {mode.subtitle}
+              </p>
+
+              {/* Active indicator dot */}
+              {isActive && (
+                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-1 w-8 rounded-full bg-gradient-to-r from-blue-600 to-blue-400" />
+              )}
+            </button>
           );
         })}
       </div>
 
-      {/* Error */}
-      {submitError && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
-          {submitError}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit(onSubmit)}>
-        {/* Step 1: Basic Info */}
-        {currentStep === 1 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Βασικά στοιχεία διαγωνισμού</CardTitle>
-              <CardDescription>
-                Συμπληρώστε τις βασικές πληροφορίες του διαγωνισμού
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {/* Title */}
-              <div className="space-y-2">
-                <Label htmlFor="title">
-                  Τίτλος <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="title"
-                  placeholder="π.χ. Προμήθεια Εξοπλισμού Πληροφορικής"
-                  className={cn(errors.title && 'border-red-500/50')}
-                  {...register('title')}
-                />
-                {errors.title && (
-                  <p className="text-xs text-red-500">{errors.title.message}</p>
-                )}
+      {/* Active mode content */}
+      {activeMode && (
+        <div
+          ref={contentRef}
+          className={cn(
+            'rounded-2xl border p-6',
+            'bg-white/60 dark:bg-white/[0.06] backdrop-blur-xl',
+            'border-white/30 dark:border-white/10',
+            'shadow-lg',
+            'animate-in fade-in slide-in-from-bottom-4 duration-300'
+          )}
+        >
+          {/* ─── Discover Mode ───────────────────────────────────────────── */}
+          {activeMode === 'discover' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Radar className="h-5 w-5 text-blue-500" />
+                <h2 className="text-lg font-semibold text-foreground">
+                  Προτεινόμενοι Διαγωνισμοί
+                </h2>
               </div>
+              <p className="text-sm text-muted-foreground -mt-2">
+                Βασισμένοι στο προφίλ και τους κωδικούς CPV/ΚΑΔ της εταιρείας σας.
+              </p>
+              <Separator className="opacity-50" />
+              <DiscoveryResults onImport={handleDiscoveryImport} />
+            </div>
+          )}
 
-              {/* Reference Number */}
-              <div className="space-y-2">
-                <Label htmlFor="referenceNumber">
-                  Αριθμός Αναφοράς <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="referenceNumber"
-                  placeholder="π.χ. ΕΣΗΔΗΣ-2024-1234"
-                  className={cn(
-                    errors.referenceNumber && 'border-red-500/50'
-                  )}
-                  {...register('referenceNumber')}
-                />
-                {errors.referenceNumber && (
-                  <p className="text-xs text-red-500">
-                    {errors.referenceNumber.message}
-                  </p>
-                )}
+          {/* ─── Link Import Mode ────────────────────────────────────────── */}
+          {activeMode === 'link' && (
+            <div className="space-y-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Globe className="h-5 w-5 text-blue-500" />
+                <h2 className="text-lg font-semibold text-foreground">
+                  Εισαγωγή από Σύνδεσμο
+                </h2>
               </div>
+              <p className="text-sm text-muted-foreground -mt-3">
+                Υποστηριζόμενες πλατφόρμες: ΕΣΗΔΗΣ, ΠΡΟΜΗΘΕΥΣ, cosmoONE, ΔΙΑΥΓΕΙΑ, TED Europa
+              </p>
 
-              {/* Contracting Authority */}
-              <div className="space-y-2">
-                <Label htmlFor="contractingAuthority">
-                  Αναθέτουσα Αρχή <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="contractingAuthority"
-                  placeholder="π.χ. Δήμος Αθηναίων"
-                  className={cn(
-                    errors.contractingAuthority && 'border-red-500/50'
-                  )}
-                  {...register('contractingAuthority')}
-                />
-                {errors.contractingAuthority && (
-                  <p className="text-xs text-red-500">
-                    {errors.contractingAuthority.message}
-                  </p>
-                )}
-              </div>
+              <Separator className="opacity-50" />
 
-              {/* Platform & Budget Row */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>
-                    Πλατφόρμα <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    value={platformValue}
-                    onValueChange={(val) => setValue('platform', val, { shouldValidate: true })}
-                  >
-                    <SelectTrigger
+              {/* URL input */}
+              <div className="space-y-3">
+                <div className="relative">
+                  <ClipboardPaste className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="https://promitheas.gov.gr/..."
+                    value={url}
+                    onChange={(e) => {
+                      setUrl(e.target.value);
+                      setUrlError(null);
+                    }}
+                    disabled={urlImporting}
+                    className={cn(
+                      'pl-10 pr-4 h-11',
+                      'bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm',
+                      'border-white/30 dark:border-white/10',
+                      urlError && 'border-red-500/50 focus-visible:ring-red-500'
+                    )}
+                  />
+                </div>
+
+                {/* Platform badge */}
+                {detectedPlatform && !urlImporting && (
+                  <div className="flex items-center gap-2">
+                    <Badge
                       className={cn(
-                        errors.platform && 'border-red-500/50'
+                        'text-[11px] font-semibold border animate-in fade-in zoom-in-95 duration-200',
+                        detectedPlatform.color
                       )}
                     >
-                      <SelectValue placeholder="Επιλέξτε..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ESIDIS">ΕΣΗΔΗΣ</SelectItem>
-                      <SelectItem value="KIMDIS">ΚΗΜΔΗΣ</SelectItem>
-                      <SelectItem value="PROMITHEUS">ΠΡΟΜΗΘΕΥΣ</SelectItem>
-                      <SelectItem value="OTHER">Άλλο</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.platform && (
-                    <p className="text-xs text-red-500">
-                      {errors.platform.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="budget">Προϋπολογισμός</Label>
-                  <Input
-                    id="budget"
-                    type="number"
-                    step="0.01"
-                    placeholder="π.χ. 250000"
-                    {...register('budget')}
-                  />
-                </div>
-              </div>
-
-              {/* Deadline & Award Criteria Row */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="submissionDeadline">
-                    Ημ/νία Υποβολής <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="submissionDeadline"
-                    type="date"
-                    className={cn(
-                      errors.submissionDeadline && 'border-red-500/50'
-                    )}
-                    {...register('submissionDeadline')}
-                  />
-                  {errors.submissionDeadline && (
-                    <p className="text-xs text-red-500">
-                      {errors.submissionDeadline.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Κριτήρια Ανάθεσης</Label>
-                  <Select
-                    value={awardCriteriaValue}
-                    onValueChange={(val) => setValue('awardCriteria', val)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Επιλέξτε..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LOWEST_PRICE">
-                        Χαμηλότερη τιμή
-                      </SelectItem>
-                      <SelectItem value="BEST_VALUE">
-                        Βέλτιστη σχέση ποιότητας-τιμής
-                      </SelectItem>
-                      <SelectItem value="TECHNICAL_QUALITY">
-                        Τεχνική ποιότητα
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Next Button */}
-              <div className="flex justify-end pt-2">
-                <Button
-                  type="button"
-                  onClick={goToNextStep}
-                  className={cn(
-                    'cursor-pointer',
-                    'bg-gradient-to-r from-indigo-600 to-violet-600',
-                    'hover:from-indigo-500 hover:to-violet-500',
-                    'border-0 text-white'
-                  )}
-                >
-                  Επόμενο
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 2: File Upload */}
-        {currentStep === 2 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Αρχεία προδιαγραφών</CardTitle>
-              <CardDescription>
-                Ανεβάστε τα αρχεία της διακήρυξης για AI ανάλυση απαιτήσεων
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {/* Dropzone */}
-              <div
-                {...getRootProps()}
-                className={cn(
-                  'relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 transition-all duration-200 cursor-pointer',
-                  isDragActive
-                    ? 'border-primary bg-primary/5'
-                    : 'border-muted-foreground/20 hover:border-primary/40 hover:bg-accent/30'
+                      {detectedPlatform.label}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      Αναγνωρίστηκε πλατφόρμα
+                    </span>
+                  </div>
                 )}
-              >
-                <input {...getInputProps()} />
-                <div
-                  className={cn(
-                    'flex h-14 w-14 items-center justify-center rounded-xl transition-colors duration-200',
-                    isDragActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'bg-muted text-muted-foreground'
-                  )}
-                >
-                  <Upload className="h-7 w-7" />
-                </div>
-                <p className="mt-4 text-sm font-medium">
-                  {isDragActive
-                    ? 'Αφήστε τα αρχεία εδώ...'
-                    : 'Σύρτε αρχεία ή κάντε κλικ για επιλογή'}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  PDF, DOC, DOCX, XLS, XLSX
-                </p>
-              </div>
 
-              {/* File list */}
-              {files.length > 0 && (
-                <div className="space-y-2">
-                  {files.map((file, idx) => (
-                    <div
-                      key={`${file.name}-${idx}`}
-                      className="flex items-center justify-between rounded-lg border bg-card p-3"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                          <FileText className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">
-                            {file.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {(file.size / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                        </div>
+                {/* Error */}
+                {urlError && (
+                  <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {urlError}
+                  </div>
+                )}
+
+                {/* Progress steps */}
+                {urlImporting && urlSteps.length > 0 && (
+                  <div className="space-y-2.5 rounded-xl bg-muted/30 backdrop-blur-sm p-4 border border-white/10">
+                    {urlSteps.map((step, idx) => (
+                      <div key={idx} className="flex items-center gap-3">
+                        {step.status === 'done' && (
+                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20">
+                            <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                          </div>
+                        )}
+                        {step.status === 'active' && (
+                          <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+                        )}
+                        {step.status === 'pending' && (
+                          <div className="h-5 w-5 rounded-full border border-muted-foreground/20" />
+                        )}
+                        <span
+                          className={cn(
+                            'text-sm transition-colors',
+                            step.status === 'done' && 'text-muted-foreground line-through',
+                            step.status === 'active' && 'text-foreground font-medium',
+                            step.status === 'pending' && 'text-muted-foreground/60'
+                          )}
+                        >
+                          {step.label}
+                        </span>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeFile(idx)}
-                        className="h-8 w-8 shrink-0 cursor-pointer text-muted-foreground hover:text-destructive"
+                    ))}
+                  </div>
+                )}
+
+                {/* Submit */}
+                {!urlImporting && (
+                  <Button
+                    onClick={handleUrlImport}
+                    disabled={!url.trim()}
+                    className={cn(
+                      'w-full h-11 cursor-pointer',
+                      'bg-gradient-to-r from-blue-700 to-blue-500',
+                      'hover:from-blue-600 hover:to-blue-400',
+                      'shadow-lg shadow-blue-500/20',
+                      'border-0 text-white font-medium',
+                      'disabled:opacity-40 disabled:cursor-not-allowed'
+                    )}
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Εισαγωγή & Ανάλυση
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ─── File Upload Mode ────────────────────────────────────────── */}
+          {activeMode === 'upload' && (
+            <div className="space-y-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Upload className="h-5 w-5 text-blue-500" />
+                <h2 className="text-lg font-semibold text-foreground">
+                  Μεταφόρτωση Αρχείων
+                </h2>
+              </div>
+              <p className="text-sm text-muted-foreground -mt-3">
+                Ανεβάστε αρχεία διακήρυξης για AI ανάλυση και αυτόματη εξαγωγή στοιχείων.
+              </p>
+
+              <Separator className="opacity-50" />
+
+              {!fileImporting && (
+                <>
+                  {/* Dropzone */}
+                  <div
+                    {...getRootProps()}
+                    className={cn(
+                      'relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 transition-all duration-200 cursor-pointer',
+                      isDragActive
+                        ? 'border-blue-500 bg-blue-500/5 shadow-inner'
+                        : 'border-muted-foreground/20 hover:border-blue-500/40 hover:bg-blue-500/[0.02]'
+                    )}
+                  >
+                    <input {...getInputProps()} />
+                    <div
+                      className={cn(
+                        'flex h-16 w-16 items-center justify-center rounded-2xl transition-all duration-200',
+                        isDragActive
+                          ? 'bg-blue-500/15 text-blue-600 scale-110'
+                          : 'bg-muted/60 text-muted-foreground'
+                      )}
+                    >
+                      <Upload className="h-7 w-7" />
+                    </div>
+                    <p className="mt-4 text-sm font-medium text-foreground">
+                      {isDragActive
+                        ? 'Αφήστε τα αρχεία εδώ...'
+                        : 'Σύρετε αρχεία ή κάντε κλικ για επιλογή'}
+                    </p>
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      PDF, DOC, DOCX, XLS, XLSX, ZIP
+                    </p>
+                  </div>
+
+                  {/* File list */}
+                  {files.length > 0 && (
+                    <div className="space-y-2">
+                      {files.map((file, idx) => (
+                        <div
+                          key={`${file.name}-${idx}`}
+                          className={cn(
+                            'flex items-center justify-between rounded-xl border p-3',
+                            'bg-white/40 dark:bg-white/[0.04] backdrop-blur-sm',
+                            'border-white/30 dark:border-white/10'
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
+                              <FileText className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {file.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {fileSize(file.size)}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeFile(idx)}
+                            className="h-8 w-8 shrink-0 cursor-pointer text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Error */}
+              {fileError && (
+                <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {fileError}
+                </div>
+              )}
+
+              {/* Progress steps */}
+              {fileImporting && fileSteps.length > 0 && (
+                <div className="space-y-2.5 rounded-xl bg-muted/30 backdrop-blur-sm p-4 border border-white/10">
+                  {fileSteps.map((step, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      {step.status === 'done' && (
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20">
+                          <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                      )}
+                      {step.status === 'active' && (
+                        <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+                      )}
+                      {step.status === 'pending' && (
+                        <div className="h-5 w-5 rounded-full border border-muted-foreground/20" />
+                      )}
+                      <span
+                        className={cn(
+                          'text-sm transition-colors',
+                          step.status === 'done' && 'text-muted-foreground line-through',
+                          step.status === 'active' && 'text-foreground font-medium',
+                          step.status === 'pending' && 'text-muted-foreground/60'
+                        )}
                       >
-                        <X className="h-4 w-4" />
-                      </Button>
+                        {step.label}
+                      </span>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="flex justify-between pt-2">
+              {/* Submit */}
+              {!fileImporting && (
                 <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setCurrentStep(1)}
-                  className="cursor-pointer"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Πίσω
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading}
+                  onClick={handleFileImport}
+                  disabled={files.length === 0}
                   className={cn(
-                    'cursor-pointer',
-                    'bg-gradient-to-r from-indigo-600 to-violet-600',
-                    'hover:from-indigo-500 hover:to-violet-500',
-                    'shadow-lg shadow-indigo-500/25',
-                    'border-0 text-white'
+                    'w-full h-11 cursor-pointer',
+                    'bg-gradient-to-r from-blue-700 to-blue-500',
+                    'hover:from-blue-600 hover:to-blue-400',
+                    'shadow-lg shadow-blue-500/20',
+                    'border-0 text-white font-medium',
+                    'disabled:opacity-40 disabled:cursor-not-allowed'
                   )}
                 >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      Δημιουργία
-                      <Check className="h-4 w-4" />
-                    </>
-                  )}
+                  <Sparkles className="h-4 w-4" />
+                  Ανάλυση & Δημιουργία
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </form>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
