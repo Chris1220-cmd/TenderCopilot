@@ -72,9 +72,9 @@ function FormField({
   className?: string;
 }) {
   return (
-    <div className={cn('space-y-2', className)}>
-      <Label className="flex items-center gap-1.5 text-sm font-medium">
-        {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground" />}
+    <div className={cn('space-y-2', error && '[&_input]:border-destructive [&_input]:ring-destructive/20 [&_textarea]:border-destructive [&_textarea]:ring-destructive/20', className)}>
+      <Label className={cn('flex items-center gap-1.5 text-sm font-medium', error && 'text-destructive')}>
+        {Icon && <Icon className={cn('h-3.5 w-3.5', error ? 'text-destructive' : 'text-muted-foreground')} />}
         {label}
       </Label>
       {children}
@@ -83,8 +83,7 @@ function FormField({
   );
 }
 
-// Mock data for graceful fallback
-const mockProfile: ProfileFormValues = {
+const emptyProfile: ProfileFormValues = {
   legalName: '',
   tradeName: '',
   taxId: '',
@@ -118,10 +117,10 @@ export function ProfileForm() {
         description: 'Το προφίλ ενημερώθηκε επιτυχώς.',
       });
     },
-    onError: () => {
+    onError: (err) => {
       toast({
         title: 'Σφάλμα',
-        description: 'Αποτυχία αποθήκευσης. Δοκιμάστε ξανά.',
+        description: err.message || 'Αποτυχία αποθήκευσης. Δοκιμάστε ξανά.',
         variant: 'destructive',
       });
     },
@@ -134,7 +133,7 @@ export function ProfileForm() {
     formState: { errors, isDirty },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: mockProfile,
+    defaultValues: emptyProfile,
   });
 
   useEffect(() => {
@@ -148,7 +147,20 @@ export function ProfileForm() {
   }, [profileQuery.data, reset]);
 
   const onSubmit = (data: ProfileFormValues) => {
-    updateMutation.mutate(data as any);
+    // Transform data for API: kadCodes string → array, empty strings → null
+    const payload = {
+      ...data,
+      tradeName: data.tradeName || null,
+      registrationNumber: data.registrationNumber || null,
+      website: data.website || null,
+      legalRepTitle: data.legalRepTitle || null,
+      legalRepIdNumber: data.legalRepIdNumber || null,
+      description: data.description || null,
+      kadCodes: data.kadCodes
+        ? data.kadCodes.split(',').map((s) => s.trim()).filter(Boolean)
+        : undefined,
+    };
+    updateMutation.mutate(payload as any);
   };
 
   if (profileQuery.isLoading) {

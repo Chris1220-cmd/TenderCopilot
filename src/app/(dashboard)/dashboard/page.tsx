@@ -203,59 +203,18 @@ export default function DashboardPage() {
     (countByStatus['IN_PROGRESS'] ?? 0) +
     (countByStatus['DISCOVERY'] ?? 0) +
     (countByStatus['GO_NO_GO'] ?? 0);
-  const pendingTasks = tenderStats.data?.totalTenders
-    ? tenderStats.data.totalTenders - (countByStatus['WON'] ?? 0) - (countByStatus['LOST'] ?? 0) - (countByStatus['SUBMITTED'] ?? 0)
-    : 28;
-  const complianceScore = Math.round(tenderStats.data?.avgComplianceScore ?? 87);
-  const upcomingDeadlinesCount = tenderStats.data?.upcomingDeadlines ?? 5;
+  const pendingTasks =
+    tenderStats.data?.totalTenders != null
+      ? tenderStats.data.totalTenders - (countByStatus['WON'] ?? 0) - (countByStatus['LOST'] ?? 0) - (countByStatus['SUBMITTED'] ?? 0)
+      : 0;
+  const complianceScore = Math.round(tenderStats.data?.avgComplianceScore ?? 0);
+  const upcomingDeadlinesCount = tenderStats.data?.upcomingDeadlines ?? 0;
 
   const recentTenders = useMemo(() => {
     if (tendersQuery.data && Array.isArray(tendersQuery.data)) {
       return tendersQuery.data.slice(0, 5);
     }
-    // Fallback mock data
-    return [
-      {
-        id: '1',
-        title: 'Προμηθεια Εξοπλισμου Πληροφορικης',
-        referenceNumber: 'ΕΣΗΔΗΣ-2024-1234',
-        status: 'IN_PROGRESS',
-        complianceScore: 72,
-        submissionDeadline: '2026-04-15',
-      },
-      {
-        id: '2',
-        title: 'Αναπτυξη Λογισμικου ERP',
-        referenceNumber: 'ΕΣΗΔΗΣ-2024-5678',
-        status: 'DRAFT',
-        complianceScore: 45,
-        submissionDeadline: '2026-04-22',
-      },
-      {
-        id: '3',
-        title: 'Υπηρεσιες Συμβουλων Διοικησης',
-        referenceNumber: 'ΚΗΜΔΗΣ-2024-9012',
-        status: 'SUBMITTED',
-        complianceScore: 95,
-        submissionDeadline: '2026-03-28',
-      },
-      {
-        id: '4',
-        title: 'Προμηθεια Οχηματων',
-        referenceNumber: 'ΕΣΗΔΗΣ-2024-3456',
-        status: 'IN_PROGRESS',
-        complianceScore: 60,
-        submissionDeadline: '2026-04-10',
-      },
-      {
-        id: '5',
-        title: 'Συντηρηση Κτιριακων Εγκαταστασεων',
-        referenceNumber: 'ΕΣΗΔΗΣ-2024-7890',
-        status: 'DRAFT',
-        complianceScore: 30,
-        submissionDeadline: '2026-05-01',
-      },
-    ];
+    return [];
   }, [tendersQuery.data]);
 
   const upcomingDeadlines = useMemo(() => {
@@ -487,6 +446,11 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-2">
+                {recentTenders.length === 0 && (
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    Δεν υπαρχουν διαγωνισμοι ακομα. Δημιουργηστε τον πρωτο σας!
+                  </div>
+                )}
                 {recentTenders.map((tender: any) => {
                   const status =
                     statusMap[tender.status] || statusMap.DRAFT;
