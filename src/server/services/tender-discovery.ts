@@ -161,22 +161,43 @@ async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTen
     return decisions
       .filter((d: any) => d.subject && d.subject.length > 10)
       .slice(0, 15)
-      .map((d: any) => ({
-        title: d.subject || 'Χωρίς τίτλο',
-        referenceNumber: d.ada || d.protocolNumber || '',
-        contractingAuthority: d.organizationLabel || d.unitLabel || 'Άγνωστος φορέας',
-        platform: 'DIAVGEIA' as const,
-        budget: d.extraFieldValues?.amount?.amount
-          ? parseFloat(d.extraFieldValues.amount.amount)
-          : undefined,
-        submissionDeadline: undefined, // Diavgeia doesn't always have this
-        cpvCodes: d.extraFieldValues?.cpv
-          ? (Array.isArray(d.extraFieldValues.cpv) ? d.extraFieldValues.cpv : [d.extraFieldValues.cpv])
-          : [],
-        sourceUrl: `https://diavgeia.gov.gr/decision/view/${d.ada}`,
-        summary: d.subject,
-        publishedAt: d.issueDate ? new Date(d.issueDate) : new Date(),
-      }));
+      .map((d: any) => {
+        // Extract organization name from extraFieldValues.org or top-level fields
+        const orgName =
+          d.extraFieldValues?.org?.name ||
+          d.organizationLabel ||
+          d.unitLabel ||
+          'Άγνωστος φορέας';
+
+        // Extract budget from sponsor expenses
+        const sponsors = d.extraFieldValues?.sponsor;
+        let budget: number | undefined;
+        if (Array.isArray(sponsors) && sponsors.length > 0) {
+          const amount = sponsors[0]?.expenseAmount?.amount;
+          if (amount) budget = parseFloat(amount);
+        } else if (d.extraFieldValues?.amount?.amount) {
+          budget = parseFloat(d.extraFieldValues.amount.amount);
+        }
+
+        // CPV codes
+        const cpvRaw = d.extraFieldValues?.cpv;
+        const cpvCodes = cpvRaw
+          ? (Array.isArray(cpvRaw) ? cpvRaw : [cpvRaw])
+          : [];
+
+        return {
+          title: d.subject || 'Χωρίς τίτλο',
+          referenceNumber: d.ada || d.protocolNumber || '',
+          contractingAuthority: orgName,
+          platform: 'DIAVGEIA' as const,
+          budget,
+          submissionDeadline: undefined,
+          cpvCodes,
+          sourceUrl: `https://diavgeia.gov.gr/decision/view/${d.ada}`,
+          summary: d.subject,
+          publishedAt: d.issueDate ? new Date(d.issueDate) : new Date(),
+        };
+      });
   } catch (err) {
     console.error('[Diavgeia] Fetch error:', err);
     return [];

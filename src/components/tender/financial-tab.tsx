@@ -261,7 +261,7 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
           )}
         </GlassCardHeader>
         <GlassCardContent className="px-0">
-          {data && data.eligibility.checks.length > 0 ? (
+          {data?.eligibility?.checks && data.eligibility.checks.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -318,7 +318,7 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
           <TrendingUp className="h-4 w-4 text-blue-500" />
           Σενάρια Τιμολόγησης
         </h3>
-        {data && data.scenarios.length > 0 ? (
+        {data?.scenarios && data.scenarios.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-3">
             {data.scenarios.map((scenario) => {
               const cfg = scenarioConfig[scenario.type];
@@ -432,7 +432,7 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
           )}
         </GlassCardHeader>
         <GlassCardContent>
-          {data && data.riskFactors.length > 0 ? (
+          {data?.riskFactors && data.riskFactors.length > 0 ? (
             <div className="space-y-3">
               {/* Overall Risk Bar */}
               <div className={cn('h-2.5 w-full rounded-full overflow-hidden', getBarBg(data.riskScore))}>
