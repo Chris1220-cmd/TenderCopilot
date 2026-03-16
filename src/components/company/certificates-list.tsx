@@ -133,7 +133,7 @@ export function CertificatesList() {
     },
   });
 
-  const certs = (certsQuery.data ?? mockCertificates) as any[];
+  const certs = (certsQuery.data ?? []) as any[];
 
   const {
     register,

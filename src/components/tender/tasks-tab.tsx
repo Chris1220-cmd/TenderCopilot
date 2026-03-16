@@ -121,7 +121,7 @@ export function TasksTab({ tenderId }: TasksTabProps) {
     },
   });
 
-  const tasks = (tasksQuery.data ?? mockTasks) as any[];
+  const tasks = (tasksQuery.data ?? []) as any[];
 
   const resetForm = () => {
     setFormTitle('');

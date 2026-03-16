@@ -124,7 +124,7 @@ export function ProjectsList() {
     },
   });
 
-  const projects = (projectsQuery.data ?? mockProjects) as any[];
+  const projects = (projectsQuery.data ?? []) as any[];
 
   const {
     register,

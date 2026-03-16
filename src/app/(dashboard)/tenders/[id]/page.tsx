@@ -131,7 +131,7 @@ export default function TenderDetailPage() {
     },
   });
 
-  const tender = (tenderQuery.data as any) ?? mockTender;
+  const tender = (tenderQuery.data as any) ?? null;
   const isLoading = tenderQuery.isLoading;
 
   // Stats

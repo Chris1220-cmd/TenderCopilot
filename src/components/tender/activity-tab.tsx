@@ -145,7 +145,7 @@ export function ActivityTab({ tenderId }: ActivityTabProps) {
     { retry: false }
   );
 
-  const activities = (timelineQuery.data ?? mockActivities) as any[];
+  const activities = (timelineQuery.data ?? []) as any[];
 
   if (timelineQuery.isLoading) {
     return (

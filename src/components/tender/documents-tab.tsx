@@ -117,8 +117,8 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
     onSuccess: () => utils.document.listGenerated.invalidate({ tenderId }),
   });
 
-  const attached = (attachedQuery.data ?? mockAttached) as any[];
-  const generated = (generatedQuery.data ?? mockGenerated) as any[];
+  const attached = (attachedQuery.data ?? []) as any[];
+  const generated = (generatedQuery.data ?? []) as any[];
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();

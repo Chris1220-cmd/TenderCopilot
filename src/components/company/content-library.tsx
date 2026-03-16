@@ -136,7 +136,7 @@ export function ContentLibrary() {
     },
   });
 
-  const items = (contentQuery.data ?? mockContent) as any[];
+  const items = (contentQuery.data ?? []) as any[];
 
   // Filter
   const filteredItems = items.filter((item) => {

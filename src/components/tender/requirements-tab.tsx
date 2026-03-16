@@ -183,7 +183,7 @@ export function RequirementsTab({ tenderId }: RequirementsTabProps) {
     },
   ];
 
-  const requirements = (requirementsQuery.data ?? mockRequirements) as any[];
+  const requirements = (requirementsQuery.data ?? []) as any[];
 
   // Client-side filtering for search + mandatory
   const filtered = useMemo(() => {

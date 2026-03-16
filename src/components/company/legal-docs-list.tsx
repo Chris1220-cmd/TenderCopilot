@@ -146,7 +146,7 @@ export function LegalDocsList() {
     },
   });
 
-  const docs = (docsQuery.data ?? mockDocs) as any[];
+  const docs = (docsQuery.data ?? []) as any[];
 
   const {
     register,

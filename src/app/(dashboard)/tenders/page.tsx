@@ -147,7 +147,7 @@ export default function TendersPage() {
     refetchOnWindowFocus: false,
   });
 
-  const tenders = (tendersQuery.data ?? mockTenders) as any[];
+  const tenders = (tendersQuery.data ?? []) as any[];
 
   // Apply filters
   const filteredTenders = tenders.filter((tender) => {
