@@ -71,52 +71,6 @@ const defaultAction = {
   bgColor: 'bg-gray-500/10',
 };
 
-// Mock data
-const mockActivities = [
-  {
-    id: 'act-1',
-    action: 'uploaded_document',
-    details: 'Ανέβασμα εγγράφου "Διακήρυξη_2024-1234.pdf"',
-    createdAt: '2026-03-15T14:30:00Z',
-    user: { id: 'u1', name: 'Μαρία Κ.', email: 'maria@test.com', image: null },
-  },
-  {
-    id: 'act-2',
-    action: 'requirement_mapped',
-    details: 'Αντιστοίχιση: Φορολογική ενημερότητα -> ISO 9001 πιστοποιητικό',
-    createdAt: '2026-03-15T12:15:00Z',
-    user: { id: 'u2', name: 'Γιάννης Π.', email: 'giannis@test.com', image: null },
-  },
-  {
-    id: 'act-3',
-    action: 'task_created',
-    details: 'Δημιουργία εργασίας: "Ανανέωση ISO 9001"',
-    createdAt: '2026-03-14T16:45:00Z',
-    user: { id: 'u1', name: 'Μαρία Κ.', email: 'maria@test.com', image: null },
-  },
-  {
-    id: 'act-4',
-    action: 'document_generated',
-    details: 'AI δημιουργία εγγράφου: "Υπεύθυνη Δήλωση - Ν.1599/1986"',
-    createdAt: '2026-03-14T10:20:00Z',
-    user: { id: 'u2', name: 'Γιάννης Π.', email: 'giannis@test.com', image: null },
-  },
-  {
-    id: 'act-5',
-    action: 'status_changed',
-    details: 'Αλλαγή κατάστασης: DISCOVERY -> IN_PROGRESS',
-    createdAt: '2026-03-13T09:00:00Z',
-    user: { id: 'u1', name: 'Μαρία Κ.', email: 'maria@test.com', image: null },
-  },
-  {
-    id: 'act-6',
-    action: 'compliance_check',
-    details: 'Εκτέλεση ελέγχου συμμόρφωσης - Αποτέλεσμα: 72%',
-    createdAt: '2026-03-12T15:30:00Z',
-    user: null,
-  },
-];
-
 function formatTimestamp(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -172,7 +126,7 @@ export function ActivityTab({ tenderId }: ActivityTabProps) {
           </div>
           <h3 className="mt-4 text-base font-semibold">Χωρίς δραστηριότητα</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Δεν υπάρχει ακόμα ιστορικό ενεργειών για αυτόν τον διαγωνισμό.
+            Δεν υπάρχει δραστηριότητα ακόμα.
           </p>
         </CardContent>
       </Card>

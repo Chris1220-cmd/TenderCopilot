@@ -75,92 +75,6 @@ interface ScoreCriterion {
   estimatedScore: number;
 }
 
-// ─── Mock Data ────────────────────────────────────────────────
-const mockSections: ProposalSection[] = [
-  {
-    id: 'sec-1',
-    order: 1,
-    title: 'Κατανόηση Αντικειμένου & Μεθοδολογία',
-    status: 'AI_DRAFT',
-    content: '## Κατανόηση Αντικειμένου\n\nΗ εταιρεία μας κατανοεί πλήρως τις ανάγκες του Δήμου Αθηναίων για εκσυγχρονισμό του πληροφοριακού εξοπλισμού. Η προτεινόμενη λύση περιλαμβάνει:\n\n- **Σταθμούς εργασίας** τελευταίας γενιάς με Intel i7 / 16GB RAM\n- **Servers** Dell PowerEdge R750 με redundancy\n- **Δικτυακό εξοπλισμό** Cisco Catalyst για enterprise networking\n\n### Μεθοδολογία Υλοποίησης\n\nΗ υλοποίηση θα ακολουθήσει μεθοδολογία Prince2 με τέσσερις φάσεις:\n\n1. **Φάση 1: Σχεδιασμός** (2 εβδομάδες)\n2. **Φάση 2: Προμήθεια** (4 εβδομάδες)\n3. **Φάση 3: Εγκατάσταση** (4 εβδομάδες)\n4. **Φάση 4: Παράδοση & Εκπαίδευση** (2 εβδομάδες)',
-  },
-  {
-    id: 'sec-2',
-    order: 2,
-    title: 'Τεχνικές Προδιαγραφές Εξοπλισμού',
-    status: 'HUMAN_EDITING',
-    content: '## Τεχνικές Προδιαγραφές\n\n### Σταθμοί Εργασίας (50 τεμ.)\n- Επεξεργαστής: Intel Core i7-13700 ή ανώτερος\n- Μνήμη: 16GB DDR5\n- Αποθηκευτικός χώρος: 512GB NVMe SSD\n- Οθόνη: 24" IPS Full HD\n\n### Servers (3 τεμ.)\n- Dell PowerEdge R750\n- Dual Xeon Gold 6326\n- 128GB ECC DDR5\n- RAID 10 SAS',
-  },
-  {
-    id: 'sec-3',
-    order: 3,
-    title: 'Χρονοδιάγραμμα Υλοποίησης',
-    status: 'REVIEWED',
-    content: '## Χρονοδιάγραμμα\n\nΣυνολική διάρκεια: 12 εβδομάδες\n\n| Φάση | Διάρκεια | Παραδοτέα |\n|------|----------|----------|\n| Σχεδιασμός | 2 εβδ. | Project Plan |\n| Προμήθεια | 4 εβδ. | Εξοπλισμός |\n| Εγκατάσταση | 4 εβδ. | Setup |\n| Παράδοση | 2 εβδ. | Handover |',
-  },
-  {
-    id: 'sec-4',
-    order: 4,
-    title: 'Ομάδα Έργου & Εμπειρία',
-    status: 'APPROVED',
-    content: '## Ομάδα Έργου\n\nΗ ομάδα αποτελείται από 6 ειδικούς:\n\n- **Project Manager** - 10+ έτη εμπειρίας\n- **Network Engineer** - Cisco CCNP\n- **Systems Administrator** - Microsoft MCSE\n- **2x Τεχνικοί Εγκατάστασης**\n- **Help Desk Support**',
-  },
-  {
-    id: 'sec-5',
-    order: 5,
-    title: 'Εγγυήσεις & Υποστήριξη',
-    status: 'AI_DRAFT',
-    content: '## Εγγυήσεις\n\n- Εγγύηση εξοπλισμού: 36 μήνες\n- SLA 99.5% uptime\n- Response time: 4 ώρες\n- On-site support: Εντός 24 ωρών',
-  },
-];
-
-const mockRisks: TechRisk[] = [
-  {
-    id: 'tr-1',
-    riskLevel: 'HIGH',
-    title: 'Καθυστέρηση Παράδοσης Εξοπλισμού',
-    description: 'Λόγω παγκόσμιων ελλείψεων, πιθανή καθυστέρηση 2-4 εβδομάδες στην παράδοση servers.',
-    mitigation: 'Προ-παραγγελία εξοπλισμού αμέσως μετά την ανάθεση. Εναλλακτικοί προμηθευτές σε standby.',
-  },
-  {
-    id: 'tr-2',
-    riskLevel: 'MEDIUM',
-    title: 'Συμβατότητα Δικτυακού Εξοπλισμού',
-    description: 'Ο υπάρχων εξοπλισμός του Δήμου μπορεί να μην είναι πλήρως συμβατός.',
-    mitigation: 'Αναλυτικό site survey πριν την εγκατάσταση. Adapters και protocol converters σε απόθεμα.',
-  },
-  {
-    id: 'tr-3',
-    riskLevel: 'LOW',
-    title: 'Εκπαίδευση Χρηστών',
-    description: 'Πιθανή αντίσταση χρηστών στη νέα τεχνολογία.',
-    mitigation: 'Πρόγραμμα εκπαίδευσης σε 3 στάδια. Help desk support για 3 μήνες μετά το deployment.',
-  },
-  {
-    id: 'tr-4',
-    riskLevel: 'CRITICAL',
-    title: 'Data Migration',
-    description: 'Μεταφορά δεδομένων από legacy συστήματα ενέχει κίνδυνο απώλειας δεδομένων.',
-    mitigation: 'Full backup πριν τη μετάκληση. Δοκιμαστική μεταφορά σε staging environment. Rollback plan.',
-  },
-];
-
-const mockTeam: TeamRequirement[] = [
-  { id: 'tm-1', role: 'Project Manager', qualifications: 'PMP ή Prince2 Practitioner', experienceYears: 8, count: 1, mappedStaff: 'Γ. Παπαδόπουλος', status: 'MAPPED' },
-  { id: 'tm-2', role: 'Network Engineer', qualifications: 'Cisco CCNP ή ανώτερο', experienceYears: 5, count: 1, mappedStaff: 'Α. Νικολάου', status: 'MAPPED' },
-  { id: 'tm-3', role: 'Systems Administrator', qualifications: 'Microsoft MCSE, VMware VCP', experienceYears: 5, count: 1, mappedStaff: null, status: 'UNMAPPED' },
-  { id: 'tm-4', role: 'Τεχνικός Εγκατάστασης', qualifications: 'CompTIA A+', experienceYears: 2, count: 2, mappedStaff: 'Κ. Δημητρίου (1/2)', status: 'PARTIAL' },
-  { id: 'tm-5', role: 'Help Desk Support', qualifications: 'ITIL Foundation', experienceYears: 2, count: 1, mappedStaff: 'Μ. Αλεξίου', status: 'MAPPED' },
-];
-
-const mockScoreCriteria: ScoreCriterion[] = [
-  { name: 'Μεθοδολογία', maxScore: 30, estimatedScore: 24 },
-  { name: 'Τεχνικές Προδιαγραφές', maxScore: 25, estimatedScore: 22 },
-  { name: 'Ομάδα Έργου', maxScore: 20, estimatedScore: 15 },
-  { name: 'Χρονοδιάγραμμα', maxScore: 15, estimatedScore: 13 },
-  { name: 'Εγγυήσεις & Υποστήριξη', maxScore: 10, estimatedScore: 8 },
-];
-
 // ─── Status Config ────────────────────────────────────────────
 const sectionStatusConfig: Record<SectionStatus, { label: string; bg: string; text: string; border: string }> = {
   AI_DRAFT: {
@@ -208,10 +122,10 @@ interface TechnicalTabEnhancedProps {
 }
 
 export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
-  const [sections, setSections] = useState<ProposalSection[]>(mockSections);
-  const [risks, setRisks] = useState<TechRisk[]>(mockRisks);
-  const [team, setTeam] = useState<TeamRequirement[]>(mockTeam);
-  const [scoreCriteria, setScoreCriteria] = useState<ScoreCriterion[]>(mockScoreCriteria);
+  const [sections, setSections] = useState<ProposalSection[]>([]);
+  const [risks, setRisks] = useState<TechRisk[]>([]);
+  const [team, setTeam] = useState<TeamRequirement[]>([]);
+  const [scoreCriteria, setScoreCriteria] = useState<ScoreCriterion[]>([]);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -355,6 +269,7 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
+          {sections.length > 0 ? (
           <div className="space-y-2">
             {sections
               .sort((a, b) => a.order - b.order)
@@ -487,6 +402,11 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
                 );
               })}
           </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-6">
+              Δεν υπάρχουν δεδομένα ακόμα. Εκτελέστε ανάλυση AI.
+            </p>
+          )}
         </GlassCardContent>
       </GlassCard>
 
@@ -502,47 +422,53 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
-          <div className="space-y-3">
-            {risks.map((risk) => {
-              const cfg = riskConfig[risk.riskLevel];
-              return (
-                <div
-                  key={risk.id}
-                  className={cn(
-                    'rounded-xl border p-4',
-                    'bg-white/40 dark:bg-white/[0.03]',
-                    'border-white/30 dark:border-white/10',
-                    'transition-all duration-200',
-                    'hover:border-orange-300/30 dark:hover:border-orange-500/15'
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className={cn('mt-0.5 h-2.5 w-2.5 rounded-full shrink-0', cfg.dot)} />
-                    <div className="flex-1 min-w-0 space-y-1.5">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-foreground">{risk.title}</span>
-                        <Badge
-                          variant="outline"
-                          className={cn('text-[10px] font-semibold', cfg.bg, cfg.text, cfg.border)}
-                        >
-                          {cfg.label}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {risk.description}
-                      </p>
-                      <div className="flex items-start gap-1.5 mt-1">
-                        <Shield className="h-3 w-3 text-blue-500 mt-0.5 shrink-0" />
-                        <p className="text-xs text-blue-600 dark:text-blue-400">
-                          <span className="font-semibold">Αντιμετώπιση:</span> {risk.mitigation}
+          {risks.length > 0 ? (
+            <div className="space-y-3">
+              {risks.map((risk) => {
+                const cfg = riskConfig[risk.riskLevel];
+                return (
+                  <div
+                    key={risk.id}
+                    className={cn(
+                      'rounded-xl border p-4',
+                      'bg-white/40 dark:bg-white/[0.03]',
+                      'border-white/30 dark:border-white/10',
+                      'transition-all duration-200',
+                      'hover:border-orange-300/30 dark:hover:border-orange-500/15'
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className={cn('mt-0.5 h-2.5 w-2.5 rounded-full shrink-0', cfg.dot)} />
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold text-foreground">{risk.title}</span>
+                          <Badge
+                            variant="outline"
+                            className={cn('text-[10px] font-semibold', cfg.bg, cfg.text, cfg.border)}
+                          >
+                            {cfg.label}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {risk.description}
                         </p>
+                        <div className="flex items-start gap-1.5 mt-1">
+                          <Shield className="h-3 w-3 text-blue-500 mt-0.5 shrink-0" />
+                          <p className="text-xs text-blue-600 dark:text-blue-400">
+                            <span className="font-semibold">Αντιμετώπιση:</span> {risk.mitigation}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-6">
+              Δεν υπάρχουν δεδομένα ακόμα. Εκτελέστε ανάλυση AI.
+            </p>
+          )}
         </GlassCardContent>
       </GlassCard>
 
@@ -555,44 +481,50 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="px-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border/50">
-                  <th className="text-left px-5 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ρόλος</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Προσόντα</th>
-                  <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Εμπειρία</th>
-                  <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">#</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Στέλεχος</th>
-                  <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Κατάσταση</th>
-                </tr>
-              </thead>
-              <tbody>
-                {team.map((req) => {
-                  const sCfg = staffStatusConfig[req.status];
-                  return (
-                    <tr key={req.id} className="border-b border-border/30">
-                      <td className="px-5 py-2.5 text-xs font-semibold text-foreground">{req.role}</td>
-                      <td className="px-3 py-2.5 text-[11px] text-muted-foreground hidden md:table-cell">{req.qualifications}</td>
-                      <td className="px-3 py-2.5 text-xs text-center text-muted-foreground tabular-nums">{req.experienceYears}+ έτη</td>
-                      <td className="px-3 py-2.5 text-xs text-center font-bold tabular-nums">{req.count}</td>
-                      <td className="px-3 py-2.5 text-xs text-foreground">
-                        {req.mappedStaff ?? <span className="text-muted-foreground/50 italic">Κενό</span>}
-                      </td>
-                      <td className="px-3 py-2.5 text-center">
-                        <Badge
-                          variant="outline"
-                          className={cn('text-[10px] font-semibold', sCfg.bg, sCfg.text, sCfg.border)}
-                        >
-                          {sCfg.label}
-                        </Badge>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {team.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50">
+                    <th className="text-left px-5 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ρόλος</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Προσόντα</th>
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Εμπειρία</th>
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">#</th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Στέλεχος</th>
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Κατάσταση</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {team.map((req) => {
+                    const sCfg = staffStatusConfig[req.status];
+                    return (
+                      <tr key={req.id} className="border-b border-border/30">
+                        <td className="px-5 py-2.5 text-xs font-semibold text-foreground">{req.role}</td>
+                        <td className="px-3 py-2.5 text-[11px] text-muted-foreground hidden md:table-cell">{req.qualifications}</td>
+                        <td className="px-3 py-2.5 text-xs text-center text-muted-foreground tabular-nums">{req.experienceYears}+ έτη</td>
+                        <td className="px-3 py-2.5 text-xs text-center font-bold tabular-nums">{req.count}</td>
+                        <td className="px-3 py-2.5 text-xs text-foreground">
+                          {req.mappedStaff ?? <span className="text-muted-foreground/50 italic">Κενό</span>}
+                        </td>
+                        <td className="px-3 py-2.5 text-center">
+                          <Badge
+                            variant="outline"
+                            className={cn('text-[10px] font-semibold', sCfg.bg, sCfg.text, sCfg.border)}
+                          >
+                            {sCfg.label}
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-6 px-5">
+              Δεν υπάρχουν δεδομένα ακόμα. Εκτελέστε ανάλυση AI.
+            </p>
+          )}
         </GlassCardContent>
       </GlassCard>
 
@@ -603,54 +535,62 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
             <Star className="h-4 w-4 text-amber-500" />
             Εκτιμώμενη Βαθμολογία Πρότασης
           </GlassCardTitle>
-          <GlassCardAction>
-            <div className="flex items-baseline gap-1.5">
-              <span className={cn(
-                'text-3xl font-bold tabular-nums',
-                totalEstimated >= totalMax * 0.75
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : totalEstimated >= totalMax * 0.5
-                    ? 'text-amber-600 dark:text-amber-400'
-                    : 'text-red-600 dark:text-red-400'
-              )}>
-                {totalEstimated}
-              </span>
-              <span className="text-xs text-muted-foreground">/ {totalMax}</span>
-            </div>
-          </GlassCardAction>
+          {scoreCriteria.length > 0 && (
+            <GlassCardAction>
+              <div className="flex items-baseline gap-1.5">
+                <span className={cn(
+                  'text-3xl font-bold tabular-nums',
+                  totalEstimated >= totalMax * 0.75
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : totalEstimated >= totalMax * 0.5
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-red-600 dark:text-red-400'
+                )}>
+                  {totalEstimated}
+                </span>
+                <span className="text-xs text-muted-foreground">/ {totalMax}</span>
+              </div>
+            </GlassCardAction>
+          )}
         </GlassCardHeader>
         <GlassCardContent>
-          <div className="space-y-3">
-            {scoreCriteria.map((criterion, i) => {
-              const pct = (criterion.estimatedScore / criterion.maxScore) * 100;
-              return (
-                <div key={i} className="flex items-center gap-3">
-                  <span className="text-xs font-medium text-foreground w-44 shrink-0 truncate">
-                    {criterion.name}
-                  </span>
-                  <div className="flex-1">
-                    <div className="h-3 w-full rounded-full bg-muted/30 overflow-hidden relative">
-                      {/* Max score area */}
-                      <div className="absolute inset-0 bg-blue-500/5 rounded-full" />
-                      {/* Estimated score bar */}
-                      <div
-                        className={cn(
-                          'h-full rounded-full transition-all duration-700 ease-out',
-                          pct >= 75 ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' :
-                          pct >= 50 ? 'bg-gradient-to-r from-amber-500 to-amber-400' :
-                          'bg-gradient-to-r from-red-500 to-red-400'
-                        )}
-                        style={{ width: `${pct}%` }}
-                      />
+          {scoreCriteria.length > 0 ? (
+            <div className="space-y-3">
+              {scoreCriteria.map((criterion, i) => {
+                const pct = (criterion.estimatedScore / criterion.maxScore) * 100;
+                return (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-xs font-medium text-foreground w-44 shrink-0 truncate">
+                      {criterion.name}
+                    </span>
+                    <div className="flex-1">
+                      <div className="h-3 w-full rounded-full bg-muted/30 overflow-hidden relative">
+                        {/* Max score area */}
+                        <div className="absolute inset-0 bg-blue-500/5 rounded-full" />
+                        {/* Estimated score bar */}
+                        <div
+                          className={cn(
+                            'h-full rounded-full transition-all duration-700 ease-out',
+                            pct >= 75 ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' :
+                            pct >= 50 ? 'bg-gradient-to-r from-amber-500 to-amber-400' :
+                            'bg-gradient-to-r from-red-500 to-red-400'
+                          )}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <span className="text-xs font-bold tabular-nums w-14 text-right text-foreground">
+                    <span className="text-xs font-bold tabular-nums w-14 text-right text-foreground">
                     {criterion.estimatedScore}/{criterion.maxScore}
                   </span>
                 </div>
               );
             })}
           </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-6">
+              Δεν υπάρχουν δεδομένα ακόμα. Εκτελέστε ανάλυση AI.
+            </p>
+          )}
         </GlassCardContent>
       </GlassCard>
     </div>

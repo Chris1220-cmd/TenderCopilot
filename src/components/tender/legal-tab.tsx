@@ -69,87 +69,6 @@ interface LegalSummary {
   };
 }
 
-// ─── Mock Data ────────────────────────────────────────────────
-const mockClauses: LegalClause[] = [
-  {
-    id: 'lc-1',
-    clauseText: 'Ο ανάδοχος υποχρεούται να καταθέσει εγγυητική επιστολή καλής εκτέλεσης ίση με το 4% της συνολικής αξίας της σύμβασης εντός 10 ημερών από την υπογραφή.',
-    category: 'Εγγυητική Επιστολή',
-    riskLevel: 'LOW',
-    articleRef: 'Άρθρο 7.2',
-    recommendation: 'Τυπική ρήτρα. Βεβαιωθείτε ότι η τράπεζα μπορεί να εκδώσει εγκαίρως.',
-    details: 'Η εγγυητική επιστολή πρέπει να εκδοθεί από αναγνωρισμένο τραπεζικό ίδρυμα και να έχει διάρκεια ισχύος τουλάχιστον 30 ημέρες μετά τη λήξη της σύμβασης. Σε περίπτωση κοινοπραξίας, κάθε μέλος παρέχει εγγυητική ανάλογη του ποσοστού συμμετοχής.',
-  },
-  {
-    id: 'lc-2',
-    clauseText: 'Σε περίπτωση καθυστέρησης παράδοσης πέραν των 30 ημερών, η αναθέτουσα αρχή δικαιούται να κηρύξει τον ανάδοχο έκπτωτο χωρίς προηγούμενη ειδοποίηση.',
-    category: 'Ρήτρες Καθυστέρησης',
-    riskLevel: 'HIGH',
-    articleRef: 'Άρθρο 12.4',
-    recommendation: 'Ρήτρα υψηλού κινδύνου. Ζητήστε διευκρίνιση για τη δυνατότητα παράτασης λόγω ανωτέρας βίας.',
-    details: 'Η ρήτρα δεν προβλέπει μηχανισμό ειδοποίησης ή θεραπείας πριν την κήρυξη εκπτώσεως. Αυτό αποτελεί σημαντικό κίνδυνο καθώς ακόμη και μικρές καθυστερήσεις μπορούν να οδηγήσουν σε ακύρωση σύμβασης. Συστήνεται αίτημα διευκρίνισης.',
-    linkedClarifications: ['cl-1'],
-  },
-  {
-    id: 'lc-3',
-    clauseText: 'Ο ανάδοχος αποδέχεται αλληλέγγυα και εις ολόκληρον ευθύνη για ζημίες τρίτων χωρίς ανώτατο όριο αποζημίωσης.',
-    category: 'Ευθύνη & Αποζημίωση',
-    riskLevel: 'CRITICAL',
-    articleRef: 'Άρθρο 15.1',
-    recommendation: 'Κρίσιμη ρήτρα! Η απεριόριστη ευθύνη αποτελεί σοβαρό κίνδυνο. Ζητήστε ανώτατο όριο (π.χ. 100% αξίας σύμβασης).',
-    details: 'Η απεριόριστη ευθύνη μπορεί να εκθέσει την εταιρεία σε δυσανάλογους κινδύνους. Τα περισσότερα αντίστοιχα τεύχη δημοπράτησης προβλέπουν ανώτατο όριο ίσο με τη συνολική αξία της σύμβασης. Η απουσία πλαφόν θεωρείται μη τυπική πρακτική.',
-    linkedClarifications: ['cl-2'],
-  },
-  {
-    id: 'lc-4',
-    clauseText: 'Η πνευματική ιδιοκτησία όλων των παραδοτέων μεταφέρεται αυτόματα στην αναθέτουσα αρχή κατά την παράδοση.',
-    category: 'Πνευματική Ιδιοκτησία',
-    riskLevel: 'MEDIUM',
-    articleRef: 'Άρθρο 18.3',
-    recommendation: 'Τυπική ρήτρα για δημόσια έργα. Βεβαιωθείτε ότι δεν αφορά pre-existing IP.',
-    details: 'Η ρήτρα αφορά μόνο τα νέα παραδοτέα. Ωστόσο, η διατύπωση είναι ευρεία και θα μπορούσε να ερμηνευθεί ότι καλύπτει και τυχόν προϋπάρχοντα εργαλεία ή βιβλιοθήκες. Συστήνεται προσθήκη εξαίρεσης για pre-existing IP.',
-  },
-  {
-    id: 'lc-5',
-    clauseText: 'Ποινική ρήτρα 0.5% ανά ημέρα καθυστέρησης με ανώτατο όριο 10% της αξίας της σύμβασης.',
-    category: 'Ρήτρες Καθυστέρησης',
-    riskLevel: 'MEDIUM',
-    articleRef: 'Άρθρο 12.2',
-    recommendation: 'Αποδεκτή ρήτρα με τυπικό ανώτατο όριο. Προσοχή στους ορισμούς "καθυστέρησης".',
-  },
-];
-
-const mockClarifications: Clarification[] = [
-  {
-    id: 'cl-1',
-    question: 'Παρακαλούμε διευκρινίστε εάν η ρήτρα εκπτώσεως του Άρθρου 12.4 εφαρμόζεται σε περιπτώσεις ανωτέρας βίας ή αν προβλέπεται μηχανισμός παράτασης.',
-    status: 'DRAFT',
-    relatedClauseId: 'lc-2',
-  },
-  {
-    id: 'cl-2',
-    question: 'Σχετικά με το Άρθρο 15.1, είναι δυνατόν να τεθεί ανώτατο όριο ευθύνης ίσο με τη συνολική αξία της σύμβασης;',
-    status: 'DRAFT',
-    relatedClauseId: 'lc-3',
-  },
-  {
-    id: 'cl-3',
-    question: 'Παρακαλούμε επιβεβαιώστε ότι η μεταφορά πνευματικής ιδιοκτησίας (Άρθρο 18.3) δεν καλύπτει pre-existing εργαλεία και βιβλιοθήκες του αναδόχου.',
-    status: 'DRAFT',
-    relatedClauseId: 'lc-4',
-  },
-];
-
-const mockSummary: LegalSummary = {
-  overallRiskScore: 62,
-  clauseCountByRisk: {
-    LOW: 1,
-    MEDIUM: 2,
-    HIGH: 1,
-    CRITICAL: 1,
-  },
-};
-
 // ─── Risk Level Config ────────────────────────────────────────
 const riskConfig = {
   LOW: {
@@ -203,9 +122,9 @@ interface LegalTabProps {
 }
 
 export function LegalTab({ tenderId }: LegalTabProps) {
-  const [clauses, setClauses] = useState<LegalClause[]>(mockClauses);
-  const [clarifications, setClarifications] = useState<Clarification[]>(mockClarifications);
-  const [summary, setSummary] = useState<LegalSummary>(mockSummary);
+  const [clauses, setClauses] = useState<LegalClause[]>([]);
+  const [clarifications, setClarifications] = useState<Clarification[]>([]);
+  const [summary, setSummary] = useState<LegalSummary | null>(null);
   const [selectedClause, setSelectedClause] = useState<LegalClause | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
@@ -244,11 +163,7 @@ export function LegalTab({ tenderId }: LegalTabProps) {
     if (extractMutation) {
       extractMutation.mutate({ tenderId });
     } else {
-      setTimeout(() => {
-        setClauses(mockClauses);
-        setSummary(mockSummary);
-        setLoadingAction(null);
-      }, 1500);
+      setLoadingAction(null);
     }
   };
 
@@ -362,53 +277,61 @@ export function LegalTab({ tenderId }: LegalTabProps) {
             <Scale className="h-4 w-4 text-blue-500" />
             Σύνοψη Νομικού Κινδύνου
           </GlassCardTitle>
-          <GlassCardAction>
-            <div className="flex items-baseline gap-1.5">
-              <span className={cn('text-3xl font-bold tabular-nums', getRiskScoreColor(summary.overallRiskScore))}>
-                {summary.overallRiskScore}
-              </span>
-              <span className="text-xs text-muted-foreground">/ 100</span>
-            </div>
-          </GlassCardAction>
+          {summary && (
+            <GlassCardAction>
+              <div className="flex items-baseline gap-1.5">
+                <span className={cn('text-3xl font-bold tabular-nums', getRiskScoreColor(summary.overallRiskScore))}>
+                  {summary.overallRiskScore}
+                </span>
+                <span className="text-xs text-muted-foreground">/ 100</span>
+              </div>
+            </GlassCardAction>
+          )}
         </GlassCardHeader>
         <GlassCardContent>
-          <div className="space-y-3">
-            {/* Risk Bar */}
-            <div className="h-2.5 w-full rounded-full bg-muted/50 overflow-hidden">
-              <div
-                className={cn('h-full rounded-full transition-all duration-700 ease-out', getRiskBarColor(summary.overallRiskScore))}
-                style={{ width: `${summary.overallRiskScore}%` }}
-              />
-            </div>
+          {summary ? (
+            <div className="space-y-3">
+              {/* Risk Bar */}
+              <div className="h-2.5 w-full rounded-full bg-muted/50 overflow-hidden">
+                <div
+                  className={cn('h-full rounded-full transition-all duration-700 ease-out', getRiskBarColor(summary.overallRiskScore))}
+                  style={{ width: `${summary.overallRiskScore}%` }}
+                />
+              </div>
 
-            {/* Risk Count Badges */}
-            <div className="flex flex-wrap gap-2">
-              {(Object.entries(summary.clauseCountByRisk) as [keyof typeof riskConfig, number][]).map(
-                ([level, count]) => {
-                  const cfg = riskConfig[level];
-                  return (
-                    <div
-                      key={level}
-                      className={cn(
-                        'flex items-center gap-2 rounded-lg px-3 py-1.5',
-                        cfg.bg,
-                        'border',
-                        cfg.border
-                      )}
-                    >
-                      <span className={cn('h-2 w-2 rounded-full', cfg.dot)} />
-                      <span className={cn('text-xs font-semibold', cfg.text)}>
-                        {cfg.label}
-                      </span>
-                      <span className={cn('text-sm font-bold tabular-nums', cfg.text)}>
-                        {count}
-                      </span>
-                    </div>
-                  );
-                }
-              )}
+              {/* Risk Count Badges */}
+              <div className="flex flex-wrap gap-2">
+                {(Object.entries(summary.clauseCountByRisk) as [keyof typeof riskConfig, number][]).map(
+                  ([level, count]) => {
+                    const cfg = riskConfig[level];
+                    return (
+                      <div
+                        key={level}
+                        className={cn(
+                          'flex items-center gap-2 rounded-lg px-3 py-1.5',
+                          cfg.bg,
+                          'border',
+                          cfg.border
+                        )}
+                      >
+                        <span className={cn('h-2 w-2 rounded-full', cfg.dot)} />
+                        <span className={cn('text-xs font-semibold', cfg.text)}>
+                          {cfg.label}
+                        </span>
+                        <span className={cn('text-sm font-bold tabular-nums', cfg.text)}>
+                          {count}
+                        </span>
+                      </div>
+                    );
+                  }
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-6">
+              Δεν υπάρχουν δεδομένα ακόμα. Εκτελέστε ανάλυση AI.
+            </p>
+          )}
         </GlassCardContent>
       </GlassCard>
 
@@ -424,77 +347,83 @@ export function LegalTab({ tenderId }: LegalTabProps) {
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent className="px-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border/50">
-                  <th className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Κείμενο Ρήτρας
-                  </th>
-                  <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Κατηγορία
-                  </th>
-                  <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Κίνδυνος
-                  </th>
-                  <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Άρθρο
-                  </th>
-                  <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">
-                    Σύσταση
-                  </th>
-                  <th className="w-8" />
-                </tr>
-              </thead>
-              <tbody>
-                {clauses.map((clause) => {
-                  const cfg = riskConfig[clause.riskLevel];
-                  return (
-                    <tr
-                      key={clause.id}
-                      onClick={() => handleClauseClick(clause)}
-                      className="border-b border-border/30 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 transition-colors duration-150 cursor-pointer group"
-                    >
-                      <td className="px-5 py-3 max-w-[280px]">
-                        <span className="text-xs text-foreground line-clamp-2">
-                          {truncate(clause.clauseText, 100)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] font-semibold bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20"
-                        >
-                          {clause.category}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-3">
-                        <Badge
-                          variant="outline"
-                          className={cn('text-[10px] font-semibold', cfg.bg, cfg.text, cfg.border)}
-                        >
-                          {cfg.label}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span className="text-xs text-muted-foreground font-mono">
-                          {clause.articleRef}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 max-w-[200px] hidden lg:table-cell">
-                        <span className="text-[11px] text-muted-foreground line-clamp-2">
-                          {truncate(clause.recommendation, 80)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors duration-150" />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {clauses.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50">
+                    <th className="text-left px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Κείμενο Ρήτρας
+                    </th>
+                    <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Κατηγορία
+                    </th>
+                    <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Κίνδυνος
+                    </th>
+                    <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Άρθρο
+                    </th>
+                    <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">
+                      Σύσταση
+                    </th>
+                    <th className="w-8" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {clauses.map((clause) => {
+                    const cfg = riskConfig[clause.riskLevel];
+                    return (
+                      <tr
+                        key={clause.id}
+                        onClick={() => handleClauseClick(clause)}
+                        className="border-b border-border/30 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 transition-colors duration-150 cursor-pointer group"
+                      >
+                        <td className="px-5 py-3 max-w-[280px]">
+                          <span className="text-xs text-foreground line-clamp-2">
+                            {truncate(clause.clauseText, 100)}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-semibold bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20"
+                          >
+                            {clause.category}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-3">
+                          <Badge
+                            variant="outline"
+                            className={cn('text-[10px] font-semibold', cfg.bg, cfg.text, cfg.border)}
+                          >
+                            {cfg.label}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {clause.articleRef}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 max-w-[200px] hidden lg:table-cell">
+                          <span className="text-[11px] text-muted-foreground line-clamp-2">
+                            {truncate(clause.recommendation, 80)}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors duration-150" />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-6 px-5">
+              Δεν υπάρχουν δεδομένα ακόμα. Εκτελέστε ανάλυση AI.
+            </p>
+          )}
         </GlassCardContent>
       </GlassCard>
 

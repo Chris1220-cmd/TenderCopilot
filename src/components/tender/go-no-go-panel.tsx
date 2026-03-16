@@ -47,29 +47,6 @@ interface GoNoGoResult {
   approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
-// ─── Mock Data ────────────────────────────────────────────────
-const mockResult: GoNoGoResult = {
-  decision: 'GO',
-  overallScore: 74,
-  factors: [
-    { name: 'Τεχνική Ικανότητα', score: 85, weight: 0.25, explanation: 'Διαθέτουμε τις απαιτούμενες πιστοποιήσεις και εμπειρία σε παρόμοια έργα.' },
-    { name: 'Οικονομική Επάρκεια', score: 72, weight: 0.2, explanation: 'Ο κύκλος εργασιών καλύπτει τις απαιτήσεις, αλλά οριακά.' },
-    { name: 'Ανταγωνισμός', score: 55, weight: 0.15, explanation: 'Αναμένεται υψηλός ανταγωνισμός από 4-5 εταιρείες.' },
-    { name: 'Στρατηγική Σημασία', score: 90, weight: 0.15, explanation: 'Σημαντικό reference project για τον δημόσιο τομέα.' },
-    { name: 'Πόροι & Χρόνος', score: 68, weight: 0.15, explanation: 'Αρκετός χρόνος προετοιμασίας, αλλά η ομάδα είναι φορτωμένη.' },
-    { name: 'Κίνδυνος Σύμβασης', score: 70, weight: 0.1, explanation: 'Τυπικοί όροι δημοσίων συμβάσεων, χωρίς ιδιαίτερους κινδύνους.' },
-  ],
-  reasons: [
-    'Ισχυρό τεχνικό προφίλ με 5 ομοειδή έργα τελευταίας πενταετίας',
-    'Στρατηγικό έργο για ανάπτυξη παρουσίας στον δημόσιο τομέα',
-    'Επαρκής χρόνος για ποιοτική προετοιμασία προσφοράς',
-    'Ο ανταγωνισμός αναμένεται έντονος - χρειάζεται επιθετική τιμολόγηση',
-  ],
-  approvedBy: null,
-  approvedAt: null,
-  approvalStatus: 'PENDING',
-};
-
 // ─── Helpers ──────────────────────────────────────────────────
 const decisionConfig = {
   GO: {
@@ -187,15 +164,17 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showReasons, setShowReasons] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // tRPC mutations with fallback
+  // tRPC mutations — no mock fallback
   const goNoGoMutation = trpc.aiRoles?.goNoGo?.useMutation?.({
     onSuccess: (data: any) => {
       setResult(data);
+      setError(null);
       setIsAnalyzing(false);
     },
-    onError: () => {
-      setResult(mockResult);
+    onError: (err: any) => {
+      setError(err?.message ?? 'Αποτυχία ανάλυσης. Δοκιμάστε ξανά.');
       setIsAnalyzing(false);
     },
   }) ?? null;
@@ -214,35 +193,21 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
 
   const handleAnalyze = () => {
     setIsAnalyzing(true);
+    setError(null);
     if (goNoGoMutation) {
       goNoGoMutation.mutate({ tenderId });
     } else {
-      setTimeout(() => {
-        setResult(mockResult);
-        setIsAnalyzing(false);
-      }, 2000);
+      setError('Η υπηρεσία AI δεν είναι διαθέσιμη αυτή τη στιγμή.');
+      setIsAnalyzing(false);
     }
   };
 
   const handleApproval = (approved: boolean) => {
     setIsApproving(true);
-    // approveGoNoGo expects { decisionId, approved } - we use tenderId as fallback ID
     if (approveMutation && result) {
       approveMutation.mutate({ decisionId: (result as any).id ?? tenderId, approved });
     } else {
-      setTimeout(() => {
-        setResult((prev) =>
-          prev
-            ? {
-                ...prev,
-                approvalStatus: approved ? 'APPROVED' : 'REJECTED',
-                approvedBy: 'Χρήστης',
-                approvedAt: new Date().toISOString(),
-              }
-            : prev
-        );
-        setIsApproving(false);
-      }, 800);
+      setIsApproving(false);
     }
   };
 
@@ -280,6 +245,18 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
                 </div>
               ))}
             </div>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10 mb-3">
+              <Scale className="h-6 w-6 text-red-500/50" />
+            </div>
+            <p className="text-sm font-medium text-red-600 dark:text-red-400 mb-1">
+              Σφάλμα
+            </p>
+            <p className="text-xs text-muted-foreground/70">
+              {error}
+            </p>
           </div>
         ) : displayResult && config ? (
           <div className="space-y-5">

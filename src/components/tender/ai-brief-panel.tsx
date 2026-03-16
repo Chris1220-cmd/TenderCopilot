@@ -24,18 +24,12 @@ import {
   Layers,
 } from 'lucide-react';
 
-// ─── Mock Data ────────────────────────────────────────────────
-const mockBrief = {
-  summary:
-    'Ο διαγωνισμός αφορά την προμήθεια και εγκατάσταση εξοπλισμού πληροφορικής για τον Δήμο Αθηναίων. Περιλαμβάνει σταθμούς εργασίας, servers, δικτυακό εξοπλισμό και λογισμικό. Η αξιολόγηση γίνεται με κριτήριο τη βέλτιστη σχέση ποιότητας-τιμής, με βαρύτητα 60% τεχνική πρόταση και 40% οικονομική προσφορά. Απαιτούνται πιστοποιήσεις ISO 9001 και ISO 27001, καθώς και τουλάχιστον 3 συναφή έργα σε δημόσιο τομέα.',
-  keyPoints: [
-    { label: 'Τομέας', value: 'Πληροφορική & Τεχνολογία', icon: Layers },
-    { label: 'Τύπος Ανάθεσης', value: 'Ποιότητα-Τιμή (60/40)', icon: Award },
-    { label: 'Διάρκεια', value: '12 μήνες + 24 μ. εγγύηση', icon: Clock },
-    { label: 'Βασικά Κριτήρια', value: 'ISO 9001, ISO 27001, 3 έργα', icon: Target },
-  ],
-  generatedAt: new Date().toISOString(),
-};
+// ─── Types ────────────────────────────────────────────────────
+interface AIBrief {
+  summary: string;
+  keyPoints: Array<{ label: string; value: string; icon: any }>;
+  generatedAt: string;
+}
 
 interface AIBriefPanelProps {
   tenderId: string;
@@ -44,32 +38,32 @@ interface AIBriefPanelProps {
 
 export function AIBriefPanel({ tenderId, className }: AIBriefPanelProps) {
   const [expanded, setExpanded] = useState(false);
-  const [brief, setBrief] = useState<typeof mockBrief | null>(null);
+  const [brief, setBrief] = useState<AIBrief | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Try tRPC mutation with mock fallback
+  const [error, setError] = useState<string | null>(null);
+
+  // tRPC mutation — no mock fallback
   const summarizeMutation = trpc.aiRoles?.summarizeTender?.useMutation?.({
     onSuccess: (data: any) => {
       setBrief(data);
+      setError(null);
       setIsGenerating(false);
     },
-    onError: () => {
-      // Fallback to mock
-      setBrief(mockBrief);
+    onError: (err: any) => {
+      setError(err?.message ?? 'Αποτυχία δημιουργίας brief. Δοκιμάστε ξανά.');
       setIsGenerating(false);
     },
   }) ?? null;
 
   const handleGenerate = () => {
     setIsGenerating(true);
+    setError(null);
     if (summarizeMutation) {
       summarizeMutation.mutate({ tenderId });
     } else {
-      // Mock fallback
-      setTimeout(() => {
-        setBrief(mockBrief);
-        setIsGenerating(false);
-      }, 1500);
+      setError('Η υπηρεσία AI δεν είναι διαθέσιμη αυτή τη στιγμή.');
+      setIsGenerating(false);
     }
   };
 
@@ -105,6 +99,18 @@ export function AIBriefPanel({ tenderId, className }: AIBriefPanelProps) {
               <Skeleton className="h-7 w-28 rounded-full" />
               <Skeleton className="h-7 w-36 rounded-full" />
             </div>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10 mb-3">
+              <Sparkles className="h-6 w-6 text-red-500/50" />
+            </div>
+            <p className="text-sm font-medium text-red-600 dark:text-red-400 mb-1">
+              Σφάλμα
+            </p>
+            <p className="text-xs text-muted-foreground/70">
+              {error}
+            </p>
           </div>
         ) : displayBrief ? (
           <div className="space-y-4">

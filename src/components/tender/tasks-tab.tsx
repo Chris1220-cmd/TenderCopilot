@@ -45,50 +45,6 @@ const columnConfig = [
   { status: 'DONE', label: 'Ολοκληρώθηκε', icon: CheckCircle2, color: 'border-emerald-500/30' },
 ];
 
-// Mock data
-const mockTasks = [
-  {
-    id: 'task-1',
-    title: 'Συγκέντρωση φορολογικής ενημερότητας',
-    description: 'Αίτηση μέσω TAXISnet',
-    status: 'DONE',
-    priority: 'HIGH',
-    dueDate: '2026-03-20',
-    assignee: { id: 'u1', name: 'Μαρία Κ.', email: 'maria@test.com', image: null },
-    requirement: { id: 'r1', text: 'Φορολογική ενημερότητα', category: 'EXCLUSION_CRITERIA' },
-  },
-  {
-    id: 'task-2',
-    title: 'Ετοιμασία τεχνικής προσφοράς',
-    description: 'Σύνταξη τεχνικής μεθοδολογίας',
-    status: 'IN_PROGRESS',
-    priority: 'URGENT',
-    dueDate: '2026-04-01',
-    assignee: { id: 'u2', name: 'Γιάννης Π.', email: 'giannis@test.com', image: null },
-    requirement: null,
-  },
-  {
-    id: 'task-3',
-    title: 'Ανανέωση ISO 9001',
-    description: 'Επικοινωνία με φορέα πιστοποίησης',
-    status: 'TODO',
-    priority: 'HIGH',
-    dueDate: '2026-03-25',
-    assignee: null,
-    requirement: { id: 'r3', text: 'ISO 9001:2015', category: 'TECHNICAL_REQUIREMENTS' },
-  },
-  {
-    id: 'task-4',
-    title: 'Συμπλήρωση ΤΕΥΔ',
-    description: null,
-    status: 'TODO',
-    priority: 'MEDIUM',
-    dueDate: '2026-04-05',
-    assignee: { id: 'u1', name: 'Μαρία Κ.', email: 'maria@test.com', image: null },
-    requirement: null,
-  },
-];
-
 export function TasksTab({ tenderId }: TasksTabProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTask, setEditTask] = useState<any | null>(null);
@@ -259,7 +215,16 @@ export function TasksTab({ tenderId }: TasksTabProps) {
       </div>
 
       {/* Kanban Columns */}
-      {tasksQuery.isLoading ? (
+      {!tasksQuery.isLoading && tasks.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Circle className="h-8 w-8 text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Δεν υπάρχουν εργασίες ακόμα.
+            </p>
+          </CardContent>
+        </Card>
+      ) : tasksQuery.isLoading ? (
         <div className="grid gap-4 lg:grid-cols-3">
           {columnConfig.map((col) => (
             <div key={col.status} className="space-y-3">

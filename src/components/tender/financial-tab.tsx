@@ -69,52 +69,6 @@ interface FinancialData {
   riskFactors: FinancialRiskFactor[];
 }
 
-// ─── Mock Data ────────────────────────────────────────────────
-const mockData: FinancialData = {
-  eligibility: {
-    status: 'ELIGIBLE',
-    checks: [
-      { criterion: 'Κύκλος Εργασιών (τελευταία 3ετία)', required: '> 750.000 EUR', actual: '1.250.000 EUR', pass: true },
-      { criterion: 'Ετήσιος Τζίρος (μέσος όρος)', required: '> 250.000 EUR', actual: '416.666 EUR', pass: true },
-      { criterion: 'Εγγυητική Συμμετοχής (2%)', required: '5.000 EUR', actual: 'Διαθέσιμη', pass: true },
-      { criterion: 'Ασφαλιστική Ενημερότητα', required: 'Σε ισχύ', actual: 'Σε ισχύ', pass: true },
-      { criterion: 'Φορολογική Ενημερότητα', required: 'Σε ισχύ', actual: 'Σε ισχύ', pass: true },
-      { criterion: 'Ελάχιστο Μετοχικό Κεφάλαιο', required: '> 50.000 EUR', actual: '120.000 EUR', pass: true },
-    ],
-  },
-  scenarios: [
-    {
-      name: 'Συντηρητική',
-      type: 'CONSERVATIVE',
-      totalPrice: 242000,
-      margin: 22,
-      winProbability: 45,
-    },
-    {
-      name: 'Ισορροπημένη',
-      type: 'BALANCED',
-      totalPrice: 228000,
-      margin: 16,
-      winProbability: 65,
-    },
-    {
-      name: 'Επιθετική',
-      type: 'AGGRESSIVE',
-      totalPrice: 215000,
-      margin: 10,
-      winProbability: 82,
-    },
-  ],
-  riskScore: 35,
-  riskFactors: [
-    { name: 'Μεταβλητότητα Τιμών Υλικών', score: 45, description: 'Μέτριος κίνδυνος αύξησης τιμών hardware τελευταίο τρίμηνο' },
-    { name: 'Συναλλαγματικός Κίνδυνος', score: 15, description: 'Χαμηλός κίνδυνος - τιμές σε EUR' },
-    { name: 'Ρευστότητα Εκτέλεσης', score: 30, description: 'Ικανοποιητική ρευστότητα για χρηματοδότηση εκτέλεσης' },
-    { name: 'Εγγυήσεις & Retentions', score: 40, description: 'Κρατήσεις 5% + εγγυητική καλής εκτέλεσης 4%' },
-    { name: 'Φορολογικοί Κίνδυνοι', score: 20, description: 'Τυπικός φορολογικός αντίκτυπος δημόσιου τομέα' },
-  ],
-};
-
 // ─── Helpers ──────────────────────────────────────────────────
 const eligibilityConfig = {
   ELIGIBLE: {
@@ -188,14 +142,14 @@ interface FinancialTabProps {
 }
 
 export function FinancialTab({ tenderId }: FinancialTabProps) {
-  const [data, setData] = useState<FinancialData>(mockData);
+  const [data, setData] = useState<FinancialData | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   // tRPC mutations with fallback
   const extractMutation = trpc.aiRoles?.extractFinancials?.useMutation?.({
     onSuccess: (result: any) => {
-      if (result) setData((prev) => ({ ...prev, ...result }));
+      if (result) setData((prev) => prev ? { ...prev, ...result } : result);
       setLoadingAction(null);
     },
     onError: () => setLoadingAction(null),
@@ -212,7 +166,7 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
 
   const pricingMutation = trpc.aiRoles?.suggestPricing?.useMutation?.({
     onSuccess: (result: any) => {
-      if (result?.scenarios) setData((prev) => ({ ...prev, scenarios: result.scenarios }));
+      if (result?.scenarios) setData((prev) => prev ? { ...prev, scenarios: result.scenarios } : null);
       setLoadingAction(null);
     },
     onError: () => setLoadingAction(null),
@@ -233,10 +187,10 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
       try {
         const res = await eligibilityQuery.refetch();
         if (res.data) {
-          setData((prev) => ({ ...prev, eligibility: res.data as any }));
+          setData((prev) => prev ? { ...prev, eligibility: res.data as any } : null);
         }
       } catch {
-        // fallback to mock
+        // show error — no fallback
       }
     }
     setLoadingAction(null);
@@ -251,8 +205,8 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
     }
   };
 
-  const eligCfg = eligibilityConfig[data.eligibility.status];
-  const EligIcon = eligCfg.icon;
+  const eligCfg = data ? eligibilityConfig[data.eligibility.status] : null;
+  const EligIcon = eligCfg?.icon ?? null;
 
   return (
     <div className="space-y-6">
@@ -295,58 +249,66 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
             <Shield className="h-4 w-4 text-blue-500" />
             Οικονομική Επιλεξιμότητα
           </GlassCardTitle>
-          <GlassCardAction>
-            <div className={cn('flex items-center gap-2 rounded-xl px-3 py-2', eligCfg.bg, 'border', eligCfg.border)}>
-              <EligIcon className={cn('h-5 w-5', eligCfg.text)} />
-              <span className={cn('text-sm font-bold', eligCfg.text)}>
-                {eligCfg.label}
-              </span>
-            </div>
-          </GlassCardAction>
+          {eligCfg && EligIcon && (
+            <GlassCardAction>
+              <div className={cn('flex items-center gap-2 rounded-xl px-3 py-2', eligCfg.bg, 'border', eligCfg.border)}>
+                <EligIcon className={cn('h-5 w-5', eligCfg.text)} />
+                <span className={cn('text-sm font-bold', eligCfg.text)}>
+                  {eligCfg.label}
+                </span>
+              </div>
+            </GlassCardAction>
+          )}
         </GlassCardHeader>
         <GlassCardContent className="px-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border/50">
-                  <th className="text-left px-5 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Κριτήριο
-                  </th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Απαίτηση
-                  </th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Πραγματικό
-                  </th>
-                  <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-16">
-                    Αποτέλεσμα
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.eligibility.checks.map((check, i) => (
-                  <tr key={i} className="border-b border-border/30">
-                    <td className="px-5 py-2.5 text-xs font-medium text-foreground">
-                      {check.criterion}
-                    </td>
-                    <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">
-                      {check.required}
-                    </td>
-                    <td className="px-3 py-2.5 text-xs text-foreground font-mono font-semibold">
-                      {check.actual}
-                    </td>
-                    <td className="px-3 py-2.5 text-center">
-                      {check.pass ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-500 mx-auto" />
-                      )}
-                    </td>
+          {data && data.eligibility.checks.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50">
+                    <th className="text-left px-5 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Κριτήριο
+                    </th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Απαίτηση
+                    </th>
+                    <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Πραγματικό
+                    </th>
+                    <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-16">
+                      Αποτέλεσμα
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {data.eligibility.checks.map((check, i) => (
+                    <tr key={i} className="border-b border-border/30">
+                      <td className="px-5 py-2.5 text-xs font-medium text-foreground">
+                        {check.criterion}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">
+                        {check.required}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-foreground font-mono font-semibold">
+                        {check.actual}
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        {check.pass ? (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-red-500 mx-auto" />
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-6 px-5">
+              Δεν υπάρχουν δεδομένα ακόμα. Εκτελέστε ανάλυση AI.
+            </p>
+          )}
         </GlassCardContent>
       </GlassCard>
 
@@ -356,89 +318,99 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
           <TrendingUp className="h-4 w-4 text-blue-500" />
           Σενάρια Τιμολόγησης
         </h3>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {data.scenarios.map((scenario) => {
-            const cfg = scenarioConfig[scenario.type];
-            const ScenarioIcon = cfg.icon;
-            const isSelected = selectedScenario === scenario.type;
+        {data && data.scenarios.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-3">
+            {data.scenarios.map((scenario) => {
+              const cfg = scenarioConfig[scenario.type];
+              const ScenarioIcon = cfg.icon;
+              const isSelected = selectedScenario === scenario.type;
 
-            return (
-              <GlassCard
-                key={scenario.type}
-                className={cn(
-                  'relative overflow-hidden transition-all duration-300',
-                  isSelected && 'ring-2 ring-blue-500/50 shadow-lg shadow-blue-500/10',
-                  !isSelected && 'hover:shadow-lg'
-                )}
-              >
-                {/* Gradient Background */}
-                <div className={cn('absolute inset-0 bg-gradient-to-br opacity-40', cfg.gradient)} />
+              return (
+                <GlassCard
+                  key={scenario.type}
+                  className={cn(
+                    'relative overflow-hidden transition-all duration-300',
+                    isSelected && 'ring-2 ring-blue-500/50 shadow-lg shadow-blue-500/10',
+                    !isSelected && 'hover:shadow-lg'
+                  )}
+                >
+                  {/* Gradient Background */}
+                  <div className={cn('absolute inset-0 bg-gradient-to-br opacity-40', cfg.gradient)} />
 
-                <GlassCardContent className="relative space-y-4">
-                  {/* Title */}
-                  <div className="flex items-center gap-2.5">
-                    <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', cfg.gradient.replace('from-', 'bg-').split(' ')[0])}>
-                      <ScenarioIcon className={cn('h-4.5 w-4.5', cfg.iconColor)} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-foreground">{scenario.name}</p>
-                      <p className="text-[10px] text-muted-foreground">Σενάριο</p>
-                    </div>
-                  </div>
-
-                  {/* Price */}
-                  <div className="text-center py-2">
-                    <p className="text-2xl font-bold tabular-nums text-foreground">
-                      {formatCurrency(scenario.totalPrice)}
-                    </p>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="space-y-2.5">
-                    {/* Margin */}
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <Percent className="h-3 w-3" />
-                        Περιθώριο
-                      </span>
-                      <span className="font-bold tabular-nums text-foreground">{scenario.margin}%</span>
+                  <GlassCardContent className="relative space-y-4">
+                    {/* Title */}
+                    <div className="flex items-center gap-2.5">
+                      <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', cfg.gradient.replace('from-', 'bg-').split(' ')[0])}>
+                        <ScenarioIcon className={cn('h-4.5 w-4.5', cfg.iconColor)} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-foreground">{scenario.name}</p>
+                        <p className="text-[10px] text-muted-foreground">Σενάριο</p>
+                      </div>
                     </div>
 
-                    {/* Win Probability */}
-                    <div className="space-y-1">
+                    {/* Price */}
+                    <div className="text-center py-2">
+                      <p className="text-2xl font-bold tabular-nums text-foreground">
+                        {formatCurrency(scenario.totalPrice)}
+                      </p>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="space-y-2.5">
+                      {/* Margin */}
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground flex items-center gap-1">
-                          <Target className="h-3 w-3" />
-                          Πιθανότητα Κέρδους
+                          <Percent className="h-3 w-3" />
+                          Περιθώριο
                         </span>
-                        <span className="font-bold tabular-nums text-foreground">{scenario.winProbability}%</span>
+                        <span className="font-bold tabular-nums text-foreground">{scenario.margin}%</span>
                       </div>
-                      <div className="h-2 w-full rounded-full bg-muted/50 overflow-hidden">
-                        <div
-                          className={cn('h-full rounded-full transition-all duration-700 ease-out', cfg.accent)}
-                          style={{ width: `${scenario.winProbability}%` }}
-                        />
+
+                      {/* Win Probability */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <Target className="h-3 w-3" />
+                            Πιθανότητα Κέρδους
+                          </span>
+                          <span className="font-bold tabular-nums text-foreground">{scenario.winProbability}%</span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-muted/50 overflow-hidden">
+                          <div
+                            className={cn('h-full rounded-full transition-all duration-700 ease-out', cfg.accent)}
+                            style={{ width: `${scenario.winProbability}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Select Button */}
-                  <Button
-                    onClick={() => setSelectedScenario(isSelected ? null : scenario.type)}
-                    variant={isSelected ? 'default' : 'outline'}
-                    size="sm"
-                    className={cn(
-                      'w-full cursor-pointer h-8 text-xs',
-                      isSelected && 'bg-gradient-to-r from-blue-700 to-blue-500 border-0 text-white'
-                    )}
-                  >
-                    {isSelected ? 'Επιλεγμένο' : 'Επιλογή'}
-                  </Button>
-                </GlassCardContent>
-              </GlassCard>
-            );
-          })}
-        </div>
+                    {/* Select Button */}
+                    <Button
+                      onClick={() => setSelectedScenario(isSelected ? null : scenario.type)}
+                      variant={isSelected ? 'default' : 'outline'}
+                      size="sm"
+                      className={cn(
+                        'w-full cursor-pointer h-8 text-xs',
+                        isSelected && 'bg-gradient-to-r from-blue-700 to-blue-500 border-0 text-white'
+                      )}
+                    >
+                      {isSelected ? 'Επιλεγμένο' : 'Επιλογή'}
+                    </Button>
+                  </GlassCardContent>
+                </GlassCard>
+              );
+            })}
+          </div>
+        ) : (
+          <GlassCard>
+            <GlassCardContent>
+              <p className="text-xs text-muted-foreground text-center py-6">
+                Δεν υπάρχουν δεδομένα ακόμα. Εκτελέστε ανάλυση AI.
+              </p>
+            </GlassCardContent>
+          </GlassCard>
+        )}
       </div>
 
       {/* Financial Risk Score */}
@@ -448,52 +420,60 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
             <BarChart3 className="h-4 w-4 text-blue-500" />
             Οικονομικός Κίνδυνος
           </GlassCardTitle>
-          <GlassCardAction>
-            <div className="flex items-baseline gap-1.5">
-              <span className={cn('text-3xl font-bold tabular-nums', getScoreColor(data.riskScore))}>
-                {data.riskScore}
-              </span>
-              <span className="text-xs text-muted-foreground">/ 100</span>
-            </div>
-          </GlassCardAction>
+          {data && (
+            <GlassCardAction>
+              <div className="flex items-baseline gap-1.5">
+                <span className={cn('text-3xl font-bold tabular-nums', getScoreColor(data.riskScore))}>
+                  {data.riskScore}
+                </span>
+                <span className="text-xs text-muted-foreground">/ 100</span>
+              </div>
+            </GlassCardAction>
+          )}
         </GlassCardHeader>
         <GlassCardContent>
-          <div className="space-y-3">
-            {/* Overall Risk Bar */}
-            <div className={cn('h-2.5 w-full rounded-full overflow-hidden', getBarBg(data.riskScore))}>
-              <div
-                className={cn('h-full rounded-full transition-all duration-700 ease-out', getBarColor(data.riskScore))}
-                style={{ width: `${data.riskScore}%` }}
-              />
-            </div>
+          {data && data.riskFactors.length > 0 ? (
+            <div className="space-y-3">
+              {/* Overall Risk Bar */}
+              <div className={cn('h-2.5 w-full rounded-full overflow-hidden', getBarBg(data.riskScore))}>
+                <div
+                  className={cn('h-full rounded-full transition-all duration-700 ease-out', getBarColor(data.riskScore))}
+                  style={{ width: `${data.riskScore}%` }}
+                />
+              </div>
 
-            {/* Factor Breakdown */}
-            <div className="space-y-2.5 mt-4">
-              {data.riskFactors.map((factor, i) => (
-                <div key={i} className="group">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-medium text-foreground w-44 shrink-0 truncate">
-                      {factor.name}
-                    </span>
-                    <div className="flex-1">
-                      <div className={cn('h-2 w-full rounded-full overflow-hidden', getBarBg(factor.score))}>
-                        <div
-                          className={cn('h-full rounded-full transition-all duration-500 ease-out', getBarColor(factor.score))}
-                          style={{ width: `${factor.score}%` }}
-                        />
+              {/* Factor Breakdown */}
+              <div className="space-y-2.5 mt-4">
+                {data.riskFactors.map((factor, i) => (
+                  <div key={i} className="group">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-medium text-foreground w-44 shrink-0 truncate">
+                        {factor.name}
+                      </span>
+                      <div className="flex-1">
+                        <div className={cn('h-2 w-full rounded-full overflow-hidden', getBarBg(factor.score))}>
+                          <div
+                            className={cn('h-full rounded-full transition-all duration-500 ease-out', getBarColor(factor.score))}
+                            style={{ width: `${factor.score}%` }}
+                          />
+                        </div>
                       </div>
+                      <span className={cn('text-xs font-bold tabular-nums w-8 text-right', getScoreColor(factor.score))}>
+                        {factor.score}
+                      </span>
                     </div>
-                    <span className={cn('text-xs font-bold tabular-nums w-8 text-right', getScoreColor(factor.score))}>
-                      {factor.score}
-                    </span>
+                    <p className="text-[10px] text-muted-foreground/70 mt-0.5 pl-44 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      {factor.description}
+                    </p>
                   </div>
-                  <p className="text-[10px] text-muted-foreground/70 mt-0.5 pl-44 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    {factor.description}
-                  </p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-6">
+              Δεν υπάρχουν δεδομένα ακόμα. Εκτελέστε ανάλυση AI.
+            </p>
+          )}
         </GlassCardContent>
       </GlassCard>
     </div>

@@ -42,58 +42,6 @@ const generatedDocTypes = [
   { type: 'TECHNICAL_PROPOSAL', label: 'Τεχνική Προσφορά', icon: FileCode },
 ];
 
-// Mock data for graceful fallback
-const mockAttached = [
-  {
-    id: 'att-1',
-    fileName: 'Διακήρυξη_2024-1234.pdf',
-    fileKey: 'docs/diakirixi.pdf',
-    fileSize: 2450000,
-    mimeType: 'application/pdf',
-    category: 'specification',
-    createdAt: '2026-03-10',
-  },
-  {
-    id: 'att-2',
-    fileName: 'Παράρτημα_Β_Τεχνικές_Προδιαγραφές.pdf',
-    fileKey: 'docs/parartima-b.pdf',
-    fileSize: 1280000,
-    mimeType: 'application/pdf',
-    category: 'appendix',
-    createdAt: '2026-03-10',
-  },
-  {
-    id: 'att-3',
-    fileName: 'Διευκρινίσεις_01.pdf',
-    fileKey: 'docs/dieykriniseis.pdf',
-    fileSize: 450000,
-    mimeType: 'application/pdf',
-    category: 'clarification',
-    createdAt: '2026-03-14',
-  },
-];
-
-const mockGenerated = [
-  {
-    id: 'gen-1',
-    type: 'SOLEMN_DECLARATION',
-    title: 'Υπεύθυνη Δήλωση - Ν.1599/1986',
-    status: 'DRAFT',
-    content: '',
-    createdAt: '2026-03-12',
-    updatedAt: '2026-03-12',
-  },
-  {
-    id: 'gen-2',
-    type: 'TECHNICAL_COMPLIANCE',
-    title: 'Πίνακας Τεχνικής Συμμόρφωσης',
-    status: 'REVIEWED',
-    content: '',
-    createdAt: '2026-03-13',
-    updatedAt: '2026-03-15',
-  },
-];
-
 export function DocumentsTab({ tenderId }: DocumentsTabProps) {
   const [isDragActive, setIsDragActive] = useState(false);
 
@@ -206,7 +154,7 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <FolderOpen className="h-8 w-8 text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
-                Δεν υπάρχουν επισυναπτόμενα αρχεία.
+                Δεν υπάρχουν έγγραφα ακόμα.
               </p>
             </CardContent>
           </Card>
@@ -310,7 +258,7 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Sparkles className="h-8 w-8 text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
-                Δεν υπάρχουν παραγόμενα έγγραφα.
+                Δεν υπάρχουν έγγραφα ακόμα.
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 Χρησιμοποιήστε το κουμπί πάνω για AI-powered δημιουργία εγγράφων.

@@ -65,52 +65,6 @@ interface Reminder {
   completed: boolean;
 }
 
-// ─── Mock Data ────────────────────────────────────────────────
-const mockActions: SuggestedAction[] = [
-  {
-    id: 'act-1',
-    title: 'Ολοκλήρωση τεχνικής πρότασης',
-    description: 'Η ενότητα "Μεθοδολογία" χρειάζεται αναθεώρηση και έγκριση.',
-    priority: 'HIGH',
-    category: 'Τεχνική',
-  },
-  {
-    id: 'act-2',
-    title: 'Ανάθεση Systems Administrator',
-    description: 'Δεν έχει αντιστοιχιστεί στέλεχος για τον ρόλο Systems Administrator.',
-    priority: 'HIGH',
-    category: 'Ομάδα',
-  },
-  {
-    id: 'act-3',
-    title: 'Αποστολή διευκρινίσεων',
-    description: '3 ερωτήματα περιμένουν έγκριση για αποστολή στην αναθέτουσα αρχή.',
-    priority: 'MEDIUM',
-    category: 'Νομική',
-  },
-  {
-    id: 'act-4',
-    title: 'Οριστικοποίηση τιμολόγησης',
-    description: 'Επιλέξτε σενάριο τιμολόγησης και ελέγξτε τα κοστολογικά στοιχεία.',
-    priority: 'MEDIUM',
-    category: 'Οικονομικά',
-  },
-];
-
-const mockReminders: Reminder[] = [
-  { id: 'rem-1', title: 'Προθεσμία υποβολής διευκρινίσεων', dueDate: '2026-03-25', priority: 'HIGH', completed: false },
-  { id: 'rem-2', title: 'Εγγυητική επιστολή - αίτημα σε τράπεζα', dueDate: '2026-03-28', priority: 'HIGH', completed: false },
-  { id: 'rem-3', title: 'Τελική αναθεώρηση τεχνικής πρότασης', dueDate: '2026-04-05', priority: 'MEDIUM', completed: false },
-  { id: 'rem-4', title: 'Υποβολή προσφοράς', dueDate: '2026-04-15', priority: 'HIGH', completed: false },
-];
-
-const mockAnswers: Record<string, string> = {
-  'Τι λείπει;': 'Βάσει της τρέχουσας ανάλυσης, λείπουν:\n\n1. **Systems Administrator** - Δεν έχει αντιστοιχιστεί στέλεχος\n2. **1 Τεχνικός Εγκατάστασης** - Χρειάζεστε ακόμη 1 άτομο\n3. **ISO 27001** - Δεν έχει επιβεβαιωθεί η κατοχή\n4. **2 Διευκρινίσεις** - Περιμένουν έγκριση\n5. **Οριστική Τιμολόγηση** - Δεν έχει επιλεγεί σενάριο',
-  'Είμαστε έτοιμοι;': 'Η ετοιμότητα είναι στο **72%**.\n\nΕπιτυχώς:\n- Τεχνική πρόταση: 4/5 ενότητες\n- Νομικός έλεγχος: Ολοκληρωμένος\n- Οικονομική επιλεξιμότητα: Επιλέξιμοι\n\nΕκκρεμούν:\n- Αντιστοίχιση ομάδας (1 κενό)\n- Τελική τιμολόγηση\n- Εγγυητική επιστολή',
-  'Ποιες εργασίες καθυστερούν;': 'Καθυστερημένες εργασίες:\n\n1. **Ανάθεση Systems Admin** - Εκκρεμεί 5+ ημέρες\n2. **Αποστολή Διευκρινίσεων** - Η προθεσμία πλησιάζει (25/03)\n3. **Αίτηση Εγγυητικής** - Πρέπει να σταλεί αυτή την εβδομάδα',
-  'Πόσο compliance έχουμε;': 'Compliance Score: **72%**\n\nΑνάλυση:\n- Κριτήρια Αποκλεισμού: 2/2 (100%)\n- Δικαιολογητικά: 1/1 (100%)\n- Τεχνικές Απαιτήσεις: 0/1 (0%) - ISO λείπει\n- Κριτήρια Συμμετοχής: 0/1 (0%) - 3 ομοειδή έργα\n- Οικονομικά: 0/1 (0%) - Κύκλος εργασιών\n\nΣυνολικά: 3/6 απαιτήσεις καλύπτονται πλήρως.',
-};
-
 // ─── Helpers ──────────────────────────────────────────────────
 const priorityConfig = {
   HIGH: { label: 'Υψηλή', bg: 'bg-red-500/15', text: 'text-red-700 dark:text-red-400', border: 'border-red-500/20', dot: 'bg-red-500' },
@@ -174,13 +128,13 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [actions, setActions] = useState<SuggestedAction[]>(mockActions);
-  const [reminders, setReminders] = useState<Reminder[]>(mockReminders);
+  const [actions, setActions] = useState<SuggestedAction[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [activeTab, setActiveTab] = useState<'chat' | 'actions' | 'reminders'>('chat');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // tRPC mutations with fallback
+  // tRPC mutations — no mock fallback
   const askMutation = trpc.aiRoles?.askQuestion?.useMutation?.({
     onSuccess: (data: any) => {
       const answer: ChatMessage = {
@@ -192,8 +146,15 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
       setMessages((prev) => [...prev, answer]);
       setIsTyping(false);
     },
-    onError: () => {
-      handleMockAnswer(inputValue);
+    onError: (err: any) => {
+      const errorMsg: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: err?.message ?? 'Σφάλμα κατά την επεξεργασία. Δοκιμάστε ξανά.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+      setIsTyping(false);
     },
   }) ?? null;
 
@@ -218,20 +179,6 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
     }
   }, [open]);
 
-  const handleMockAnswer = (question: string) => {
-    const mockAnswer = mockAnswers[question] ?? `Βάσει της ανάλυσης του διαγωνισμού, η ερώτησή σας "${question}" αφορά ένα σημαντικό θέμα. Παρακαλώ ελέγξτε τις σχετικές ενότητες (Νομικά, Οικονομικά, Τεχνικά) για λεπτομερή στοιχεία.`;
-    setTimeout(() => {
-      const answer: ChatMessage = {
-        id: `msg-${Date.now()}`,
-        role: 'assistant',
-        content: mockAnswer,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, answer]);
-      setIsTyping(false);
-    }, 1200);
-  };
-
   const handleSend = (text?: string) => {
     const question = text ?? inputValue.trim();
     if (!question) return;
@@ -249,7 +196,14 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
     if (askMutation) {
       askMutation.mutate({ tenderId, question });
     } else {
-      handleMockAnswer(question);
+      const errorMsg: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: 'Η υπηρεσία AI δεν είναι διαθέσιμη αυτή τη στιγμή.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+      setIsTyping(false);
     }
   };
 

@@ -113,76 +113,6 @@ export function RequirementsTab({ tenderId }: RequirementsTabProps) {
     },
   });
 
-  // Mock data for graceful fallback
-  const mockRequirements = [
-    {
-      id: 'req-1',
-      text: 'Φορολογική ενημερότητα σε ισχύ κατά την ημερομηνία υποβολής',
-      category: 'EXCLUSION_CRITERIA',
-      type: 'DOCUMENT',
-      mandatory: true,
-      coverageStatus: 'COVERED',
-      articleReference: 'Άρθρο 73 Ν.4412/2016',
-      aiConfidence: 0.95,
-      notes: null,
-    },
-    {
-      id: 'req-2',
-      text: 'Ασφαλιστική ενημερότητα για κύρια και επικουρική ασφάλιση',
-      category: 'EXCLUSION_CRITERIA',
-      type: 'DOCUMENT',
-      mandatory: true,
-      coverageStatus: 'COVERED',
-      articleReference: 'Άρθρο 73 Ν.4412/2016',
-      aiConfidence: 0.92,
-      notes: null,
-    },
-    {
-      id: 'req-3',
-      text: 'Πιστοποίηση ISO 9001:2015 - Σύστημα Διαχείρισης Ποιότητας',
-      category: 'TECHNICAL_REQUIREMENTS',
-      type: 'CERTIFICATE',
-      mandatory: true,
-      coverageStatus: 'GAP',
-      articleReference: 'Παράρτημα Β, 2.1',
-      aiConfidence: 0.88,
-      notes: null,
-    },
-    {
-      id: 'req-4',
-      text: 'Τουλάχιστον 3 ομοειδή έργα τα τελευταία 5 έτη, αξίας > 100.000 EUR',
-      category: 'PARTICIPATION_CRITERIA',
-      type: 'EXPERIENCE',
-      mandatory: true,
-      coverageStatus: 'UNMAPPED',
-      articleReference: 'Άρθρο 75.2.β',
-      aiConfidence: 0.78,
-      notes: null,
-    },
-    {
-      id: 'req-5',
-      text: 'Υπεύθυνη δήλωση του νόμιμου εκπροσώπου περί μη αποκλεισμού',
-      category: 'DOCUMENTATION_REQUIREMENTS',
-      type: 'DECLARATION',
-      mandatory: true,
-      coverageStatus: 'COVERED',
-      articleReference: 'Άρθρο 79 Ν.4412/2016',
-      aiConfidence: 0.97,
-      notes: null,
-    },
-    {
-      id: 'req-6',
-      text: 'Κύκλος εργασιών τελευταίας τριετίας > 500.000 EUR ετησίως',
-      category: 'FINANCIAL_REQUIREMENTS',
-      type: 'FINANCIAL',
-      mandatory: false,
-      coverageStatus: 'UNMAPPED',
-      articleReference: 'Άρθρο 75.1.α',
-      aiConfidence: 0.85,
-      notes: null,
-    },
-  ];
-
   const requirements = (requirementsQuery.data ?? []) as any[];
 
   // Client-side filtering for search + mandatory
@@ -338,7 +268,9 @@ export function RequirementsTab({ tenderId }: RequirementsTabProps) {
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                    Δεν βρέθηκαν απαιτήσεις με τα τρέχοντα φίλτρα.
+                    {requirements.length === 0
+                      ? 'Δεν υπάρχουν απαιτήσεις ακόμα.'
+                      : 'Δεν βρέθηκαν απαιτήσεις με τα τρέχοντα φίλτρα.'}
                   </td>
                 </tr>
               ) : (
