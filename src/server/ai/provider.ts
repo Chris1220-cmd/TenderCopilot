@@ -1,40 +1,27 @@
 import type { AIProvider } from './types';
 import { MockAIProvider } from './mock-provider';
-
-// TODO: Implement real providers
-// import { ClaudeProvider } from './claude-provider';
-// import { OpenAIProvider } from './openai-provider';
+import { ClaudeProvider } from './claude-provider';
 
 /**
- * Factory function to get the configured AI provider.
- *
- * To add a new provider:
- * 1. Create a class implementing AIProvider in a new file (e.g. claude-provider.ts)
- * 2. Add a case here
- * 3. Set AI_PROVIDER env var to the provider name
- *
- * For production, implement:
- * - ClaudeProvider: Use Anthropic SDK with claude-sonnet-4-6 or claude-opus-4-6
- * - OpenAIProvider: Use OpenAI SDK with gpt-4o
+ * AI Provider factory.
+ * Set AI_PROVIDER env var to: 'claude' (production) or 'mock' (development).
  */
 export function getAIProvider(): AIProvider {
   const providerName = process.env.AI_PROVIDER || 'mock';
 
   switch (providerName) {
+    case 'claude':
+      if (!process.env.AI_API_KEY) {
+        console.warn('AI_API_KEY not set, falling back to mock');
+        return new MockAIProvider();
+      }
+      return new ClaudeProvider({
+        apiKey: process.env.AI_API_KEY,
+        model: process.env.AI_MODEL || 'claude-sonnet-4-6',
+      });
+
     case 'mock':
       return new MockAIProvider();
-
-    // TODO: Uncomment when implementing real providers
-    // case 'claude':
-    //   return new ClaudeProvider({
-    //     apiKey: process.env.AI_API_KEY!,
-    //     model: 'claude-sonnet-4-6',
-    //   });
-    // case 'openai':
-    //   return new OpenAIProvider({
-    //     apiKey: process.env.AI_API_KEY!,
-    //     model: 'gpt-4o',
-    //   });
 
     default:
       console.warn(`Unknown AI provider "${providerName}", falling back to mock`);
