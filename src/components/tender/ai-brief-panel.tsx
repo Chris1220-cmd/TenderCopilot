@@ -133,7 +133,7 @@ export function AIBriefPanel({ tenderId, className }: AIBriefPanelProps) {
 
             {/* Key Points Pills */}
             <div className="flex flex-wrap gap-2">
-              {displayBrief.keyPoints.map((point, i) => (
+              {(Array.isArray(displayBrief.keyPoints) ? displayBrief.keyPoints : []).map((point, i) => (
                 <div
                   key={i}
                   className={cn(
