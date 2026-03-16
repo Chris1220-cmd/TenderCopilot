@@ -317,18 +317,10 @@ class SmartIntakeService {
     // BullMQ doesn't have native job dependencies, so we add a delay
     // to let the analysis complete first. In production, the analysis
     // worker should trigger the compliance check when it finishes.
-    await complianceCheckQueue.add(
-      'check-compliance',
-      {
-        tenderId: tender.id,
-        tenantId,
-      },
-      {
-        delay: 60000, // 1 minute delay to let analysis complete
-        // TODO: Replace with proper job chaining. The analysis worker
-        // should add the compliance check job when it completes.
-      }
-    );
+    await complianceCheckQueue.add('check-compliance', {
+      tenderId: tender.id,
+      tenantId,
+    });
 
     // ── Log activity ─────────────────────────────────────────
     await db.activity.create({
