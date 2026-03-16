@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 import bcrypt from 'bcryptjs';
 import { router, publicProcedure } from '@/server/trpc';
 import { slugify } from '@/lib/utils';
@@ -16,68 +17,61 @@ export const authRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { email, password, name, companyName } = input;
 
-      // Check if user already exists
-      const existingUser = await ctx.db.user.findUnique({
-        where: { email },
-      });
-
-      if (existingUser) {
-        throw new Error('A user with this email already exists.');
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 12);
-
-      // Create user, tenant, tenant membership, and company profile in a transaction
-      const result = await ctx.db.$transaction(async (tx) => {
-        const user = await tx.user.create({
-          data: {
-            email,
-            name,
-            hashedPassword,
-          },
+      try {
+        // Check if user already exists
+        const existingUser = await ctx.db.user.findUnique({
+          where: { email },
         });
 
-        const slug = slugify(companyName) || `tenant-${Date.now()}`;
-
-        // Ensure slug uniqueness
-        let finalSlug = slug;
-        const existingTenant = await tx.tenant.findUnique({
-          where: { slug: finalSlug },
-        });
-        if (existingTenant) {
-          finalSlug = `${slug}-${Date.now()}`;
+        if (existingUser) {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'Υπάρχει ήδη χρήστης με αυτό το email.',
+          });
         }
 
-        const tenant = await tx.tenant.create({
-          data: {
-            name: companyName,
-            slug: finalSlug,
-          },
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        // Create user
+        const user = await ctx.db.user.create({
+          data: { email, name, hashedPassword },
         });
 
-        await tx.tenantUser.create({
-          data: {
-            userId: user.id,
-            tenantId: tenant.id,
-            role: 'ADMIN',
-          },
+        // Create tenant
+        let slug = slugify(companyName) || `tenant-${Date.now()}`;
+        const existingTenant = await ctx.db.tenant.findUnique({
+          where: { slug },
+        });
+        if (existingTenant) {
+          slug = `${slug}-${Date.now()}`;
+        }
+
+        const tenant = await ctx.db.tenant.create({
+          data: { name: companyName, slug },
         });
 
-        await tx.companyProfile.create({
-          data: {
-            tenantId: tenant.id,
-            legalName: companyName,
-            taxId: '',
-          },
+        // Link user to tenant
+        await ctx.db.tenantUser.create({
+          data: { userId: user.id, tenantId: tenant.id, role: 'ADMIN' },
         });
 
-        return { user, tenant };
-      });
+        // Create empty company profile
+        await ctx.db.companyProfile.create({
+          data: { tenantId: tenant.id, legalName: companyName, taxId: '' },
+        });
 
-      return {
-        success: true,
-        userId: result.user.id,
-        tenantId: result.tenant.id,
-      };
+        return {
+          success: true,
+          userId: user.id,
+          tenantId: tenant.id,
+        };
+      } catch (error: any) {
+        if (error instanceof TRPCError) throw error;
+        console.error('[Register] Error:', error?.message || error);
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error?.message || 'Αποτυχία εγγραφής. Δοκιμάστε ξανά.',
+        });
+      }
     }),
 });

@@ -46,12 +46,21 @@ export default function RegisterPage() {
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: async (_data, variables) => {
       // Auto sign-in after successful registration
-      await signIn('credentials', {
-        email: variables.email,
-        password: variables.password,
-        redirect: true,
-        callbackUrl: '/tenders',
-      });
+      try {
+        const result = await signIn('credentials', {
+          email: variables.email,
+          password: variables.password,
+          redirect: false,
+        });
+        if (result?.error) {
+          // Registration succeeded but auto-login failed — redirect to login
+          window.location.href = '/login';
+        } else {
+          window.location.href = '/dashboard';
+        }
+      } catch {
+        window.location.href = '/login';
+      }
     },
     onError: (err) => {
       setError(err.message || 'Κάτι πήγε στραβά. Δοκιμάστε ξανά.');
