@@ -70,6 +70,27 @@ export default function TenderDetailPage() {
   const tender = (tenderQuery.data as any) ?? null;
   const isLoading = tenderQuery.isLoading;
 
+  // Not found / error state
+  if (!isLoading && !tender) {
+    return (
+      <div className="space-y-6">
+        <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Link href="/tenders" className="hover:text-foreground transition-colors duration-200 cursor-pointer">
+            Διαγωνισμοί
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="font-medium text-foreground">Μη διαθέσιμο</span>
+        </nav>
+        <div className="text-center py-20">
+          <p className="text-lg font-medium text-muted-foreground">Ο διαγωνισμός δεν βρέθηκε</p>
+          <Button variant="outline" className="mt-4 cursor-pointer" onClick={() => router.push('/tenders')}>
+            Επιστροφή στους Διαγωνισμούς
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   // Stats — guard against null tender
   const requirementsCount = tender?.requirements?.length ?? 0;
   const tasksCount = tender?._count?.tasks ?? 0;
