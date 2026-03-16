@@ -46,70 +46,6 @@ import {
   Wrench,
 } from 'lucide-react';
 
-// Mock tender for graceful fallback
-const mockTender = {
-  id: '1',
-  title: 'Προμήθεια Εξοπλισμού Πληροφορικής Δήμου Αθηναίων',
-  referenceNumber: 'ΕΣΗΔΗΣ-2024-1234',
-  contractingAuthority: 'Δήμος Αθηναίων',
-  platform: 'ESIDIS',
-  status: 'IN_PROGRESS',
-  complianceScore: 72,
-  submissionDeadline: '2026-04-15',
-  budget: 250000,
-  awardCriteria: 'Βέλτιστη σχέση ποιότητας-τιμής',
-  cpvCodes: ['30213000-5', '48000000-8'],
-  notes: null,
-  requirements: [
-    {
-      id: 'req-1',
-      text: 'Φορολογική ενημερότητα σε ισχύ κατά την ημερομηνία υποβολής',
-      category: 'EXCLUSION_CRITERIA',
-      coverageStatus: 'COVERED',
-      mandatory: true,
-    },
-    {
-      id: 'req-2',
-      text: 'Ασφαλιστική ενημερότητα',
-      category: 'EXCLUSION_CRITERIA',
-      coverageStatus: 'COVERED',
-      mandatory: true,
-    },
-    {
-      id: 'req-3',
-      text: 'ISO 9001:2015',
-      category: 'TECHNICAL_REQUIREMENTS',
-      coverageStatus: 'GAP',
-      mandatory: true,
-    },
-    {
-      id: 'req-4',
-      text: '3 ομοειδή έργα τα τελευταία 5 έτη',
-      category: 'PARTICIPATION_CRITERIA',
-      coverageStatus: 'UNMAPPED',
-      mandatory: true,
-    },
-    {
-      id: 'req-5',
-      text: 'Υπεύθυνη δήλωση μη αποκλεισμού',
-      category: 'DOCUMENTATION_REQUIREMENTS',
-      coverageStatus: 'COVERED',
-      mandatory: true,
-    },
-    {
-      id: 'req-6',
-      text: 'Κύκλος εργασιών τελευταίας τριετίας',
-      category: 'FINANCIAL_REQUIREMENTS',
-      coverageStatus: 'UNMAPPED',
-      mandatory: false,
-    },
-  ],
-  _count: {
-    tasks: 4,
-    attachedDocuments: 3,
-    generatedDocuments: 2,
-  },
-};
 
 export default function TenderDetailPage() {
   const params = useParams();
@@ -134,26 +70,26 @@ export default function TenderDetailPage() {
   const tender = (tenderQuery.data as any) ?? null;
   const isLoading = tenderQuery.isLoading;
 
-  // Stats
-  const requirementsCount = tender.requirements?.length ?? 0;
-  const tasksCount = tender._count?.tasks ?? 0;
+  // Stats — guard against null tender
+  const requirementsCount = tender?.requirements?.length ?? 0;
+  const tasksCount = tender?._count?.tasks ?? 0;
   const documentsCount =
-    (tender._count?.attachedDocuments ?? 0) + (tender._count?.generatedDocuments ?? 0);
+    (tender?._count?.attachedDocuments ?? 0) + (tender?._count?.generatedDocuments ?? 0);
 
   const stats = [
     {
       label: 'Compliance Score',
-      value: tender.complianceScore != null ? `${Math.round(tender.complianceScore)}%` : '--',
+      value: tender?.complianceScore != null ? `${Math.round(tender.complianceScore)}%` : '--',
       color:
-        (tender.complianceScore ?? 0) >= 75
+        (tender?.complianceScore ?? 0) >= 75
           ? 'text-emerald-600 dark:text-emerald-400'
-          : (tender.complianceScore ?? 0) >= 50
+          : (tender?.complianceScore ?? 0) >= 50
             ? 'text-amber-600 dark:text-amber-400'
             : 'text-red-600 dark:text-red-400',
       bgColor:
-        (tender.complianceScore ?? 0) >= 75
+        (tender?.complianceScore ?? 0) >= 75
           ? 'bg-emerald-500/10'
-          : (tender.complianceScore ?? 0) >= 50
+          : (tender?.complianceScore ?? 0) >= 50
             ? 'bg-amber-500/10'
             : 'bg-red-500/10',
       icon: BarChart3,
@@ -196,7 +132,7 @@ export default function TenderDetailPage() {
           <Skeleton className="h-4 w-48" />
         ) : (
           <span className="font-medium text-foreground truncate max-w-[400px]">
-            {tender.title}
+            {tender?.title ?? '...'}
           </span>
         )}
       </nav>
@@ -215,12 +151,12 @@ export default function TenderDetailPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-2">
             <h1 className="text-2xl font-bold tracking-tight leading-tight">
-              {tender.title}
+              {tender?.title}
             </h1>
             <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge type="tender" value={tender.status} />
-              <StatusBadge type="platform" value={tender.platform} />
-              {tender.referenceNumber && (
+              <StatusBadge type="tender" value={tender?.status} />
+              <StatusBadge type="platform" value={tender?.platform} />
+              {tender?.referenceNumber && (
                 <span className="text-xs font-mono text-muted-foreground bg-muted rounded-md px-2 py-0.5">
                   {tender.referenceNumber}
                 </span>
