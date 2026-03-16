@@ -19,6 +19,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import {
   Plus,
   Search,
   FileText,
@@ -27,6 +35,7 @@ import {
   TrendingUp,
   Inbox,
   Filter,
+  Trash2,
 } from 'lucide-react';
 
 const statusConfig: Record<
@@ -48,64 +57,6 @@ const platformConfig: Record<string, { label: string; color: string }> = {
   OTHER: { label: 'Άλλο', color: 'bg-gray-500/10 text-gray-600 dark:text-gray-400' },
 };
 
-// Mock data for graceful fallback
-const mockTenders = [
-  {
-    id: '1',
-    title: 'Προμήθεια Εξοπλισμού Πληροφορικής Δήμου Αθηναίων',
-    referenceNumber: 'ΕΣΗΔΗΣ-2024-1234',
-    contractingAuthority: 'Δήμος Αθηναίων',
-    platform: 'ESIDIS',
-    status: 'IN_PROGRESS',
-    complianceScore: 72,
-    submissionDeadline: '2026-04-15',
-    budget: 250000,
-  },
-  {
-    id: '2',
-    title: 'Ανάπτυξη Ολοκληρωμένου Πληροφοριακού Συστήματος ERP',
-    referenceNumber: 'ΕΣΗΔΗΣ-2024-5678',
-    contractingAuthority: 'Υπουργείο Ψηφιακής Διακυβέρνησης',
-    platform: 'ESIDIS',
-    status: 'DRAFT',
-    complianceScore: 45,
-    submissionDeadline: '2026-04-22',
-    budget: 1200000,
-  },
-  {
-    id: '3',
-    title: 'Υπηρεσίες Συμβούλων Διοίκησης και Στρατηγικού Σχεδιασμού',
-    referenceNumber: 'ΚΗΜΔΗΣ-2024-9012',
-    contractingAuthority: 'Περιφέρεια Αττικής',
-    platform: 'KIMDIS',
-    status: 'SUBMITTED',
-    complianceScore: 95,
-    submissionDeadline: '2026-03-28',
-    budget: 180000,
-  },
-  {
-    id: '4',
-    title: 'Προμήθεια Οχημάτων για τις Ανάγκες του ΟΤΑ',
-    referenceNumber: 'ΕΣΗΔΗΣ-2024-3456',
-    contractingAuthority: 'Δήμος Θεσσαλονίκης',
-    platform: 'ESIDIS',
-    status: 'IN_PROGRESS',
-    complianceScore: 60,
-    submissionDeadline: '2026-04-10',
-    budget: 520000,
-  },
-  {
-    id: '5',
-    title: 'Παροχή Υπηρεσιών Καθαρισμού Κτιρίων',
-    referenceNumber: 'ΠΡΟΜ-2024-7890',
-    contractingAuthority: 'Πανεπιστήμιο Πατρών',
-    platform: 'PROMITHEUS',
-    status: 'WON',
-    complianceScore: 92,
-    submissionDeadline: '2026-02-15',
-    budget: 85000,
-  },
-];
 
 function ComplianceBar({ score }: { score: number }) {
   const color =
@@ -140,14 +91,24 @@ export default function TendersPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Try tRPC call, fall back to mock data
+  const utils = trpc.useUtils();
+
   const tendersQuery = trpc.tender.list.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
   });
 
+  const deleteMutation = trpc.tender.delete.useMutation({
+    onSuccess: () => {
+      setDeleteId(null);
+      utils.tender.list.invalidate();
+    },
+  });
+
   const tenders = (tendersQuery.data ?? []) as any[];
+  const tenderToDelete = deleteId ? tenders.find((t: any) => t.id === deleteId) : null;
 
   // Apply filters
   const filteredTenders = tenders.filter((tender) => {
@@ -268,13 +229,28 @@ export default function TendersPage() {
             const platform = platformConfig[tender.platform] || platformConfig.OTHER;
 
             return (
-              <Link key={tender.id} href={`/tenders/${tender.id}`}>
-                <Card
-                  className={cn(
-                    'group h-full transition-all duration-200 cursor-pointer',
-                    'hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/20'
-                  )}
+              <Card
+                key={tender.id}
+                className={cn(
+                  'group relative h-full transition-all duration-200',
+                  'hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/20'
+                )}
+              >
+                {/* Delete button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDeleteId(tender.id);
+                  }}
+                  className="absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-red-500/10 hover:bg-red-500/20 text-red-500 cursor-pointer"
+                  title="Διαγραφή"
                 >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+
+                <Link href={`/tenders/${tender.id}`} className="cursor-pointer">
                   <CardContent className="p-5">
                     <div className="space-y-4">
                       {/* Top row: badges */}
@@ -305,7 +281,7 @@ export default function TendersPage() {
                         <div className="flex items-center gap-2">
                           <Building2 className="h-3.5 w-3.5 shrink-0" />
                           <span className="truncate">
-                            {tender.contractingAuthority}
+                            {tender.contractingAuthority || '--'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -330,17 +306,47 @@ export default function TendersPage() {
                           <span className="text-xs font-medium text-muted-foreground">
                             Compliance
                           </span>
-                          <ComplianceBar score={tender.complianceScore} />
+                          <ComplianceBar score={tender.complianceScore ?? 0} />
                         </div>
                       </div>
                     </div>
                   </CardContent>
-                </Card>
-              </Link>
+                </Link>
+              </Card>
             );
           })}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Διαγραφή Διαγωνισμού</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Θέλετε να διαγράψετε τον διαγωνισμό{' '}
+            <strong className="text-foreground">{tenderToDelete?.title}</strong>;
+            Η ενέργεια είναι μη αναστρέψιμη.
+          </p>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" className="cursor-pointer">
+                Ακύρωση
+              </Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              className="cursor-pointer"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteId && deleteMutation.mutate({ id: deleteId })}
+            >
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              Διαγραφή
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
