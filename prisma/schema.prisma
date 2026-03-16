@@ -1,0 +1,463 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Multi-tenant ───────────────────────────────────────────
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users          TenantUser[]
+  companyProfile CompanyProfile?
+  certificates   Certificate[]
+  legalDocs      LegalDocument[]
+  projects       Project[]
+  contentLibrary ContentLibraryItem[]
+  tenders        Tender[]
+  invitations    Invitation[]
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
+  hashedPassword String?
+  image          String?
+  emailVerified  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  tenants       TenantUser[]
+  accounts      Account[]
+  sessions      Session[]
+  assignedTasks Task[]        @relation("TaskAssignee")
+  createdTasks  Task[]        @relation("TaskCreator")
+  activities    Activity[]
+}
+
+model TenantUser {
+  id       String     @id @default(cuid())
+  role     TenantRole @default(MEMBER)
+  joinedAt DateTime   @default(now())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+}
+
+enum TenantRole {
+  ADMIN
+  MEMBER
+  EXTERNAL_COLLABORATOR
+}
+
+model Invitation {
+  id        String         @id @default(cuid())
+  email     String
+  role      TenantRole     @default(MEMBER)
+  status    InviteStatus   @default(PENDING)
+  token     String         @unique @default(cuid())
+  expiresAt DateTime
+  createdAt DateTime       @default(now())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+// ─── NextAuth models ────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Company Profile & Master Library ───────────────────────
+
+model CompanyProfile {
+  id                  String  @id @default(cuid())
+  legalName           String
+  tradeName           String?
+  taxId               String  // ΑΦΜ
+  taxOffice           String? // ΔΟΥ
+  registrationNumber  String? // ΓΕΜΗ
+  address             String?
+  city                String?
+  postalCode          String?
+  country             String  @default("GR")
+  phone               String?
+  email               String?
+  website             String?
+  legalRepName        String? // Νόμιμος Εκπρόσωπος
+  legalRepTitle       String?
+  legalRepIdNumber    String?
+  kadCodes            String[] // ΚΑΔ codes array
+  description         String?  @db.Text
+
+  tenantId String @unique
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Certificate {
+  id          String    @id @default(cuid())
+  type        String    // ISO 9001, ISO 14001, etc.
+  title       String
+  issuer      String?
+  issueDate   DateTime?
+  expiryDate  DateTime?
+  fileKey     String?   // S3 key
+  fileName    String?
+  notes       String?   @db.Text
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  requirementMappings RequirementMapping[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LegalDocument {
+  id          String           @id @default(cuid())
+  type        LegalDocType
+  title       String
+  issueDate   DateTime?
+  expiryDate  DateTime?
+  fileKey     String?
+  fileName    String?
+  notes       String?          @db.Text
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  requirementMappings RequirementMapping[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum LegalDocType {
+  TAX_CLEARANCE           // Φορολογική ενημερότητα
+  SOCIAL_SECURITY_CLEARANCE // Ασφαλιστική ενημερότητα
+  GEMI_CERTIFICATE        // ΓΕΜΗ
+  CRIMINAL_RECORD         // Ποινικό μητρώο
+  JUDICIAL_CERTIFICATE    // Δικαστικό πιστοποιητικό
+  OTHER
+}
+
+model Project {
+  id              String    @id @default(cuid())
+  title           String
+  description     String?   @db.Text
+  client          String?
+  contractAmount  Float?
+  startDate       DateTime?
+  endDate         DateTime?
+  category        String?
+  proofFileKey    String?   // S3 key for certificate of completion etc.
+  proofFileName   String?
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  requirementMappings RequirementMapping[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ContentLibraryItem {
+  id       String             @id @default(cuid())
+  category ContentCategory
+  title    String
+  content  String             @db.Text
+  tags     String[]
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  requirementMappings RequirementMapping[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum ContentCategory {
+  COMPANY_PROFILE
+  METHODOLOGY
+  QA_PLAN
+  HSE_PLAN
+  TEAM_DESCRIPTION
+  RISK_MANAGEMENT
+  OTHER
+}
+
+// ─── Tender ─────────────────────────────────────────────────
+
+model Tender {
+  id                   String        @id @default(cuid())
+  title                String
+  referenceNumber      String?
+  contractingAuthority String?
+  platform             TenderPlatform @default(OTHER)
+  cpvCodes             String[]
+  budget               Float?
+  awardCriteria        String?       @db.Text
+  submissionDeadline   DateTime?
+  status               TenderStatus  @default(DISCOVERY)
+  complianceScore      Float?        // 0-100
+  notes                String?       @db.Text
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  requirements       TenderRequirement[]
+  attachedDocuments  AttachedDocument[]
+  generatedDocuments GeneratedDocument[]
+  tasks              Task[]
+  activities         Activity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TenderPlatform {
+  ESIDIS
+  COSMOONE
+  ISUPPLIES
+  OTHER
+}
+
+enum TenderStatus {
+  DISCOVERY
+  GO_NO_GO
+  IN_PROGRESS
+  SUBMITTED
+  WON
+  LOST
+}
+
+model TenderRequirement {
+  id               String              @id @default(cuid())
+  text             String              @db.Text
+  category         RequirementCategory
+  articleReference String?
+  mandatory        Boolean             @default(true)
+  type             RequirementType     @default(DOCUMENT)
+  coverageStatus   CoverageStatus      @default(UNMAPPED)
+  aiConfidence     Float?              // 0-1 confidence from AI extraction
+  notes            String?             @db.Text
+
+  tenderId String
+  tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  mappings RequirementMapping[]
+  tasks    Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum RequirementCategory {
+  PARTICIPATION_CRITERIA
+  EXCLUSION_CRITERIA
+  TECHNICAL_REQUIREMENTS
+  FINANCIAL_REQUIREMENTS
+  DOCUMENTATION_REQUIREMENTS
+  CONTRACT_TERMS
+}
+
+enum RequirementType {
+  DOCUMENT
+  EXPERIENCE
+  CERTIFICATE
+  DECLARATION
+  FINANCIAL
+  TECHNICAL
+  OTHER
+}
+
+enum CoverageStatus {
+  UNMAPPED
+  COVERED
+  GAP
+  MANUAL_OVERRIDE
+}
+
+model RequirementMapping {
+  id String @id @default(cuid())
+
+  requirementId String
+  requirement   TenderRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  // Polymorphic mapping - one of these will be set
+  certificateId      String?
+  certificate        Certificate?      @relation(fields: [certificateId], references: [id], onDelete: SetNull)
+  legalDocumentId    String?
+  legalDocument      LegalDocument?    @relation(fields: [legalDocumentId], references: [id], onDelete: SetNull)
+  projectId          String?
+  project            Project?          @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  contentLibraryItemId String?
+  contentLibraryItem ContentLibraryItem? @relation(fields: [contentLibraryItemId], references: [id], onDelete: SetNull)
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+}
+
+// ─── Documents ──────────────────────────────────────────────
+
+model AttachedDocument {
+  id       String  @id @default(cuid())
+  fileName String
+  fileKey  String  // S3 key
+  fileSize Int?
+  mimeType String?
+  category String? // e.g. "specification", "appendix", "clarification"
+
+  tenderId String
+  tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model GeneratedDocument {
+  id       String          @id @default(cuid())
+  type     GeneratedDocType
+  title    String
+  content  String          @db.Text // JSON or markdown content
+  fileKey  String?         // S3 key for generated file
+  fileName String?
+  status   DocGenStatus    @default(DRAFT)
+
+  tenderId String
+  tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum GeneratedDocType {
+  SOLEMN_DECLARATION        // Υπεύθυνη δήλωση
+  NON_EXCLUSION_DECLARATION // Δήλωση μη αποκλεισμού
+  TECHNICAL_COMPLIANCE      // Πίνακας τεχνικής συμμόρφωσης
+  TECHNICAL_PROPOSAL        // Τεχνική προσφορά
+  METHODOLOGY               // Μεθοδολογία
+  COVER_LETTER              // Συνοδευτική επιστολή
+  OTHER
+}
+
+enum DocGenStatus {
+  DRAFT
+  REVIEWED
+  FINAL
+}
+
+// ─── Tasks ──────────────────────────────────────────────────
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?      @db.Text
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+
+  tenderId    String
+  tender      Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  assigneeId  String?
+  assignee    User?  @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  creatorId   String?
+  creator     User?  @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+
+  requirementId String?
+  requirement   TenderRequirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// ─── Activity Log ───────────────────────────────────────────
+
+model Activity {
+  id      String @id @default(cuid())
+  action  String // e.g. "uploaded_document", "requirement_mapped", "task_completed"
+  details String? @db.Text
+
+  tenderId String
+  tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+}

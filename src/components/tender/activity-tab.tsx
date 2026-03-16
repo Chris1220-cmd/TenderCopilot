@@ -1,0 +1,244 @@
+'use client';
+
+import { cn, formatDate, getInitials } from '@/lib/utils';
+import { trpc } from '@/lib/trpc';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  FileText,
+  Upload,
+  CheckCircle2,
+  Link2,
+  Pencil,
+  UserPlus,
+  Sparkles,
+  AlertCircle,
+  Activity,
+  Clock,
+} from 'lucide-react';
+
+interface ActivityTabProps {
+  tenderId: string;
+}
+
+const actionIconMap: Record<string, { icon: typeof FileText; color: string; bgColor: string }> = {
+  uploaded_document: {
+    icon: Upload,
+    color: 'text-blue-600 dark:text-blue-400',
+    bgColor: 'bg-blue-500/10',
+  },
+  requirement_mapped: {
+    icon: Link2,
+    color: 'text-violet-600 dark:text-violet-400',
+    bgColor: 'bg-violet-500/10',
+  },
+  task_completed: {
+    icon: CheckCircle2,
+    color: 'text-emerald-600 dark:text-emerald-400',
+    bgColor: 'bg-emerald-500/10',
+  },
+  task_created: {
+    icon: Pencil,
+    color: 'text-amber-600 dark:text-amber-400',
+    bgColor: 'bg-amber-500/10',
+  },
+  status_changed: {
+    icon: Activity,
+    color: 'text-cyan-600 dark:text-cyan-400',
+    bgColor: 'bg-cyan-500/10',
+  },
+  document_generated: {
+    icon: Sparkles,
+    color: 'text-pink-600 dark:text-pink-400',
+    bgColor: 'bg-pink-500/10',
+  },
+  member_added: {
+    icon: UserPlus,
+    color: 'text-indigo-600 dark:text-indigo-400',
+    bgColor: 'bg-indigo-500/10',
+  },
+  compliance_check: {
+    icon: AlertCircle,
+    color: 'text-orange-600 dark:text-orange-400',
+    bgColor: 'bg-orange-500/10',
+  },
+};
+
+const defaultAction = {
+  icon: Activity,
+  color: 'text-gray-600 dark:text-gray-400',
+  bgColor: 'bg-gray-500/10',
+};
+
+// Mock data
+const mockActivities = [
+  {
+    id: 'act-1',
+    action: 'uploaded_document',
+    details: 'Ανέβασμα εγγράφου "Διακήρυξη_2024-1234.pdf"',
+    createdAt: '2026-03-15T14:30:00Z',
+    user: { id: 'u1', name: 'Μαρία Κ.', email: 'maria@test.com', image: null },
+  },
+  {
+    id: 'act-2',
+    action: 'requirement_mapped',
+    details: 'Αντιστοίχιση: Φορολογική ενημερότητα -> ISO 9001 πιστοποιητικό',
+    createdAt: '2026-03-15T12:15:00Z',
+    user: { id: 'u2', name: 'Γιάννης Π.', email: 'giannis@test.com', image: null },
+  },
+  {
+    id: 'act-3',
+    action: 'task_created',
+    details: 'Δημιουργία εργασίας: "Ανανέωση ISO 9001"',
+    createdAt: '2026-03-14T16:45:00Z',
+    user: { id: 'u1', name: 'Μαρία Κ.', email: 'maria@test.com', image: null },
+  },
+  {
+    id: 'act-4',
+    action: 'document_generated',
+    details: 'AI δημιουργία εγγράφου: "Υπεύθυνη Δήλωση - Ν.1599/1986"',
+    createdAt: '2026-03-14T10:20:00Z',
+    user: { id: 'u2', name: 'Γιάννης Π.', email: 'giannis@test.com', image: null },
+  },
+  {
+    id: 'act-5',
+    action: 'status_changed',
+    details: 'Αλλαγή κατάστασης: DISCOVERY -> IN_PROGRESS',
+    createdAt: '2026-03-13T09:00:00Z',
+    user: { id: 'u1', name: 'Μαρία Κ.', email: 'maria@test.com', image: null },
+  },
+  {
+    id: 'act-6',
+    action: 'compliance_check',
+    details: 'Εκτέλεση ελέγχου συμμόρφωσης - Αποτέλεσμα: 72%',
+    createdAt: '2026-03-12T15:30:00Z',
+    user: null,
+  },
+];
+
+function formatTimestamp(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMins < 1) return 'Μόλις τώρα';
+  if (diffMins < 60) return `${diffMins} λεπτά πριν`;
+  if (diffHours < 24) return `${diffHours} ώρες πριν`;
+  if (diffDays < 7) return `${diffDays} ημέρες πριν`;
+
+  return date.toLocaleDateString('el-GR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function ActivityTab({ tenderId }: ActivityTabProps) {
+  const timelineQuery = trpc.analytics.getTenderTimeline.useQuery(
+    { tenderId },
+    { retry: false }
+  );
+
+  const activities = (timelineQuery.data ?? mockActivities) as any[];
+
+  if (timelineQuery.isLoading) {
+    return (
+      <div className="space-y-4">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex gap-4">
+            <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (activities.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-16">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+            <Activity className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h3 className="mt-4 text-base font-semibold">Χωρίς δραστηριότητα</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Δεν υπάρχει ακόμα ιστορικό ενεργειών για αυτόν τον διαγωνισμό.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {/* Timeline line */}
+      <div className="absolute left-5 top-0 bottom-0 w-px bg-border" />
+
+      <div className="space-y-0">
+        {activities.map((activity, index) => {
+          const actionConfig = actionIconMap[activity.action] ?? defaultAction;
+          const ActionIcon = actionConfig.icon;
+
+          return (
+            <div
+              key={activity.id}
+              className={cn(
+                'relative flex gap-4 py-4 pl-0 group',
+                index < activities.length - 1 && 'border-b-0'
+              )}
+            >
+              {/* Icon */}
+              <div
+                className={cn(
+                  'relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-background',
+                  actionConfig.bgColor,
+                  'transition-transform duration-200 group-hover:scale-110'
+                )}
+              >
+                <ActionIcon className={cn('h-4 w-4', actionConfig.color)} />
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0 pt-0.5">
+                <p className="text-sm leading-relaxed">
+                  {activity.details ?? activity.action}
+                </p>
+                <div className="flex items-center gap-3 mt-1.5">
+                  {activity.user ? (
+                    <div className="flex items-center gap-1.5">
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={activity.user.image ?? undefined} />
+                        <AvatarFallback className="text-[9px] bg-primary/10">
+                          {getInitials(activity.user.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-muted-foreground">
+                        {activity.user.name ?? activity.user.email}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Σύστημα</span>
+                  )}
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {formatTimestamp(activity.createdAt as string)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

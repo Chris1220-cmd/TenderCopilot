@@ -1,0 +1,22 @@
+import { router } from '@/server/trpc';
+import { authRouter } from '@/server/routers/auth';
+import { tenantRouter } from '@/server/routers/tenant';
+import { companyRouter } from '@/server/routers/company';
+import { tenderRouter } from '@/server/routers/tender';
+import { requirementRouter } from '@/server/routers/requirement';
+import { taskRouter } from '@/server/routers/task';
+import { documentRouter } from '@/server/routers/document';
+import { analyticsRouter } from '@/server/routers/analytics';
+
+export const appRouter = router({
+  auth: authRouter,
+  tenant: tenantRouter,
+  company: companyRouter,
+  tender: tenderRouter,
+  requirement: requirementRouter,
+  task: taskRouter,
+  document: documentRouter,
+  analytics: analyticsRouter,
+});
+
+export type AppRouter = typeof appRouter;
