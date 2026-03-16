@@ -105,6 +105,7 @@ export default function NewTenderPage() {
   // tRPC mutations
   const importFromUrl = trpc.discovery.importFromUrl.useMutation();
   const importFromFiles = trpc.discovery.importFromFiles.useMutation();
+  const createTender = trpc.tender.create.useMutation();
 
   // Scroll to content when mode changes
   useEffect(() => {
@@ -238,8 +239,24 @@ export default function NewTenderPage() {
 
   // ─── Discovery import handler ─────────────────────────────────────────────
 
-  function handleDiscoveryImport(tender: any) {
-    router.push(`/tenders/${tender.id}`);
+  async function handleDiscoveryImport(tender: any) {
+    try {
+      const result = await createTender.mutateAsync({
+        title: tender.title,
+        referenceNumber: tender.referenceNumber || null,
+        contractingAuthority: tender.contractingAuthority || null,
+        platform: tender.platform === 'KIMDIS' || tender.platform === 'DIAVGEIA' || tender.platform === 'TED'
+          ? 'OTHER'
+          : tender.platform || 'OTHER',
+        cpvCodes: tender.cpvCodes || [],
+        budget: tender.budget || null,
+        submissionDeadline: tender.submissionDeadline || null,
+        notes: tender.summary || null,
+      });
+      router.push(`/tenders/${result.id}`);
+    } catch (err: any) {
+      console.error('Import failed:', err);
+    }
   }
 
   // ─── Render ───────────────────────────────────────────────────────────────
