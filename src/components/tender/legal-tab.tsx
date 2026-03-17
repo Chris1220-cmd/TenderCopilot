@@ -130,6 +130,7 @@ export function LegalTab({ tenderId }: LegalTabProps) {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [editingClarification, setEditingClarification] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   // tRPC mutations
   const extractMutation = trpc.aiRoles.extractLegalClauses.useMutation({
@@ -138,7 +139,7 @@ export function LegalTab({ tenderId }: LegalTabProps) {
       if (data?.summary) setSummary(data.summary);
       setLoadingAction(null);
     },
-    onError: () => setLoadingAction(null),
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα AI'); setLoadingAction(null); },
   });
 
   const assessMutation = trpc.aiRoles.assessLegalRisks.useMutation({
@@ -147,7 +148,7 @@ export function LegalTab({ tenderId }: LegalTabProps) {
       if (data?.summary) setSummary(data.summary);
       setLoadingAction(null);
     },
-    onError: () => setLoadingAction(null),
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα AI'); setLoadingAction(null); },
   });
 
   const clarifyMutation = trpc.aiRoles.proposeClarifications.useMutation({
@@ -155,7 +156,7 @@ export function LegalTab({ tenderId }: LegalTabProps) {
       if (data?.clarifications) setClarifications(data.clarifications);
       setLoadingAction(null);
     },
-    onError: () => setLoadingAction(null),
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα AI'); setLoadingAction(null); },
   });
 
   const handleExtract = () => {
@@ -214,10 +215,17 @@ export function LegalTab({ tenderId }: LegalTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* Error Banner */}
+      {error && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+          <strong>Σφάλμα:</strong> {error}
+          <button onClick={() => setError(null)} className="ml-2 underline cursor-pointer">Κλείσιμο</button>
+        </div>
+      )}
       {/* Header Actions */}
       <div className="flex flex-wrap items-center gap-2">
         <Button
-          onClick={handleExtract}
+          onClick={() => { setError(null); handleExtract(); }}
           disabled={loadingAction !== null}
           variant="outline"
           className="cursor-pointer gap-2 h-9"

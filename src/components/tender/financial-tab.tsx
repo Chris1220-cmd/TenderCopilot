@@ -152,7 +152,7 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
       if (result) setData((prev) => prev ? { ...prev, ...result } : result);
       setLoadingAction(null);
     },
-    onError: () => setLoadingAction(null),
+    onError: (err: any) => { console.error('[Financial]', err?.message); setLoadingAction(null); },
   });
 
   // checkFinancialEligibility is a query, so we use useQuery with enabled flag
@@ -169,7 +169,7 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
       if (result?.scenarios) setData((prev) => prev ? { ...prev, scenarios: result.scenarios } : null);
       setLoadingAction(null);
     },
-    onError: () => setLoadingAction(null),
+    onError: (err: any) => { console.error('[Financial]', err?.message); setLoadingAction(null); },
   });
 
   const handleAnalyze = () => {

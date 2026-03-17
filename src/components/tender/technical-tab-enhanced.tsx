@@ -138,7 +138,7 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
       if (data?.team) setTeam(data.team);
       setLoadingAction(null);
     },
-    onError: () => setLoadingAction(null),
+    onError: (err: any) => { console.error('[Technical]', err?.message); setLoadingAction(null); },
   });
 
   const proposalMutation = trpc.aiRoles.generateProposal.useMutation({
@@ -146,7 +146,7 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
       if (data?.sections) setSections(data.sections);
       setLoadingAction(null);
     },
-    onError: () => setLoadingAction(null),
+    onError: (err: any) => { console.error('[Technical]', err?.message); setLoadingAction(null); },
   });
 
   const flagRisksMutation = trpc.aiRoles.flagTechRisks.useMutation({
@@ -154,7 +154,7 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
       if (data?.risks) setRisks(data.risks);
       setLoadingAction(null);
     },
-    onError: () => setLoadingAction(null),
+    onError: (err: any) => { console.error('[Technical]', err?.message); setLoadingAction(null); },
   });
 
   const handleAnalyze = () => {
