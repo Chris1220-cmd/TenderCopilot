@@ -173,11 +173,11 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                     <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{doc.fileName}</p>
+                    <p className="text-sm font-medium truncate">{doc?.fileName ?? 'Χωρίς όνομα'}</p>
                     <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                      <span>{doc.fileSize ? fileSize(doc.fileSize) : '--'}</span>
-                      <span>{formatDate(doc.createdAt)}</span>
-                      <span className="capitalize">{getCategoryLabel(doc.category)}</span>
+                      <span>{doc?.fileSize ? fileSize(doc.fileSize) : '--'}</span>
+                      <span>{doc?.createdAt ? formatDate(doc.createdAt) : '--'}</span>
+                      <span className="capitalize">{getCategoryLabel(doc?.category ?? null)}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -285,12 +285,12 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium truncate">{doc.title}</p>
-                        <StatusBadge type="docGenStatus" value={doc.status} />
+                        <p className="text-sm font-medium truncate">{doc?.title ?? 'Χωρίς τίτλο'}</p>
+                        <StatusBadge type="docGenStatus" value={doc?.status} />
                       </div>
                       <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                        <span>{docType?.label ?? doc.type}</span>
-                        <span>Ενημέρωση: {formatDate(doc.updatedAt)}</span>
+                        <span>{docType?.label ?? doc?.type ?? '--'}</span>
+                        <span>Ενημέρωση: {doc?.updatedAt ? formatDate(doc.updatedAt) : '--'}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">

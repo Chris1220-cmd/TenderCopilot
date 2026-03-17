@@ -280,8 +280,8 @@ export function LegalTab({ tenderId }: LegalTabProps) {
           {summary && (
             <GlassCardAction>
               <div className="flex items-baseline gap-1.5">
-                <span className={cn('text-3xl font-bold tabular-nums', getRiskScoreColor(summary.overallRiskScore))}>
-                  {summary.overallRiskScore}
+                <span className={cn('text-3xl font-bold tabular-nums', getRiskScoreColor(summary.overallRiskScore ?? 0))}>
+                  {summary.overallRiskScore ?? 0}
                 </span>
                 <span className="text-xs text-muted-foreground">/ 100</span>
               </div>
@@ -294,14 +294,14 @@ export function LegalTab({ tenderId }: LegalTabProps) {
               {/* Risk Bar */}
               <div className="h-2.5 w-full rounded-full bg-muted/50 overflow-hidden">
                 <div
-                  className={cn('h-full rounded-full transition-all duration-700 ease-out', getRiskBarColor(summary.overallRiskScore))}
-                  style={{ width: `${summary.overallRiskScore}%` }}
+                  className={cn('h-full rounded-full transition-all duration-700 ease-out', getRiskBarColor(summary.overallRiskScore ?? 0))}
+                  style={{ width: `${summary.overallRiskScore ?? 0}%` }}
                 />
               </div>
 
               {/* Risk Count Badges */}
               <div className="flex flex-wrap gap-2">
-                {(Object.entries(summary.clauseCountByRisk) as [keyof typeof riskConfig, number][]).map(
+                {(Object.entries(summary.clauseCountByRisk ?? {}) as [keyof typeof riskConfig, number][]).map(
                   ([level, count]) => {
                     const cfg = riskConfig[level];
                     return (
@@ -372,7 +372,7 @@ export function LegalTab({ tenderId }: LegalTabProps) {
                 </thead>
                 <tbody>
                   {clauses.map((clause) => {
-                    const cfg = riskConfig[clause.riskLevel];
+                    const cfg = riskConfig[clause.riskLevel] ?? riskConfig.LOW;
                     return (
                       <tr
                         key={clause.id}
@@ -441,7 +441,7 @@ export function LegalTab({ tenderId }: LegalTabProps) {
         <GlassCardContent>
           <div className="space-y-3">
             {clarifications.map((cl) => {
-              const statusCfg = clarificationStatusConfig[cl.status];
+              const statusCfg = clarificationStatusConfig[cl.status] ?? clarificationStatusConfig.DRAFT;
               const isEditing = editingClarification === cl.id;
 
               return (
@@ -471,9 +471,9 @@ export function LegalTab({ tenderId }: LegalTabProps) {
                     </div>
                     <Badge
                       variant="outline"
-                      className={cn('text-[10px] shrink-0', statusCfg.className)}
+                      className={cn('text-[10px] shrink-0', statusCfg?.className)}
                     >
-                      {statusCfg.label}
+                      {statusCfg?.label ?? cl.status}
                     </Badge>
                   </div>
 
@@ -559,12 +559,12 @@ export function LegalTab({ tenderId }: LegalTabProps) {
                     variant="outline"
                     className={cn(
                       'text-xs font-semibold',
-                      riskConfig[selectedClause.riskLevel].bg,
-                      riskConfig[selectedClause.riskLevel].text,
-                      riskConfig[selectedClause.riskLevel].border
+                      (riskConfig[selectedClause.riskLevel] ?? riskConfig.LOW).bg,
+                      (riskConfig[selectedClause.riskLevel] ?? riskConfig.LOW).text,
+                      (riskConfig[selectedClause.riskLevel] ?? riskConfig.LOW).border
                     )}
                   >
-                    {riskConfig[selectedClause.riskLevel].label}
+                    {(riskConfig[selectedClause.riskLevel] ?? riskConfig.LOW).label}
                   </Badge>
                 </div>
 
@@ -628,10 +628,10 @@ export function LegalTab({ tenderId }: LegalTabProps) {
                             variant="outline"
                             className={cn(
                               'mt-2 text-[9px]',
-                              clarificationStatusConfig[cl.status].className
+                              (clarificationStatusConfig[cl.status] ?? clarificationStatusConfig.DRAFT)?.className
                             )}
                           >
-                            {clarificationStatusConfig[cl.status].label}
+                            {(clarificationStatusConfig[cl.status] ?? clarificationStatusConfig.DRAFT)?.label ?? cl.status}
                           </Badge>
                         </div>
                       ))}

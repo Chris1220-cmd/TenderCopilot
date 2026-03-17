@@ -274,7 +274,7 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
             {sections
               .sort((a, b) => a.order - b.order)
               .map((section) => {
-                const statusCfg = sectionStatusConfig[section.status];
+                const statusCfg = sectionStatusConfig[section.status] ?? sectionStatusConfig.AI_DRAFT;
                 const isExpanded = expandedSection === section.id;
                 const isEditing = editingSection === section.id;
 
@@ -425,7 +425,7 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
           {risks.length > 0 ? (
             <div className="space-y-3">
               {risks.map((risk) => {
-                const cfg = riskConfig[risk.riskLevel];
+                const cfg = riskConfig[risk.riskLevel] ?? riskConfig.LOW;
                 return (
                   <div
                     key={risk.id}
@@ -496,7 +496,7 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
                 </thead>
                 <tbody>
                   {team.map((req) => {
-                    const sCfg = staffStatusConfig[req.status];
+                    const sCfg = staffStatusConfig[req.status] ?? staffStatusConfig.UNMAPPED;
                     return (
                       <tr key={req.id} className="border-b border-border/30">
                         <td className="px-5 py-2.5 text-xs font-semibold text-foreground">{req.role}</td>
@@ -557,7 +557,7 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
           {scoreCriteria.length > 0 ? (
             <div className="space-y-3">
               {scoreCriteria.map((criterion, i) => {
-                const pct = (criterion.estimatedScore / criterion.maxScore) * 100;
+                const pct = criterion.maxScore > 0 ? (criterion.estimatedScore / criterion.maxScore) * 100 : 0;
                 return (
                   <div key={i} className="flex items-center gap-3">
                     <span className="text-xs font-medium text-foreground w-44 shrink-0 truncate">

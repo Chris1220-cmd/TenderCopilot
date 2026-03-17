@@ -140,12 +140,12 @@ export function ActivityTab({ tenderId }: ActivityTabProps) {
 
       <div className="space-y-0">
         {activities.map((activity, index) => {
-          const actionConfig = actionIconMap[activity.action] ?? defaultAction;
+          const actionConfig = actionIconMap[activity?.action] ?? defaultAction;
           const ActionIcon = actionConfig.icon;
 
           return (
             <div
-              key={activity.id}
+              key={activity.id ?? index}
               className={cn(
                 'relative flex gap-4 py-4 pl-0 group',
                 index < activities.length - 1 && 'border-b-0'
@@ -165,28 +165,30 @@ export function ActivityTab({ tenderId }: ActivityTabProps) {
               {/* Content */}
               <div className="flex-1 min-w-0 pt-0.5">
                 <p className="text-sm leading-relaxed">
-                  {activity.details ?? activity.action}
+                  {activity?.details ?? activity?.action ?? ''}
                 </p>
                 <div className="flex items-center gap-3 mt-1.5">
                   {activity.user ? (
                     <div className="flex items-center gap-1.5">
                       <Avatar className="h-5 w-5">
-                        <AvatarImage src={activity.user.image ?? undefined} />
+                        <AvatarImage src={activity.user?.image ?? undefined} />
                         <AvatarFallback className="text-[9px] bg-primary/10">
-                          {getInitials(activity.user.name)}
+                          {getInitials(activity.user?.name ?? '')}
                         </AvatarFallback>
                       </Avatar>
                       <span className="text-xs text-muted-foreground">
-                        {activity.user.name ?? activity.user.email}
+                        {activity.user?.name ?? activity.user?.email ?? 'Άγνωστος'}
                       </span>
                     </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">Σύστημα</span>
                   )}
+                  {activity.createdAt && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
                     {formatTimestamp(activity.createdAt as string)}
                   </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -122,7 +122,7 @@ export function RequirementsTab({ tenderId }: RequirementsTabProps) {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return (
-          r.text.toLowerCase().includes(q) ||
+          (r.text ?? '').toLowerCase().includes(q) ||
           (r.articleReference ?? '').toLowerCase().includes(q)
         );
       }
@@ -434,10 +434,10 @@ export function RequirementsTab({ tenderId }: RequirementsTabProps) {
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
                 <Select
-                  value={detail.coverageStatus}
+                  value={detail?.coverageStatus ?? 'UNMAPPED'}
                   onValueChange={(val) => {
                     updateRequirement.mutate({
-                      id: detail.id,
+                      id: detail?.id,
                       coverageStatus: val as any,
                     });
                   }}
@@ -474,10 +474,10 @@ export function RequirementsTab({ tenderId }: RequirementsTabProps) {
                   className="cursor-pointer h-8 text-xs gap-1.5"
                   disabled={
                     updateRequirement.isPending ||
-                    sheetNotes === (detail.notes ?? '')
+                    sheetNotes === (detail?.notes ?? '')
                   }
                   onClick={() =>
-                    updateRequirement.mutate({ id: detail.id, notes: sheetNotes })
+                    updateRequirement.mutate({ id: detail?.id, notes: sheetNotes })
                   }
                 >
                   <Save className="h-3.5 w-3.5" />

@@ -285,7 +285,7 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
               </div>
 
               {/* Circular Score */}
-              <CircularProgress score={displayResult.overallScore} />
+              <CircularProgress score={displayResult.overallScore ?? 0} />
             </div>
 
             {/* Factor Breakdown */}
@@ -294,7 +294,7 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
                 Ανάλυση Παραγόντων
               </p>
               <div className="space-y-2.5">
-                {displayResult.factors.map((factor, i) => (
+                {(displayResult.factors ?? []).map((factor, i) => (
                   <div key={i} className="group">
                     <div className="flex items-center gap-3">
                       <span className="text-xs font-medium text-foreground w-32 shrink-0 truncate">
@@ -339,12 +339,12 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
                 {showReasons ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                 {showReasons ? 'Απόκρυψη Αιτιολογίας' : 'Εμφάνιση Αιτιολογίας'}
                 <Badge variant="secondary" className="text-[9px] h-4 px-1.5">
-                  {displayResult.reasons.length}
+                  {(displayResult.reasons ?? []).length}
                 </Badge>
               </button>
               {showReasons && (
                 <ul className="mt-2.5 space-y-1.5 pl-1">
-                  {displayResult.reasons.map((reason, i) => (
+                  {(displayResult.reasons ?? []).map((reason, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
                       <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-500/60 shrink-0" />
                       {reason}

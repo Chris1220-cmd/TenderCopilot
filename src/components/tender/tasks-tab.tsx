@@ -101,10 +101,11 @@ export function TasksTab({ tenderId }: TasksTabProps) {
   };
 
   const openEdit = (task: any) => {
+    if (!task) return;
     setEditTask(task);
-    setFormTitle(task.title);
+    setFormTitle(task.title ?? '');
     setFormDescription(task.description ?? '');
-    setFormPriority(task.priority);
+    setFormPriority(task.priority ?? 'MEDIUM');
     setFormDueDate(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '');
   };
 
@@ -293,9 +294,9 @@ export function TasksTab({ tenderId }: TasksTabProps) {
                         )}
 
                         {/* Linked Requirement */}
-                        {task.requirement && (
+                        {task?.requirement && (
                           <div className="text-[11px] text-muted-foreground bg-muted/50 rounded-md px-2 py-1 line-clamp-1">
-                            {task.requirement.text}
+                            {task.requirement?.text ?? ''}
                           </div>
                         )}
 
@@ -304,13 +305,13 @@ export function TasksTab({ tenderId }: TasksTabProps) {
                           {task.assignee ? (
                             <div className="flex items-center gap-1.5">
                               <Avatar className="h-6 w-6">
-                                <AvatarImage src={task.assignee.image ?? undefined} />
+                                <AvatarImage src={task.assignee?.image ?? undefined} />
                                 <AvatarFallback className="text-[10px] bg-primary/10">
-                                  {getInitials(task.assignee.name)}
+                                  {getInitials(task.assignee?.name ?? '')}
                                 </AvatarFallback>
                               </Avatar>
                               <span className="text-[11px] text-muted-foreground">
-                                {task.assignee.name}
+                                {task.assignee?.name ?? 'Χωρίς όνομα'}
                               </span>
                             </div>
                           ) : (
