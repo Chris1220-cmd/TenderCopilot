@@ -146,63 +146,53 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
-  // tRPC mutations with fallback
-  const extractMutation = trpc.aiRoles?.extractFinancials?.useMutation?.({
+  // tRPC mutations
+  const extractMutation = trpc.aiRoles.extractFinancials.useMutation({
     onSuccess: (result: any) => {
       if (result) setData((prev) => prev ? { ...prev, ...result } : result);
       setLoadingAction(null);
     },
     onError: () => setLoadingAction(null),
-  }) ?? null;
+  });
 
   // checkFinancialEligibility is a query, so we use useQuery with enabled flag
-  const eligibilityQuery = trpc.aiRoles?.checkFinancialEligibility?.useQuery?.(
+  const eligibilityQuery = trpc.aiRoles.checkFinancialEligibility.useQuery(
     { tenderId },
     {
       enabled: false, // manually triggered via refetch
       retry: false,
     }
-  ) ?? null;
+  );
 
-  const pricingMutation = trpc.aiRoles?.suggestPricing?.useMutation?.({
+  const pricingMutation = trpc.aiRoles.suggestPricing.useMutation({
     onSuccess: (result: any) => {
       if (result?.scenarios) setData((prev) => prev ? { ...prev, scenarios: result.scenarios } : null);
       setLoadingAction(null);
     },
     onError: () => setLoadingAction(null),
-  }) ?? null;
+  });
 
   const handleAnalyze = () => {
     setLoadingAction('analyze');
-    if (extractMutation) {
-      extractMutation.mutate({ tenderId });
-    } else {
-      setTimeout(() => setLoadingAction(null), 1500);
-    }
+    extractMutation.mutate({ tenderId });
   };
 
   const handleEligibility = async () => {
     setLoadingAction('eligibility');
-    if (eligibilityQuery?.refetch) {
-      try {
-        const res = await eligibilityQuery.refetch();
-        if (res.data) {
-          setData((prev) => prev ? { ...prev, eligibility: res.data as any } : null);
-        }
-      } catch {
-        // show error — no fallback
+    try {
+      const res = await eligibilityQuery.refetch();
+      if (res.data) {
+        setData((prev) => prev ? { ...prev, eligibility: res.data as any } : null);
       }
+    } catch {
+      // show error — no fallback
     }
     setLoadingAction(null);
   };
 
   const handlePricing = () => {
     setLoadingAction('pricing');
-    if (pricingMutation) {
-      pricingMutation.mutate({ tenderId });
-    } else {
-      setTimeout(() => setLoadingAction(null), 1500);
-    }
+    pricingMutation.mutate({ tenderId });
   };
 
   const eligCfg = data ? eligibilityConfig[data.eligibility.status] : null;

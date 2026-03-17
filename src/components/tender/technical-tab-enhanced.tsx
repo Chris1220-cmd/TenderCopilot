@@ -131,57 +131,45 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
   const [editContent, setEditContent] = useState('');
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
-  // tRPC mutations with fallback
-  const analyzeMutation = trpc.aiRoles?.analyzeTechRequirements?.useMutation?.({
+  // tRPC mutations
+  const analyzeMutation = trpc.aiRoles.analyzeTechRequirements.useMutation({
     onSuccess: (data: any) => {
       if (data?.risks) setRisks(data.risks);
       if (data?.team) setTeam(data.team);
       setLoadingAction(null);
     },
     onError: () => setLoadingAction(null),
-  }) ?? null;
+  });
 
-  const proposalMutation = trpc.aiRoles?.generateProposal?.useMutation?.({
+  const proposalMutation = trpc.aiRoles.generateProposal.useMutation({
     onSuccess: (data: any) => {
       if (data?.sections) setSections(data.sections);
       setLoadingAction(null);
     },
     onError: () => setLoadingAction(null),
-  }) ?? null;
+  });
 
-  const flagRisksMutation = trpc.aiRoles?.flagTechRisks?.useMutation?.({
+  const flagRisksMutation = trpc.aiRoles.flagTechRisks.useMutation({
     onSuccess: (data: any) => {
       if (data?.risks) setRisks(data.risks);
       setLoadingAction(null);
     },
     onError: () => setLoadingAction(null),
-  }) ?? null;
+  });
 
   const handleAnalyze = () => {
     setLoadingAction('analyze');
-    if (analyzeMutation) {
-      analyzeMutation.mutate({ tenderId });
-    } else {
-      setTimeout(() => setLoadingAction(null), 1500);
-    }
+    analyzeMutation.mutate({ tenderId });
   };
 
   const handleGenerate = () => {
     setLoadingAction('generate');
-    if (proposalMutation) {
-      proposalMutation.mutate({ tenderId });
-    } else {
-      setTimeout(() => setLoadingAction(null), 1500);
-    }
+    proposalMutation.mutate({ tenderId });
   };
 
   const handleFlagRisks = () => {
     setLoadingAction('risks');
-    if (flagRisksMutation) {
-      flagRisksMutation.mutate({ tenderId });
-    } else {
-      setTimeout(() => setLoadingAction(null), 1500);
-    }
+    flagRisksMutation.mutate({ tenderId });
   };
 
   const handleToggleSection = (id: string) => {

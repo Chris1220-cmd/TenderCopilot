@@ -44,7 +44,7 @@ export function AIBriefPanel({ tenderId, className }: AIBriefPanelProps) {
   const [error, setError] = useState<string | null>(null);
 
   // tRPC mutation — transform DB record to component format
-  const summarizeMutation = trpc.aiRoles?.summarizeTender?.useMutation?.({
+  const summarizeMutation = trpc.aiRoles.summarizeTender.useMutation({
     onSuccess: (data: any) => {
       // DB fields: summaryText, keyPoints, sector, awardType, duration
       const keyPoints: AIBrief['keyPoints'] = [];
@@ -71,17 +71,12 @@ export function AIBriefPanel({ tenderId, className }: AIBriefPanelProps) {
       setError(err?.message ?? 'Αποτυχία δημιουργίας brief. Δοκιμάστε ξανά.');
       setIsGenerating(false);
     },
-  }) ?? null;
+  });
 
   const handleGenerate = () => {
     setIsGenerating(true);
     setError(null);
-    if (summarizeMutation) {
-      summarizeMutation.mutate({ tenderId });
-    } else {
-      setError('Η υπηρεσία AI δεν είναι διαθέσιμη αυτή τη στιγμή.');
-      setIsGenerating(false);
-    }
+    summarizeMutation.mutate({ tenderId });
   };
 
   const displayBrief = brief ?? null;

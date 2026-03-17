@@ -134,8 +134,8 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // tRPC mutations — no mock fallback
-  const askMutation = trpc.aiRoles?.askQuestion?.useMutation?.({
+  // tRPC mutations
+  const askMutation = trpc.aiRoles.askQuestion.useMutation({
     onSuccess: (data: any) => {
       const answer: ChatMessage = {
         id: `msg-${Date.now()}`,
@@ -156,18 +156,18 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
       setMessages((prev) => [...prev, errorMsg]);
       setIsTyping(false);
     },
-  }) ?? null;
+  });
 
   // suggestNextActions and getReminders are queries - use with enabled:false for manual trigger
-  const nextActionsQuery = trpc.aiRoles?.suggestNextActions?.useQuery?.(
+  const nextActionsQuery = trpc.aiRoles.suggestNextActions.useQuery(
     { tenderId },
     { enabled: false, retry: false }
-  ) ?? null;
+  );
 
-  const remindersQuery = trpc.aiRoles?.getReminders?.useQuery?.(
+  const remindersQuery = trpc.aiRoles.getReminders.useQuery(
     { tenderId },
     { enabled: false, retry: false }
-  ) ?? null;
+  );
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -193,18 +193,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
     setInputValue('');
     setIsTyping(true);
 
-    if (askMutation) {
-      askMutation.mutate({ tenderId, question });
-    } else {
-      const errorMsg: ChatMessage = {
-        id: `msg-${Date.now()}`,
-        role: 'assistant',
-        content: 'Η υπηρεσία AI δεν είναι διαθέσιμη αυτή τη στιγμή.',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
-      setIsTyping(false);
-    }
+    askMutation.mutate({ tenderId, question });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

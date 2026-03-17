@@ -131,58 +131,46 @@ export function LegalTab({ tenderId }: LegalTabProps) {
   const [editingClarification, setEditingClarification] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
 
-  // tRPC mutations (with null safety for when router doesn't exist yet)
-  const extractMutation = trpc.aiRoles?.extractLegalClauses?.useMutation?.({
+  // tRPC mutations
+  const extractMutation = trpc.aiRoles.extractLegalClauses.useMutation({
     onSuccess: (data: any) => {
       if (data?.clauses) setClauses(data.clauses);
       if (data?.summary) setSummary(data.summary);
       setLoadingAction(null);
     },
     onError: () => setLoadingAction(null),
-  }) ?? null;
+  });
 
-  const assessMutation = trpc.aiRoles?.assessLegalRisks?.useMutation?.({
+  const assessMutation = trpc.aiRoles.assessLegalRisks.useMutation({
     onSuccess: (data: any) => {
       if (data?.clauses) setClauses(data.clauses);
       if (data?.summary) setSummary(data.summary);
       setLoadingAction(null);
     },
     onError: () => setLoadingAction(null),
-  }) ?? null;
+  });
 
-  const clarifyMutation = trpc.aiRoles?.proposeClarifications?.useMutation?.({
+  const clarifyMutation = trpc.aiRoles.proposeClarifications.useMutation({
     onSuccess: (data: any) => {
       if (data?.clarifications) setClarifications(data.clarifications);
       setLoadingAction(null);
     },
     onError: () => setLoadingAction(null),
-  }) ?? null;
+  });
 
   const handleExtract = () => {
     setLoadingAction('extract');
-    if (extractMutation) {
-      extractMutation.mutate({ tenderId });
-    } else {
-      setLoadingAction(null);
-    }
+    extractMutation.mutate({ tenderId });
   };
 
   const handleAssess = () => {
     setLoadingAction('assess');
-    if (assessMutation) {
-      assessMutation.mutate({ tenderId });
-    } else {
-      setTimeout(() => setLoadingAction(null), 1500);
-    }
+    assessMutation.mutate({ tenderId });
   };
 
   const handleClarify = () => {
     setLoadingAction('clarify');
-    if (clarifyMutation) {
-      clarifyMutation.mutate({ tenderId });
-    } else {
-      setTimeout(() => setLoadingAction(null), 1500);
-    }
+    clarifyMutation.mutate({ tenderId });
   };
 
   const handleClauseClick = (clause: LegalClause) => {

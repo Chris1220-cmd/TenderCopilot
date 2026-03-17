@@ -167,7 +167,7 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
   const [error, setError] = useState<string | null>(null);
 
   // tRPC mutations — transform DB record to component format
-  const goNoGoMutation = trpc.aiRoles?.goNoGo?.useMutation?.({
+  const goNoGoMutation = trpc.aiRoles.goNoGo.useMutation({
     onSuccess: (data: any) => {
       // DB stores factors in 'reasons' field, transform to component format
       const factors = Array.isArray(data.reasons) ? data.reasons : [];
@@ -187,9 +187,9 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
       setError(err?.message ?? 'Αποτυχία ανάλυσης. Δοκιμάστε ξανά.');
       setIsAnalyzing(false);
     },
-  }) ?? null;
+  });
 
-  const approveMutation = trpc.aiRoles?.approveGoNoGo?.useMutation?.({
+  const approveMutation = trpc.aiRoles.approveGoNoGo.useMutation({
     onSuccess: (data: any) => {
       setResult((prev) =>
         prev ? { ...prev, approvalStatus: data.approvedById ? 'APPROVED' : 'REJECTED', approvedBy: data.approvedById, approvedAt: data.approvedAt } : prev
@@ -199,26 +199,18 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
     onError: () => {
       setIsApproving(false);
     },
-  }) ?? null;
+  });
 
   const handleAnalyze = () => {
     setIsAnalyzing(true);
     setError(null);
-    if (goNoGoMutation) {
-      goNoGoMutation.mutate({ tenderId });
-    } else {
-      setError('Η υπηρεσία AI δεν είναι διαθέσιμη αυτή τη στιγμή.');
-      setIsAnalyzing(false);
-    }
+    goNoGoMutation.mutate({ tenderId });
   };
 
   const handleApproval = (approved: boolean) => {
+    if (!result) return;
     setIsApproving(true);
-    if (approveMutation && result) {
-      approveMutation.mutate({ decisionId: (result as any).id ?? tenderId, approved });
-    } else {
-      setIsApproving(false);
-    }
+    approveMutation.mutate({ decisionId: (result as any).id ?? tenderId, approved });
   };
 
   const displayResult = result;
