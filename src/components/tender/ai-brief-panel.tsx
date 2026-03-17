@@ -43,10 +43,27 @@ export function AIBriefPanel({ tenderId, className }: AIBriefPanelProps) {
 
   const [error, setError] = useState<string | null>(null);
 
-  // tRPC mutation — no mock fallback
+  // tRPC mutation — transform DB record to component format
   const summarizeMutation = trpc.aiRoles?.summarizeTender?.useMutation?.({
     onSuccess: (data: any) => {
-      setBrief(data);
+      // DB fields: summaryText, keyPoints, sector, awardType, duration
+      const keyPoints: AIBrief['keyPoints'] = [];
+      if (data.sector) keyPoints.push({ label: 'Τομέας', value: data.sector, icon: Layers });
+      if (data.awardType) keyPoints.push({ label: 'Τύπος Ανάθεσης', value: data.awardType, icon: Award });
+      if (data.duration) keyPoints.push({ label: 'Διάρκεια', value: data.duration, icon: Clock });
+      // Also include any keyPoints from the JSON field
+      if (Array.isArray(data.keyPoints)) {
+        for (const kp of data.keyPoints) {
+          if (typeof kp === 'object' && kp.label && kp.value) {
+            keyPoints.push({ label: kp.label, value: kp.value, icon: Target });
+          }
+        }
+      }
+      setBrief({
+        summary: data.summaryText || data.summary || '',
+        keyPoints,
+        generatedAt: data.createdAt || new Date().toISOString(),
+      });
       setError(null);
       setIsGenerating(false);
     },

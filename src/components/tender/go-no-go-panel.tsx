@@ -166,10 +166,20 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
   const [isApproving, setIsApproving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // tRPC mutations — no mock fallback
+  // tRPC mutations — transform DB record to component format
   const goNoGoMutation = trpc.aiRoles?.goNoGo?.useMutation?.({
     onSuccess: (data: any) => {
-      setResult(data);
+      // DB stores factors in 'reasons' field, transform to component format
+      const factors = Array.isArray(data.reasons) ? data.reasons : [];
+      setResult({
+        decision: data.decision,
+        overallScore: data.overallScore ?? 0,
+        factors: factors,
+        reasons: data.recommendation ? [data.recommendation] : [],
+        approvalStatus: data.approvedAt ? 'APPROVED' : 'PENDING',
+        approvedBy: data.approvedById || null,
+        approvedAt: data.approvedAt || null,
+      });
       setError(null);
       setIsAnalyzing(false);
     },
