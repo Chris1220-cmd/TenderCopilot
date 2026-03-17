@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,7 @@ interface GoNoGoResult {
   approvedBy?: string | null;
   approvedAt?: string | null;
   approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  id?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -159,6 +160,21 @@ interface GoNoGoPanelProps {
   className?: string;
 }
 
+function transformGoNoGoFromDB(data: any): GoNoGoResult | null {
+  if (!data) return null;
+  const factors = Array.isArray(data.reasons) ? data.reasons : [];
+  return {
+    decision: data.decision,
+    overallScore: data.overallScore ?? 0,
+    factors,
+    reasons: data.recommendation ? [data.recommendation] : [],
+    approvalStatus: data.approvedAt ? 'APPROVED' : data.approvedById === null ? 'PENDING' : 'REJECTED',
+    approvedBy: data.approvedById || null,
+    approvedAt: data.approvedAt || null,
+    id: data.id,
+  };
+}
+
 export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
   const [result, setResult] = useState<GoNoGoResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -166,20 +182,23 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
   const [isApproving, setIsApproving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // tRPC mutations — transform DB record to component format
+  // Load existing Go/No-Go from DB on mount
+  const goNoGoQuery = trpc.aiRoles.getGoNoGo.useQuery(
+    { tenderId },
+    { retry: false, refetchOnWindowFocus: false }
+  );
+  useEffect(() => {
+    if (goNoGoQuery.data) {
+      const existing = transformGoNoGoFromDB(goNoGoQuery.data);
+      if (existing) setResult(existing);
+    }
+  }, [goNoGoQuery.data]);
+
+  // tRPC mutations
   const goNoGoMutation = trpc.aiRoles.goNoGo.useMutation({
     onSuccess: (data: any) => {
-      // DB stores factors in 'reasons' field, transform to component format
-      const factors = Array.isArray(data.reasons) ? data.reasons : [];
-      setResult({
-        decision: data.decision,
-        overallScore: data.overallScore ?? 0,
-        factors: factors,
-        reasons: data.recommendation ? [data.recommendation] : [],
-        approvalStatus: data.approvedAt ? 'APPROVED' : 'PENDING',
-        approvedBy: data.approvedById || null,
-        approvedAt: data.approvedAt || null,
-      });
+      const transformed = transformGoNoGoFromDB(data);
+      if (transformed) setResult(transformed);
       setError(null);
       setIsAnalyzing(false);
     },
@@ -210,7 +229,7 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
   const handleApproval = (approved: boolean) => {
     if (!result) return;
     setIsApproving(true);
-    approveMutation.mutate({ decisionId: (result as any).id ?? tenderId, approved });
+    approveMutation.mutate({ decisionId: (result as any).id, approved });
   };
 
   const displayResult = result;

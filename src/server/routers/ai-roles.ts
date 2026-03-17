@@ -27,6 +27,39 @@ async function ensureTenderAccess(tenderId: string, tenantId: string | null) {
 
 export const aiRolesRouter = router({
   // ═══════════════════════════════════════════════════════════
+  // Data Loading Queries (load existing AI analysis from DB)
+  // ═══════════════════════════════════════════════════════════
+
+  getBrief: protectedProcedure
+    .input(z.object({ tenderId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      return db.tenderBrief.findUnique({ where: { tenderId: input.tenderId } });
+    }),
+
+  getGoNoGo: protectedProcedure
+    .input(z.object({ tenderId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      return db.goNoGoDecision.findFirst({
+        where: { tenderId: input.tenderId },
+        orderBy: { createdAt: 'desc' },
+      });
+    }),
+
+  getLegalClauses: protectedProcedure
+    .input(z.object({ tenderId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      const clauses = await db.legalClause.findMany({
+        where: { tenderId: input.tenderId },
+        orderBy: { createdAt: 'asc' },
+      });
+      const summary = await aiLegalAnalyzer.getLegalRiskSummary(input.tenderId);
+      return { clauses, summary };
+    }),
+
+  // ═══════════════════════════════════════════════════════════
   // AI Bid Orchestrator (Bid Manager)
   // ═══════════════════════════════════════════════════════════
 

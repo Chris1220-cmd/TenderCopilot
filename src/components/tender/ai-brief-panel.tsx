@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -36,34 +36,49 @@ interface AIBriefPanelProps {
   className?: string;
 }
 
+function transformBriefFromDB(data: any): AIBrief | null {
+  if (!data) return null;
+  const keyPoints: AIBrief['keyPoints'] = [];
+  if (data.sector) keyPoints.push({ label: 'Τομέας', value: data.sector, icon: Layers });
+  if (data.awardType) keyPoints.push({ label: 'Τύπος Ανάθεσης', value: data.awardType, icon: Award });
+  if (data.duration) keyPoints.push({ label: 'Διάρκεια', value: data.duration, icon: Clock });
+  if (Array.isArray(data.keyPoints)) {
+    for (const kp of data.keyPoints) {
+      if (typeof kp === 'object' && kp.label && kp.value) {
+        keyPoints.push({ label: kp.label, value: kp.value, icon: Target });
+      }
+    }
+  }
+  return {
+    summary: data.summaryText || data.summary || '',
+    keyPoints,
+    generatedAt: data.createdAt || new Date().toISOString(),
+  };
+}
+
 export function AIBriefPanel({ tenderId, className }: AIBriefPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const [brief, setBrief] = useState<AIBrief | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-
   const [error, setError] = useState<string | null>(null);
 
-  // tRPC mutation — transform DB record to component format
+  // Load existing brief from DB on mount
+  const briefQuery = trpc.aiRoles.getBrief.useQuery(
+    { tenderId },
+    { retry: false, refetchOnWindowFocus: false }
+  );
+  useEffect(() => {
+    if (briefQuery.data) {
+      const existing = transformBriefFromDB(briefQuery.data);
+      if (existing) setBrief(existing);
+    }
+  }, [briefQuery.data]);
+
+  // tRPC mutation
   const summarizeMutation = trpc.aiRoles.summarizeTender.useMutation({
     onSuccess: (data: any) => {
-      // DB fields: summaryText, keyPoints, sector, awardType, duration
-      const keyPoints: AIBrief['keyPoints'] = [];
-      if (data.sector) keyPoints.push({ label: 'Τομέας', value: data.sector, icon: Layers });
-      if (data.awardType) keyPoints.push({ label: 'Τύπος Ανάθεσης', value: data.awardType, icon: Award });
-      if (data.duration) keyPoints.push({ label: 'Διάρκεια', value: data.duration, icon: Clock });
-      // Also include any keyPoints from the JSON field
-      if (Array.isArray(data.keyPoints)) {
-        for (const kp of data.keyPoints) {
-          if (typeof kp === 'object' && kp.label && kp.value) {
-            keyPoints.push({ label: kp.label, value: kp.value, icon: Target });
-          }
-        }
-      }
-      setBrief({
-        summary: data.summaryText || data.summary || '',
-        keyPoints,
-        generatedAt: data.createdAt || new Date().toISOString(),
-      });
+      const transformed = transformBriefFromDB(data);
+      if (transformed) setBrief(transformed);
       setError(null);
       setIsGenerating(false);
     },

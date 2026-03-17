@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn, truncate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -131,6 +131,18 @@ export function LegalTab({ tenderId }: LegalTabProps) {
   const [editingClarification, setEditingClarification] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Load existing legal data from DB on mount
+  const legalQuery = trpc.aiRoles.getLegalClauses.useQuery(
+    { tenderId },
+    { retry: false, refetchOnWindowFocus: false }
+  );
+  useEffect(() => {
+    if (legalQuery.data) {
+      if (legalQuery.data.clauses?.length > 0) setClauses(legalQuery.data.clauses as any);
+      if (legalQuery.data.summary) setSummary(legalQuery.data.summary as any);
+    }
+  }, [legalQuery.data]);
 
   // tRPC mutations
   const extractMutation = trpc.aiRoles.extractLegalClauses.useMutation({
