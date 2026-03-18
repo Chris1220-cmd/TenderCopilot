@@ -4,11 +4,11 @@
  * Accepts files, extracts text, identifies what they are,
  * creates a tender, runs analysis, and triggers compliance check.
  *
- * Supported file types:
- * - PDF (via pdf-parse)
- * - DOCX (via mammoth)
- * - Excel XLSX/XLS (via xlsx)
- * - Plain text / RTF
+ * Uses REAL parsers:
+ * - PDF via pdf-parse
+ * - DOCX via mammoth
+ * - Excel via xlsx
+ * - Plain text / RTF direct
  */
 
 import { db } from '@/lib/db';
@@ -42,81 +42,63 @@ interface IntakeResult {
   fileCount: number;
 }
 
-// ─── Text Extraction ────────────────────────────────────────
+// ─── Text Extraction (REAL implementations) ─────────────────
 
 /**
  * Extracts text content from a file buffer based on MIME type.
- *
- * TODO: Install and use real parsers in production:
- * - PDF: `npm install pdf-parse` -> const pdf = require('pdf-parse'); const data = await pdf(buffer);
- * - DOCX: `npm install mammoth` -> const mammoth = require('mammoth'); const result = await mammoth.extractRawText({buffer});
- * - XLSX: `npm install xlsx` -> const XLSX = require('xlsx'); const workbook = XLSX.read(buffer);
- *
- * For now, we attempt basic text extraction with fallbacks.
+ * Uses real parsing libraries — no stubs.
  */
-async function extractTextFromFile(buffer: Buffer, mimeType: string): Promise<string> {
+async function extractTextFromFile(buffer: Buffer, mimeType: string, fileName: string): Promise<string> {
   switch (mimeType) {
     case 'application/pdf': {
-      // TODO: Real implementation with pdf-parse:
-      // const pdfParse = require('pdf-parse');
-      // const data = await pdfParse(buffer);
-      // return data.text;
-
-      // Stub: Try to extract readable text from PDF binary
-      // PDF files contain text between BT (Begin Text) and ET (End Text) markers
-      // This is a very rough extraction for development only
-      const content = buffer.toString('utf-8', 0, Math.min(buffer.length, 50000));
-      const textChunks: string[] = [];
-
-      // Look for text between parentheses in PDF content streams
-      const parenRegex = /\(([^)]{2,})\)/g;
-      let match: RegExpExecArray | null;
-      while ((match = parenRegex.exec(content)) !== null) {
-        const text = match[1].replace(/\\[nrt]/g, ' ').trim();
-        if (text.length > 2 && /[a-zA-Zα-ωΑ-Ω]/.test(text)) {
-          textChunks.push(text);
+      try {
+        const pdfParse = (await import('pdf-parse')).default;
+        const data = await pdfParse(buffer);
+        if (!data.text || data.text.trim().length < 10) {
+          return `[PDF χωρίς εξαγώγιμο κείμενο — πιθανόν σκαναρισμένο: ${fileName}]`;
         }
+        return data.text;
+      } catch (err) {
+        console.error(`[SmartIntake] PDF parse failed for ${fileName}:`, err);
+        return `[Αποτυχία ανάγνωσης PDF: ${fileName}]`;
       }
-
-      return textChunks.join(' ') || '[PDF content - requires pdf-parse library for full extraction]';
     }
 
     case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {
-      // TODO: Real implementation with mammoth:
-      // const mammoth = require('mammoth');
-      // const result = await mammoth.extractRawText({ buffer });
-      // return result.value;
-
-      // Stub: DOCX files are ZIP archives containing XML
-      // The main content is in word/document.xml
-      // For development, try to extract any readable text
-      const content = buffer.toString('utf-8', 0, Math.min(buffer.length, 50000));
-      const xmlTextRegex = />([^<]{3,})</g;
-      const textChunks: string[] = [];
-      let match: RegExpExecArray | null;
-      while ((match = xmlTextRegex.exec(content)) !== null) {
-        const text = match[1].trim();
-        if (/[a-zA-Zα-ωΑ-Ω]/.test(text)) {
-          textChunks.push(text);
+      try {
+        const mammoth = await import('mammoth');
+        const result = await mammoth.extractRawText({ buffer });
+        if (!result.value || result.value.trim().length < 10) {
+          return `[DOCX χωρίς κείμενο: ${fileName}]`;
         }
+        return result.value;
+      } catch (err) {
+        console.error(`[SmartIntake] DOCX parse failed for ${fileName}:`, err);
+        return `[Αποτυχία ανάγνωσης DOCX: ${fileName}]`;
       }
-
-      return textChunks.join(' ') || '[DOCX content - requires mammoth library for full extraction]';
     }
 
     case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
     case 'application/vnd.ms-excel': {
-      // TODO: Real implementation with xlsx:
-      // const XLSX = require('xlsx');
-      // const workbook = XLSX.read(buffer, { type: 'buffer' });
-      // let text = '';
-      // for (const sheetName of workbook.SheetNames) {
-      //   const sheet = workbook.Sheets[sheetName];
-      //   text += XLSX.utils.sheet_to_csv(sheet) + '\n';
-      // }
-      // return text;
-
-      return '[Excel content - requires xlsx library for extraction]';
+      try {
+        const XLSX = await import('xlsx');
+        const workbook = XLSX.read(buffer, { type: 'buffer' });
+        let text = '';
+        for (const sheetName of workbook.SheetNames) {
+          const sheet = workbook.Sheets[sheetName];
+          if (sheet) {
+            text += `--- Φύλλο: ${sheetName} ---\n`;
+            text += XLSX.utils.sheet_to_csv(sheet) + '\n\n';
+          }
+        }
+        if (text.trim().length < 10) {
+          return `[Excel χωρίς δεδομένα: ${fileName}]`;
+        }
+        return text;
+      } catch (err) {
+        console.error(`[SmartIntake] Excel parse failed for ${fileName}:`, err);
+        return `[Αποτυχία ανάγνωσης Excel: ${fileName}]`;
+      }
     }
 
     case 'text/plain':
@@ -125,43 +107,53 @@ async function extractTextFromFile(buffer: Buffer, mimeType: string): Promise<st
     }
 
     case 'application/msword': {
-      // TODO: Old .doc format - would need 'word-extractor' npm package
-      // const WordExtractor = require('word-extractor');
-      // const extractor = new WordExtractor();
-      // const doc = await extractor.extract(buffer);
-      // return doc.getBody();
-
-      return '[DOC content - requires word-extractor library for extraction]';
+      // Old .doc format — try mammoth which has some support
+      try {
+        const mammoth = await import('mammoth');
+        const result = await mammoth.extractRawText({ buffer });
+        return result.value || `[DOC χωρίς κείμενο: ${fileName}]`;
+      } catch {
+        return `[Μη υποστηριζόμενη μορφή .doc: ${fileName}]`;
+      }
     }
 
     default: {
       // Try UTF-8 decode as last resort
       try {
         const text = buffer.toString('utf-8');
-        if (/[a-zA-Zα-ωΑ-Ω]/.test(text)) {
+        if (/[a-zA-Zα-ωΑ-Ω]/.test(text) && text.length > 20) {
           return text;
         }
       } catch {
         // ignore
       }
-      return `[Unsupported file type: ${mimeType}]`;
+      return `[Μη υποστηριζόμενος τύπος αρχείου: ${mimeType} — ${fileName}]`;
     }
   }
 }
 
 /**
  * Uses AI to identify tender metadata from raw extracted text.
- *
- * Sends the extracted text to the AI provider with a structured prompt
- * asking it to identify key tender information.
+ * Sends the FULL extracted text to Claude for analysis.
  */
 async function identifyTenderMetadata(
   texts: string[],
   fileNames: string[]
 ): Promise<ExtractedTenderMetadata> {
+  // Use more text — up to 15000 chars per file for better analysis
   const combinedText = texts
-    .map((text, i) => `--- File: ${fileNames[i]} ---\n${text.substring(0, 5000)}`)
+    .map((text, i) => `--- Αρχείο: ${fileNames[i]} ---\n${text.substring(0, 15000)}`)
     .join('\n\n');
+
+  if (combinedText.length < 50) {
+    // Not enough text to analyze
+    return {
+      title: fileNames.map((f) => f.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ')).join(' - ') || 'Imported Tender',
+      isTenderDocument: false,
+      confidence: 0.1,
+      cpvCodes: [],
+    };
+  }
 
   const aiProvider = ai();
 
@@ -220,8 +212,7 @@ and provide your best guess for the title.`,
       confidence: parsed.confidence ?? 0.5,
     };
   } catch {
-    // AI returned non-JSON or malformed response
-    // Fall back to extracting what we can from filenames
+    // AI returned non-JSON — fall back to filename-based extraction
     const titleFromFiles = fileNames
       .map((f) => f.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' '))
       .join(' - ');
@@ -240,15 +231,6 @@ and provide your best guess for the title.`,
 class SmartIntakeService {
   /**
    * Process uploaded files: extract text, identify tender, create records, queue jobs.
-   *
-   * Flow:
-   * 1. Extract text from each file (PDF, DOCX, Excel, etc.)
-   * 2. Use AI to identify: is this a tender? What's the title, authority, deadline?
-   * 3. Create Tender record in DB
-   * 4. Upload files to S3 and create AttachedDocument records
-   * 5. Queue tender analysis job (extracts requirements from full text)
-   * 6. Queue compliance check job (runs after analysis completes)
-   * 7. Return { tenderId, extractedMetadata, fileCount }
    */
   async processFiles(files: InputFile[], tenantId: string): Promise<IntakeResult> {
     if (files.length === 0) {
@@ -260,7 +242,7 @@ class SmartIntakeService {
     const fileNames: string[] = [];
 
     for (const file of files) {
-      const text = await extractTextFromFile(file.buffer, file.mimeType);
+      const text = await extractTextFromFile(file.buffer, file.mimeType, file.name);
       extractedTexts.push(text);
       fileNames.push(file.name);
     }
@@ -288,12 +270,17 @@ class SmartIntakeService {
       },
     });
 
-    // ── Step 4: Upload files to S3 ───────────────────────────
-    for (const file of files) {
+    // ── Step 4: Upload files to S3 & store extracted text ────
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
       const sanitizedName = file.name.replace(/[^a-zA-Z0-9._\-α-ωΑ-Ω]/g, '_');
       const s3Key = `tenants/${tenantId}/tenders/${tender.id}/attachments/${Date.now()}-${sanitizedName}`;
 
       await uploadFile(s3Key, file.buffer, file.mimeType);
+
+      // Also store the extracted text as a separate file for AI access
+      const textKey = `tenants/${tenantId}/tenders/${tender.id}/extracted-text/${Date.now()}-${sanitizedName}.txt`;
+      await uploadFile(textKey, Buffer.from(extractedTexts[i], 'utf-8'), 'text/plain');
 
       await db.attachedDocument.create({
         data: {
@@ -308,15 +295,12 @@ class SmartIntakeService {
     }
 
     // ── Step 5: Queue analysis job ───────────────────────────
-    const analysisJob = await tenderAnalysisQueue.add('analyze-tender', {
+    await tenderAnalysisQueue.add('analyze-tender', {
       tenderId: tender.id,
       tenantId,
     });
 
-    // ── Step 6: Queue compliance check (runs after analysis) ─
-    // BullMQ doesn't have native job dependencies, so we add a delay
-    // to let the analysis complete first. In production, the analysis
-    // worker should trigger the compliance check when it finishes.
+    // ── Step 6: Queue compliance check ───────────────────────
     await complianceCheckQueue.add('check-compliance', {
       tenderId: tender.id,
       tenantId,
@@ -332,6 +316,7 @@ class SmartIntakeService {
           fileNames: files.map((f) => f.name),
           aiConfidence: metadata.confidence,
           isTenderDocument: metadata.isTenderDocument,
+          extractedTextLengths: extractedTexts.map((t) => t.length),
         }),
       },
     });
@@ -355,6 +340,9 @@ class SmartIntakeService {
 
     for (const fileInfo of fileKeys) {
       const buffer = await getFileBuffer(fileInfo.key);
+      if (buffer.length === 0) {
+        throw new Error(`Failed to download file: ${fileInfo.name}`);
+      }
       files.push({
         name: fileInfo.name,
         buffer,
@@ -363,6 +351,18 @@ class SmartIntakeService {
     }
 
     return this.processFiles(files, tenantId);
+  }
+
+  /**
+   * Extract text from an attached document's S3 file.
+   * Used by AI services to read actual document content.
+   */
+  async extractTextFromAttachment(fileKey: string, mimeType: string, fileName: string): Promise<string> {
+    const buffer = await getFileBuffer(fileKey);
+    if (buffer.length === 0) {
+      return `[Δεν βρέθηκε αρχείο: ${fileName}]`;
+    }
+    return extractTextFromFile(buffer, mimeType, fileName);
   }
 
   /**

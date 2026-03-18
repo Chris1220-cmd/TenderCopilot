@@ -842,12 +842,10 @@ class AIBidOrchestrator {
       : (analysisResult.overallScore >= 70 ? 'GO' : analysisResult.overallScore >= 55 ? 'BORDERLINE' : 'NO_GO');
 
     // Upsert GoNoGoDecision record — one decision per tender, no duplicates
-    const tenantId = (await db.tender.findUnique({ where: { id: tenderId }, select: { tenantId: true } }))?.tenantId ?? '';
     const goNoGoDecision = await db.goNoGoDecision.upsert({
       where: { tenderId },
       create: {
         tenderId,
-        tenantId,
         decision,
         overallScore: analysisResult.overallScore,
         reasons: analysisResult.factors as any,

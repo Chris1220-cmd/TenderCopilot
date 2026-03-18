@@ -239,6 +239,8 @@ export default function NewTenderPage() {
 
   // ─── Discovery import handler ─────────────────────────────────────────────
 
+  const fetchDocsMutation = trpc.discovery.fetchDocumentsFromSource.useMutation();
+
   async function handleDiscoveryImport(tender: any) {
     try {
       const result = await createTender.mutateAsync({
@@ -253,6 +255,16 @@ export default function NewTenderPage() {
         submissionDeadline: tender.submissionDeadline || null,
         notes: tender.summary || null,
       });
+
+      // After creating the tender, fetch documents from the source URL
+      if (tender.sourceUrl) {
+        fetchDocsMutation.mutate({
+          tenderId: result.id,
+          sourceUrl: tender.sourceUrl,
+          platform: tender.platform || 'OTHER',
+        });
+      }
+
       router.push(`/tenders/${result.id}`);
     } catch (err: any) {
       console.error('Import failed:', err);

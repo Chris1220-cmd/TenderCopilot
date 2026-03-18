@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/athan/Desktop/TenderCopilot -path *tenders*[id]*page.tsx -type f)",
+      "mcp__supabase__apply_migration",
+      "Bash(tasklist)"
+    ]
+  }
+}

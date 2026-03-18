@@ -1,32 +1,24 @@
 import type { AIProvider } from './types';
-import { MockAIProvider } from './mock-provider';
 import { ClaudeProvider } from './claude-provider';
 
 /**
  * AI Provider factory.
- * Set AI_PROVIDER env var to: 'claude' (production) or 'mock' (development).
+ * REQUIRES AI_API_KEY to be set. No mock fallback — if AI is unavailable, errors are surfaced.
  */
 export function getAIProvider(): AIProvider {
-  const providerName = process.env.AI_PROVIDER || 'mock';
+  const apiKey = process.env.AI_API_KEY;
 
-  switch (providerName) {
-    case 'claude':
-      if (!process.env.AI_API_KEY) {
-        console.warn('AI_API_KEY not set, falling back to mock');
-        return new MockAIProvider();
-      }
-      return new ClaudeProvider({
-        apiKey: process.env.AI_API_KEY,
-        model: process.env.AI_MODEL || 'claude-sonnet-4-6',
-      });
-
-    case 'mock':
-      return new MockAIProvider();
-
-    default:
-      console.warn(`Unknown AI provider "${providerName}", falling back to mock`);
-      return new MockAIProvider();
+  if (!apiKey) {
+    throw new Error(
+      'AI_API_KEY is required. Set it in your .env file. ' +
+      'Get an API key from https://console.anthropic.com/'
+    );
   }
+
+  return new ClaudeProvider({
+    apiKey,
+    model: process.env.AI_MODEL || 'claude-sonnet-4-6',
+  });
 }
 
 // Singleton instance
