@@ -30,6 +30,27 @@ export const aiRolesRouter = router({
   // Data Loading Queries (load existing AI analysis from DB)
   // ═══════════════════════════════════════════════════════════
 
+  getTechnicalData: protectedProcedure
+    .input(z.object({ tenderId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      const [sections, risks, team] = await Promise.all([
+        db.technicalProposalSection.findMany({
+          where: { tenderId: input.tenderId },
+          orderBy: { ordering: 'asc' },
+        }),
+        db.technicalRisk.findMany({
+          where: { tenderId: input.tenderId },
+          orderBy: { createdAt: 'asc' },
+        }),
+        db.teamRequirement.findMany({
+          where: { tenderId: input.tenderId },
+          orderBy: { createdAt: 'asc' },
+        }),
+      ]);
+      return { sections, risks, team };
+    }),
+
   getBrief: protectedProcedure
     .input(z.object({ tenderId: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -55,8 +76,12 @@ export const aiRolesRouter = router({
         where: { tenderId: input.tenderId },
         orderBy: { createdAt: 'asc' },
       });
+      const clarifications = await db.clarificationQuestion.findMany({
+        where: { tenderId: input.tenderId },
+        orderBy: { createdAt: 'asc' },
+      });
       const summary = await aiLegalAnalyzer.getLegalRiskSummary(input.tenderId);
-      return { clauses, summary };
+      return { clauses, summary, clarifications };
     }),
 
   // ═══════════════════════════════════════════════════════════
@@ -161,6 +186,41 @@ export const aiRolesRouter = router({
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
       return aiLegalAnalyzer.proposeClarifications(input.tenderId);
+    }),
+
+  updateClarification: protectedProcedure
+    .input(z.object({ id: z.string(), text: z.string() }))
+    .mutation(async ({ input }) => {
+      return db.clarificationQuestion.update({
+        where: { id: input.id },
+        data: { questionText: input.text },
+      });
+    }),
+
+  approveClarification: protectedProcedure
+    .input(z.object({ id: z.string(), approved: z.boolean() }))
+    .mutation(async ({ input }) => {
+      return db.clarificationQuestion.update({
+        where: { id: input.id },
+        data: { status: input.approved ? 'APPROVED' : 'DRAFT' },
+      });
+    }),
+
+  selectPricingScenario: protectedProcedure
+    .input(z.object({ tenderId: z.string(), scenarioId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      await db.$transaction([
+        db.pricingScenario.updateMany({
+          where: { tenderId: input.tenderId, id: { not: input.scenarioId } },
+          data: { isSelected: false },
+        }),
+        db.pricingScenario.update({
+          where: { id: input.scenarioId },
+          data: { isSelected: true },
+        }),
+      ]);
+      return db.pricingScenario.findUnique({ where: { id: input.scenarioId } });
     }),
 
   getLegalSummary: protectedProcedure

@@ -137,38 +137,69 @@ export function LegalTab({ tenderId }: LegalTabProps) {
     { tenderId },
     { retry: false, refetchOnWindowFocus: false }
   );
+
   useEffect(() => {
     if (legalQuery.data) {
-      if (legalQuery.data.clauses?.length > 0) setClauses(legalQuery.data.clauses as any);
-      if (legalQuery.data.summary) setSummary(legalQuery.data.summary as any);
+      const { clauses: dbClauses, summary: dbSummary, clarifications: dbClarifications } = legalQuery.data as any;
+
+      // Map DB LegalClause records to component interface
+      if (dbClauses?.length > 0) {
+        setClauses(dbClauses.map((c: any) => ({
+          id: c.id,
+          clauseText: c.clauseText,
+          category: c.category,
+          riskLevel: c.riskLevel || 'LOW',
+          articleRef: c.articleRef || '',
+          recommendation: c.recommendation || '',
+          details: c.riskReason || '',
+        })));
+      } else {
+        setClauses([]);
+      }
+
+      // Map DB LegalRiskSummary to component interface
+      if (dbSummary) {
+        setSummary({
+          overallRiskScore: dbSummary.overallRiskScore || 0,
+          clauseCountByRisk: dbSummary.byRiskLevel || { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 },
+        });
+      }
+
+      // Map DB ClarificationQuestion records to component interface
+      if (dbClarifications?.length > 0) {
+        setClarifications(dbClarifications.map((q: any) => ({
+          id: q.id,
+          question: q.questionText,
+          status: q.status || 'DRAFT',
+          relatedClauseId: q.clauseId || undefined,
+        })));
+      }
     }
   }, [legalQuery.data]);
 
-  // tRPC mutations
+  // tRPC mutations — on success, refetch the query to get fresh data from DB
   const extractMutation = trpc.aiRoles.extractLegalClauses.useMutation({
-    onSuccess: (data: any) => {
-      if (data?.clauses) setClauses(data.clauses);
-      if (data?.summary) setSummary(data.summary);
+    onSuccess: () => {
+      legalQuery.refetch();
       setLoadingAction(null);
     },
-    onError: (err: any) => { setError(err?.message || 'Σφάλμα AI'); setLoadingAction(null); },
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα εξαγωγής ρητρών'); setLoadingAction(null); },
   });
 
   const assessMutation = trpc.aiRoles.assessLegalRisks.useMutation({
-    onSuccess: (data: any) => {
-      if (data?.clauses) setClauses(data.clauses);
-      if (data?.summary) setSummary(data.summary);
+    onSuccess: () => {
+      legalQuery.refetch();
       setLoadingAction(null);
     },
-    onError: (err: any) => { setError(err?.message || 'Σφάλμα AI'); setLoadingAction(null); },
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα αξιολόγησης κινδύνου'); setLoadingAction(null); },
   });
 
   const clarifyMutation = trpc.aiRoles.proposeClarifications.useMutation({
-    onSuccess: (data: any) => {
-      if (data?.clarifications) setClarifications(data.clarifications);
+    onSuccess: () => {
+      legalQuery.refetch();
       setLoadingAction(null);
     },
-    onError: (err: any) => { setError(err?.message || 'Σφάλμα AI'); setLoadingAction(null); },
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα δημιουργίας διευκρινίσεων'); setLoadingAction(null); },
   });
 
   const handleExtract = () => {
@@ -196,17 +227,31 @@ export function LegalTab({ tenderId }: LegalTabProps) {
     setEditText(text);
   };
 
+  const updateClarificationMutation = trpc.aiRoles.updateClarification.useMutation({
+    onSuccess: (data: any) => {
+      setClarifications((prev) =>
+        prev.map((c) => (c.id === data.id ? { ...c, question: data.questionText } : c))
+      );
+      setEditingClarification(null);
+    },
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα αποθήκευσης διευκρίνισης'); },
+  });
+
+  const approveClarificationMutation = trpc.aiRoles.approveClarification.useMutation({
+    onSuccess: (data: any) => {
+      setClarifications((prev) =>
+        prev.map((c) => (c.id === data.id ? { ...c, status: (data.status as 'DRAFT' | 'APPROVED' | 'SENT') } : c))
+      );
+    },
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα έγκρισης διευκρίνισης'); },
+  });
+
   const handleSaveClarification = (id: string) => {
-    setClarifications((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, question: editText } : c))
-    );
-    setEditingClarification(null);
+    updateClarificationMutation.mutate({ id, text: editText });
   };
 
   const handleApproveClarification = (id: string) => {
-    setClarifications((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: 'APPROVED' as const } : c))
-    );
+    approveClarificationMutation.mutate({ id, approved: true });
   };
 
   function getRiskScoreColor(score: number) {
@@ -491,6 +536,7 @@ export function LegalTab({ tenderId }: LegalTabProps) {
                         <Button
                           size="sm"
                           variant="ghost"
+                          disabled={updateClarificationMutation.isPending}
                           onClick={() => handleSaveClarification(cl.id)}
                           className="cursor-pointer h-7 text-xs gap-1"
                         >
@@ -500,6 +546,7 @@ export function LegalTab({ tenderId }: LegalTabProps) {
                         <Button
                           size="sm"
                           variant="ghost"
+                          disabled={updateClarificationMutation.isPending}
                           onClick={() => setEditingClarification(null)}
                           className="cursor-pointer h-7 text-xs"
                         >
@@ -521,6 +568,7 @@ export function LegalTab({ tenderId }: LegalTabProps) {
                           <Button
                             size="sm"
                             variant="ghost"
+                            disabled={approveClarificationMutation.isPending}
                             onClick={() => handleApproveClarification(cl.id)}
                             className="cursor-pointer h-7 text-xs gap-1 text-emerald-600 hover:text-emerald-500"
                           >
