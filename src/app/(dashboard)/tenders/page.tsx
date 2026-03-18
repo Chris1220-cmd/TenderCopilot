@@ -43,6 +43,8 @@ const statusConfig: Record<
   { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' }
 > = {
   DRAFT: { label: 'Πρόχειρο', variant: 'secondary' },
+  DISCOVERY: { label: 'Εύρεση', variant: 'default' },
+  GO_NO_GO: { label: 'Go/No-Go', variant: 'default' },
   IN_PROGRESS: { label: 'Σε εξέλιξη', variant: 'warning' },
   REVIEW: { label: 'Αξιολόγηση', variant: 'default' },
   SUBMITTED: { label: 'Υποβλήθηκε', variant: 'success' },
@@ -54,6 +56,10 @@ const platformConfig: Record<string, { label: string; color: string }> = {
   ESIDIS: { label: 'ΕΣΗΔΗΣ', color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
   KIMDIS: { label: 'ΚΗΜΔΗΣ', color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400' },
   PROMITHEUS: { label: 'ΠΡΟΜΗΘΕΥΣ', color: 'bg-teal-500/10 text-teal-600 dark:text-teal-400' },
+  DIAVGEIA: { label: 'ΔΙΑΥΓΕΙΑ', color: 'bg-orange-500/10 text-orange-600 dark:text-orange-400' },
+  TED: { label: 'TED Europa', color: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
+  COSMOONE: { label: 'cosmoONE', color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400' },
+  PRIVATE: { label: 'Ιδιωτικός', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
   OTHER: { label: 'Άλλο', color: 'bg-gray-500/10 text-gray-600 dark:text-gray-400' },
 };
 

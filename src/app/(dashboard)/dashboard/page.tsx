@@ -24,20 +24,12 @@ import {
 } from 'recharts';
 
 /* ------------------------------------------------------------------ */
-/*  Mini sparkline data generators (visual only)                      */
+/*  Sparkline placeholder — no hardcoded data, use empty arrays       */
 /* ------------------------------------------------------------------ */
-const sparkActive = [
-  { v: 4 }, { v: 7 }, { v: 5 }, { v: 9 }, { v: 8 }, { v: 11 }, { v: 12 },
-];
-const sparkTasks = [
-  { v: 15 }, { v: 20 }, { v: 18 }, { v: 25 }, { v: 22 }, { v: 30 }, { v: 28 },
-];
-const sparkCompliance = [
-  { v: 70 }, { v: 74 }, { v: 78 }, { v: 76 }, { v: 82 }, { v: 85 }, { v: 87 },
-];
-const sparkDeadlines = [
-  { v: 8 }, { v: 6 }, { v: 7 }, { v: 5 }, { v: 4 }, { v: 6 }, { v: 5 },
-];
+const sparkActive: { v: number }[] = [];
+const sparkTasks: { v: number }[] = [];
+const sparkCompliance: { v: number }[] = [];
+const sparkDeadlines: { v: number }[] = [];
 
 /* ------------------------------------------------------------------ */
 /*  Status map                                                         */
