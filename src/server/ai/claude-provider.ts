@@ -54,13 +54,36 @@ export class ClaudeProvider implements AIProvider {
     const data = await response.json();
 
     // Extract text from content blocks
-    const textContent = data.content
+    const rawText = data.content
       ?.filter((block: any) => block.type === 'text')
       .map((block: any) => block.text)
       .join('') || '';
 
+    // Strip markdown code fences if present
+    let cleaned = rawText;
+    const jsonMatch = cleaned.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+    if (jsonMatch) {
+      cleaned = jsonMatch[1].trim();
+    }
+
+    // Try to extract JSON object/array if wrapped in other text
+    if (!cleaned.startsWith('{') && !cleaned.startsWith('[')) {
+      const objStart = cleaned.indexOf('{');
+      const arrStart = cleaned.indexOf('[');
+      const start = objStart >= 0 && arrStart >= 0
+        ? Math.min(objStart, arrStart)
+        : Math.max(objStart, arrStart);
+      if (start >= 0) {
+        cleaned = cleaned.slice(start);
+      }
+    }
+
     return {
-      content: textContent,
+      content: cleaned,
+      inputTokens: data.usage?.input_tokens,
+      outputTokens: data.usage?.output_tokens,
+      totalTokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
+      model: this.model,
       usage: {
         inputTokens: data.usage?.input_tokens || 0,
         outputTokens: data.usage?.output_tokens || 0,

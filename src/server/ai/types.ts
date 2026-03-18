@@ -17,6 +17,10 @@ export interface AICompletionOptions {
 
 export interface AICompletionResult {
   content: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  model?: string;
   usage?: {
     inputTokens: number;
     outputTokens: number;
