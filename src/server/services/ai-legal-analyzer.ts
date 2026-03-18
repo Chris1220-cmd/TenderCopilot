@@ -10,10 +10,10 @@
  */
 
 import { db } from '@/lib/db';
-import { ai } from '@/server/ai';
+import { ai, checkTokenBudget, logTokenUsage } from '@/server/ai';
 import { readTenderDocuments, requireDocuments } from '@/server/services/document-reader';
 import type { LegalClauseCategory, RiskLevel } from '@prisma/client';
-import { ANALYSIS_RULES, parseAIResponse, LEGAL_CRITICAL_FIELDS, NOT_FOUND } from './ai-prompts';
+import { ANALYSIS_RULES, parseAIResponse, LEGAL_CRITICAL_FIELDS, NOT_FOUND, shouldChunk, chunkText } from './ai-prompts';
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -220,26 +220,75 @@ class AILegalAnalyzer {
 
     const contextText = contextParts.join('\n');
 
-    // Call AI
-    const aiResult = await ai().complete({
-      messages: [
-        { role: 'system', content: EXTRACT_CLAUSES_SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: `Εντόπισε τις νομικές ρήτρες/όρους από τα ακόλουθα έγγραφα διαγωνισμού:\n\n${contextText}`,
-        },
-      ],
-      maxTokens: 4000,
-      temperature: 0.2,
-      responseFormat: 'json',
-    });
+    // Token budget check
+    const tenderData = await db.tender.findUniqueOrThrow({ where: { id: tenderId }, select: { tenantId: true } });
+    const budget = await checkTokenBudget(tenderData.tenantId);
+    if (!budget.allowed) {
+      throw new Error(`Ξεπεράσατε το ημερήσιο όριο AI (${budget.used.toLocaleString()}/${budget.limit.toLocaleString()} tokens). Δοκιμάστε αύριο.`);
+    }
 
-    const parsed = parseAIResponse<{ clauses: ExtractedClause[]; missingInfo?: string[] }>(
-      aiResult.content,
-      ['clauses'],
-      'extractClauses'
-    );
-    const extractedClauses: ExtractedClause[] = Array.isArray(parsed.clauses) ? parsed.clauses : [];
+    // Chunk large documents for legal analysis
+    let extractedClauses: ExtractedClause[] = [];
+
+    if (shouldChunk(contextText)) {
+      const chunks = chunkText(contextText);
+      for (let i = 0; i < chunks.length; i++) {
+        const aiResult = await ai().complete({
+          messages: [
+            { role: 'system', content: EXTRACT_CLAUSES_SYSTEM_PROMPT },
+            {
+              role: 'user',
+              content: `Εντόπισε τις νομικές ρήτρες/όρους από το τμήμα ${i + 1}/${chunks.length}:\n\n${chunks[i]}`,
+            },
+          ],
+          maxTokens: 4000,
+          temperature: 0.2,
+          responseFormat: 'json',
+        });
+
+        await logTokenUsage(tenderId, `legal_extract_chunk_${i + 1}`, {
+          input: aiResult.inputTokens || 0,
+          output: aiResult.outputTokens || 0,
+          total: aiResult.totalTokens || 0,
+        });
+
+        try {
+          const parsed = parseAIResponse<{ clauses: ExtractedClause[]; missingInfo?: string[] }>(
+            aiResult.content, ['clauses'], `extractClauses chunk ${i + 1}`
+          );
+          if (Array.isArray(parsed.clauses)) {
+            extractedClauses.push(...parsed.clauses);
+          }
+        } catch (err) {
+          console.warn(`[Legal] Chunk ${i + 1} parse error, skipping:`, err);
+        }
+      }
+    } else {
+      // Single call for normal-sized documents
+      const aiResult = await ai().complete({
+        messages: [
+          { role: 'system', content: EXTRACT_CLAUSES_SYSTEM_PROMPT },
+          {
+            role: 'user',
+            content: `Εντόπισε τις νομικές ρήτρες/όρους από τα ακόλουθα έγγραφα διαγωνισμού:\n\n${contextText}`,
+          },
+        ],
+        maxTokens: 4000,
+        temperature: 0.2,
+        responseFormat: 'json',
+      });
+
+      await logTokenUsage(tenderId, 'legal_extract', {
+        input: aiResult.inputTokens || 0,
+        output: aiResult.outputTokens || 0,
+        total: aiResult.totalTokens || 0,
+      });
+
+      const parsed = parseAIResponse<{ clauses: ExtractedClause[]; missingInfo?: string[] }>(
+        aiResult.content, ['clauses'], 'extractClauses'
+      );
+      extractedClauses = Array.isArray(parsed.clauses) ? parsed.clauses : [];
+    }
     // Empty result is valid — some tenders have no explicit legal clauses
 
     // Delete existing clauses for this tender (allow re-extraction)
@@ -331,6 +380,12 @@ class AILegalAnalyzer {
       maxTokens: 4000,
       temperature: 0.2,
       responseFormat: 'json',
+    });
+
+    await logTokenUsage(tenderId, 'legal_assess_risks', {
+      input: aiResult.inputTokens || 0,
+      output: aiResult.outputTokens || 0,
+      total: aiResult.totalTokens || 0,
     });
 
     const parsedAssessments = parseAIResponse<{ assessments: ClauseRiskAssessment[] }>(
@@ -464,6 +519,12 @@ class AILegalAnalyzer {
       maxTokens: 3000,
       temperature: 0.4,
       responseFormat: 'json',
+    });
+
+    await logTokenUsage(tenderId, 'legal_clarifications', {
+      input: aiResult.inputTokens || 0,
+      output: aiResult.outputTokens || 0,
+      total: aiResult.totalTokens || 0,
     });
 
     const parsedQuestions = parseAIResponse<{ questions: DraftClarification[] }>(

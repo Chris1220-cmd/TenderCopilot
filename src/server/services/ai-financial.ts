@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
-import { ai } from '@/server/ai';
+import { ai, checkTokenBudget, logTokenUsage } from '@/server/ai';
 import { readTenderDocuments, requireDocuments } from '@/server/services/document-reader';
-import { ANALYSIS_RULES, parseAIResponse, FINANCIAL_CRITICAL_FIELDS, NOT_FOUND } from './ai-prompts';
+import { ANALYSIS_RULES, parseAIResponse, FINANCIAL_CRITICAL_FIELDS, NOT_FOUND, shouldChunk, chunkText } from './ai-prompts';
 import type { RequirementCategory, RequirementType } from '@prisma/client';
 
 /**
@@ -110,6 +110,72 @@ class AIFinancialService {
     const docList = tender.attachedDocuments.map((d) => d.fileName).join(', ');
     const documentText = await readTenderDocuments(tenderId);
 
+    // Token budget check
+    const budget = await checkTokenBudget(tender.tenantId);
+    if (!budget.allowed) {
+      throw new Error(`Ξεπεράσατε το ημερήσιο όριο AI (${budget.used.toLocaleString()}/${budget.limit.toLocaleString()} tokens). Δοκιμάστε αύριο.`);
+    }
+
+    // If document text is very large, chunk it and merge results
+    const fullUserContent = JSON.stringify({
+      tenderTitle: tender.title,
+      referenceNumber: tender.referenceNumber,
+      contractingAuthority: tender.contractingAuthority,
+      attachedDocuments: docList,
+      documentText,
+      existingRequirementTexts: existingTexts,
+    });
+
+    if (documentText && shouldChunk(fullUserContent)) {
+      // Process document in chunks
+      const chunks = chunkText(documentText);
+      const allExtracted: ExtractedFinancialRequirement[] = [];
+      let allMissingInfo: string[] = [];
+
+      for (let i = 0; i < chunks.length; i++) {
+        const chunkContent = JSON.stringify({
+          tenderTitle: tender.title,
+          referenceNumber: tender.referenceNumber,
+          contractingAuthority: tender.contractingAuthority,
+          attachedDocuments: docList,
+          documentText: chunks[i],
+          existingRequirementTexts: existingTexts,
+          chunkInfo: `Τμήμα ${i + 1}/${chunks.length}`,
+        });
+
+        const chunkResult = await ai().complete({
+          messages: [
+            { role: 'system', content: this.getFinancialExtractionPrompt() },
+            { role: 'user', content: chunkContent },
+          ],
+          maxTokens: 4000,
+          temperature: 0.1,
+          responseFormat: 'json',
+        });
+
+        await logTokenUsage(tenderId, `financial_extract_chunk_${i + 1}`, {
+          input: chunkResult.inputTokens || 0,
+          output: chunkResult.outputTokens || 0,
+          total: chunkResult.totalTokens || 0,
+        });
+
+        try {
+          const parsed = parseAIResponse<{ requirements: ExtractedFinancialRequirement[]; missingInfo?: string[] }>(
+            chunkResult.content, ['requirements'], `financial chunk ${i + 1}`
+          );
+          if (Array.isArray(parsed.requirements)) allExtracted.push(...parsed.requirements);
+          if (parsed.missingInfo) allMissingInfo.push(...parsed.missingInfo);
+        } catch (err) {
+          console.warn(`[Financial] Chunk ${i + 1} parse error, skipping:`, err);
+        }
+      }
+
+      // Deduplicate missing info
+      allMissingInfo = Array.from(new Set(allMissingInfo));
+
+      return this.persistFinancialRequirements(tenderId, tender, allExtracted, allMissingInfo);
+    }
+
     const result = await ai().complete({
       messages: [
         {
@@ -177,6 +243,12 @@ ${ANALYSIS_RULES}
       maxTokens: 4000,
       temperature: 0.1,
       responseFormat: 'json',
+    });
+
+    await logTokenUsage(tenderId, 'financial_extract', {
+      input: result.inputTokens || 0,
+      output: result.outputTokens || 0,
+      total: result.totalTokens || 0,
     });
 
     interface ExtractFinancialResponse {
@@ -589,6 +661,12 @@ ${ANALYSIS_RULES}
       responseFormat: 'json',
     });
 
+    await logTokenUsage(tenderId, 'pricing_scenarios', {
+      input: result.inputTokens || 0,
+      output: result.outputTokens || 0,
+      total: result.totalTokens || 0,
+    });
+
     let scenarios: PricingScenarioData[];
     try {
       const parsed = JSON.parse(result.content);
@@ -721,6 +799,12 @@ ${ANALYSIS_RULES}
       responseFormat: 'json',
     });
 
+    await logTokenUsage(tenderId, 'financial_risk_score', {
+      input: result.inputTokens || 0,
+      output: result.outputTokens || 0,
+      total: result.totalTokens || 0,
+    });
+
     let riskResult: FinancialRiskResult;
     try {
       riskResult = JSON.parse(result.content);
@@ -761,6 +845,94 @@ ${ANALYSIS_RULES}
     return new Intl.NumberFormat('el-GR', { style: 'currency', currency: 'EUR' }).format(amount);
   }
 
+  /** Shared system prompt for financial extraction */
+  private getFinancialExtractionPrompt(): string {
+    return `Είσαι οικονομικός σύμβουλος δημοσίων συμβάσεων εξειδικευμένος στον Ν.4412/2016.
+
+${ANALYSIS_RULES}
+
+Εξάγαγε τις οικονομικές απαιτήσεις αποκλειστικά από το παρεχόμενο κείμενο. ΜΗΝ εφαρμόζεις default τιμές — αν μια απαίτηση δεν αναφέρεται ρητά, μην την συμπεριλάβεις.
+
+Για κάθε οικονομική απαίτηση που ΒΡΙΣΚΕΤΑΙ στο κείμενο, εντόπισε:
+1. **Ελάχιστος κύκλος εργασιών** (τελευταία 3 έτη) — Άρθρο 75 παρ. 3 Ν.4412/2016
+2. **Ελάχιστα ίδια κεφάλαια** — κριτήριο φερεγγυότητας
+3. **Εγγυητική συμμετοχής** — % του προϋπολογισμού — Άρθρο 72
+4. **Εγγυητική καλής εκτέλεσης** — % της σύμβασης — Άρθρο 72 παρ. 1β
+5. **Εγγυητική προκαταβολής** — αν προβλέπεται ρητά
+6. **Όροι πληρωμής** — ημέρες, τμηματική/εφάπαξ, παρακράτηση
+7. **Ρήτρες/Ποινικές** — % ανά ημέρα/εβδομάδα καθυστέρησης, μέγιστο % ποινικών
+8. **Ασφαλιστικές απαιτήσεις** — τύπος, ελάχιστη κάλυψη
+9. **Χρηματοοικονομικοί δείκτες** — ρευστότητα, δανειοληψία κλπ.
+10. **Τραπεζικές βεβαιώσεις/πιστωτικές γραμμές**
+
+ΜΟΡΦΗ ΑΠΑΝΤΗΣΗΣ: JSON object:
+{
+  "requirements": [
+    {
+      "text": "πλήρες κείμενο απαίτησης στα ελληνικά",
+      "articleReference": "Άρθρο XX Ν.XXXX/XXXX",
+      "mandatory": true,
+      "type": "FINANCIAL",
+      "confidence": 0.9,
+      "structuredData": {}
+    }
+  ],
+  "missingInfo": ["Δεν βρέθηκε: ..."]
+}
+
+Στο "missingInfo" συμπερίλαβε κάθε κρίσιμο πεδίο από: [${FINANCIAL_CRITICAL_FIELDS.join(', ')}] που ΔΕΝ αναφέρεται στο κείμενο.
+Απάντησε ΜΟΝΟ με valid JSON object.`;
+  }
+
+  /** Persist extracted financial requirements to DB */
+  private async persistFinancialRequirements(
+    tenderId: string,
+    tender: { requirements: Array<{ id: string; text: string }> },
+    extracted: ExtractedFinancialRequirement[],
+    missingInfo: string[]
+  ): Promise<ExtractedFinancialRequirement[]> {
+    for (const req of extracted) {
+      const existingReq = tender.requirements.find(
+        (r) => r.text.substring(0, 50) === req.text.substring(0, 50)
+      );
+
+      if (existingReq) {
+        await db.tenderRequirement.update({
+          where: { id: existingReq.id },
+          data: {
+            evidenceRefs: req.structuredData as any,
+            aiConfidence: req.confidence,
+            criticality: this.computeFinancialCriticality(req),
+          },
+        });
+      } else {
+        await db.tenderRequirement.create({
+          data: {
+            tenderId,
+            text: req.text,
+            category: 'FINANCIAL_REQUIREMENTS' as RequirementCategory,
+            articleReference: req.articleReference || null,
+            mandatory: req.mandatory,
+            type: 'FINANCIAL' as RequirementType,
+            coverageStatus: 'UNMAPPED',
+            aiConfidence: req.confidence,
+            criticality: this.computeFinancialCriticality(req),
+            evidenceRefs: req.structuredData as any,
+          },
+        });
+      }
+    }
+
+    await db.activity.create({
+      data: {
+        tenderId,
+        action: 'financial_requirements_extracted',
+        details: `AI Financial Modeller εξήγαγε ${extracted.length} οικονομικές απαιτήσεις`,
+      },
+    });
+
+    return extracted;
+  }
 }
 
 export const aiFinancial = new AIFinancialService();

@@ -9,7 +9,7 @@
  */
 
 import { db } from '@/lib/db';
-import { ai } from '@/server/ai';
+import { ai, checkTokenBudget, logTokenUsage } from '@/server/ai';
 import { readTenderDocuments, requireDocuments } from '@/server/services/document-reader';
 import { ANALYSIS_RULES, parseAIResponse, chunkText, shouldChunk, BRIEF_CRITICAL_FIELDS, NOT_FOUND } from './ai-prompts';
 import type { TenderStatus } from '@prisma/client';
@@ -434,6 +434,13 @@ class AIBidOrchestrator {
     if (tenderCheck.analysisInProgress) {
       throw new Error('Η ανάλυση βρίσκεται ήδη σε εξέλιξη');
     }
+
+    // ── Token budget check ────────────────────────────────────
+    const budget = await checkTokenBudget(tenderCheck.tenantId);
+    if (!budget.allowed) {
+      throw new Error(`Ξεπεράσατε το ημερήσιο όριο AI (${budget.used.toLocaleString()}/${budget.limit.toLocaleString()} tokens). Δοκιμάστε αύριο.`);
+    }
+
     await db.tender.update({ where: { id: tenderId }, data: { analysisInProgress: true } });
 
     try {
@@ -503,6 +510,12 @@ class AIBidOrchestrator {
             responseFormat: 'json',
           });
 
+          await logTokenUsage(tenderId, `brief_chunk_${i + 1}`, {
+            input: result.inputTokens || 0,
+            output: result.outputTokens || 0,
+            total: result.totalTokens || 0,
+          });
+
           try {
             const partial = parseAIResponse<TenderBriefData>(result.content, ['summaryText', 'keyPoints'], `brief chunk ${i + 1}`);
             partialResults.push(partial);
@@ -570,6 +583,12 @@ class AIBidOrchestrator {
           maxTokens: 3000,
           temperature: 0.2,
           responseFormat: 'json',
+        });
+
+        await logTokenUsage(tenderId, 'brief_analysis', {
+          input: result.inputTokens || 0,
+          output: result.outputTokens || 0,
+          total: result.totalTokens || 0,
         });
 
         briefData = parseAIResponse<TenderBriefData>(result.content, ['summaryText', 'keyPoints'], 'brief');
@@ -827,6 +846,12 @@ class AIBidOrchestrator {
       maxTokens: 3000,
       temperature: 0.3,
       responseFormat: 'json',
+    });
+
+    await logTokenUsage(tenderId, 'go_no_go', {
+      input: aiResult.inputTokens || 0,
+      output: aiResult.outputTokens || 0,
+      total: aiResult.totalTokens || 0,
     });
 
     let analysisResult: GoNoGoAnalysisResult;

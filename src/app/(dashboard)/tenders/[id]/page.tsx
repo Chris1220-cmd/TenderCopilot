@@ -30,6 +30,7 @@ import { LegalTab } from '@/components/tender/legal-tab';
 import { FinancialTab } from '@/components/tender/financial-tab';
 import { TechnicalTabEnhanced } from '@/components/tender/technical-tab-enhanced';
 import { AIAssistantButton, AIAssistantPanel } from '@/components/tender/ai-assistant-panel';
+import { MissingInfoPanel } from '@/components/tender/missing-info-panel';
 import {
   ChevronRight,
   Pencil,
@@ -378,6 +379,9 @@ export default function TenderDetailPage() {
               </Card>
             ))}
       </div>
+
+      {/* Missing Info Panel — always visible above tabs */}
+      <MissingInfoPanel tenderId={tenderId} />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

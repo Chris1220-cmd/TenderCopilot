@@ -1,4 +1,4 @@
-export { ai, getAIProvider } from './provider';
+export { ai, getAIProvider, checkTokenBudget, logTokenUsage } from './provider';
 export type {
   AIProvider,
   AIMessage,
