@@ -263,6 +263,7 @@ model Tender {
   status               TenderStatus  @default(DISCOVERY)
   complianceScore      Float?        // 0-100
   notes                String?       @db.Text
+  analysisInProgress   Boolean       @default(false)
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -275,7 +276,7 @@ model Tender {
 
   // AI Role models
   brief              TenderBrief?
-  goNoGoDecisions    GoNoGoDecision[]
+  goNoGoDecision     GoNoGoDecision?
   legalClauses       LegalClause[]
   clarifications     ClarificationQuestion[]
   pricingScenarios   PricingScenario[]
@@ -285,13 +286,20 @@ model Tender {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
 }
 
 enum TenderPlatform {
   ESIDIS
   COSMOONE
   ISUPPLIES
+  DIAVGEIA
+  TED
+  KIMDIS
   OTHER
+  PRIVATE
 }
 
 enum TenderStatus {
@@ -387,6 +395,8 @@ model AttachedDocument {
   tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  @@index([tenderId])
 }
 
 model GeneratedDocument {
@@ -489,7 +499,7 @@ model GoNoGoDecision {
   approvedById   String?
   approvedAt     DateTime?
 
-  tenderId String
+  tenderId String @unique
   tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -522,6 +532,8 @@ model LegalClause {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([riskLevel])
 }
 
 enum LegalClauseCategory {
