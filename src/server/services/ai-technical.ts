@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
-import { readTenderDocuments } from '@/server/services/document-reader';
+import { readTenderDocuments, requireDocuments } from '@/server/services/document-reader';
 import type { RequirementCategory, RequirementType, CoverageStatus } from '@prisma/client';
 
 /**
@@ -155,6 +155,7 @@ class AITechnicalService {
    * Staffing, Timeline, Deliverable. Sets criticality 1-5.
    */
   async analyzeTechnicalRequirements(tenderId: string): Promise<ClassifiedRequirement[]> {
+    await requireDocuments(tenderId);
     const requirements = await db.tenderRequirement.findMany({
       where: {
         tenderId,
@@ -457,6 +458,7 @@ class AITechnicalService {
     tenderId: string,
     tenantId: string
   ): Promise<ProposalSectionData[]> {
+    await requireDocuments(tenderId);
     const [tender, requirements, contentItems, projects, certificates, company, teamReqs] =
       await Promise.all([
         db.tender.findUniqueOrThrow({ where: { id: tenderId } }),
@@ -623,6 +625,7 @@ class AITechnicalService {
    * Creates TechnicalRisk records with mitigation suggestions.
    */
   async flagTechnicalRisks(tenderId: string): Promise<TechnicalRiskData[]> {
+    await requireDocuments(tenderId);
     const [tender, requirements, existingRisks] = await Promise.all([
       db.tender.findUniqueOrThrow({ where: { id: tenderId } }),
       db.tenderRequirement.findMany({

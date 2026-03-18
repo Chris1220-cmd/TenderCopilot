@@ -10,7 +10,7 @@
 
 import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
-import { readTenderDocuments } from '@/server/services/document-reader';
+import { readTenderDocuments, requireDocuments } from '@/server/services/document-reader';
 import { ANALYSIS_RULES, parseAIResponse, chunkText, shouldChunk, BRIEF_CRITICAL_FIELDS, NOT_FOUND } from './ai-prompts';
 import type { TenderStatus } from '@prisma/client';
 
@@ -428,6 +428,7 @@ class AIBidOrchestrator {
    * @returns The created/updated TenderBrief record
    */
   async summarizeTender(tenderId: string) {
+    await requireDocuments(tenderId);
     // ── Concurrency guard ─────────────────────────────────────
     const tenderCheck = await db.tender.findUniqueOrThrow({ where: { id: tenderId } });
     if (tenderCheck.analysisInProgress) {
@@ -670,6 +671,7 @@ class AIBidOrchestrator {
    * @returns The created GoNoGoDecision record
    */
   async goNoGoAnalysis(tenderId: string, tenantId: string) {
+    await requireDocuments(tenderId);
     // Load all relevant data in parallel
     const [
       tender,

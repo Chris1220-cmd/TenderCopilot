@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
-import { readTenderDocuments } from '@/server/services/document-reader';
+import { readTenderDocuments, requireDocuments } from '@/server/services/document-reader';
 import { ANALYSIS_RULES, parseAIResponse, FINANCIAL_CRITICAL_FIELDS, NOT_FOUND } from './ai-prompts';
 import type { RequirementCategory, RequirementType } from '@prisma/client';
 
@@ -90,6 +90,7 @@ class AIFinancialService {
    * and stores structured data in evidenceRefs JSON.
    */
   async extractFinancialRequirements(tenderId: string): Promise<ExtractedFinancialRequirement[]> {
+    await requireDocuments(tenderId);
     const tender = await db.tender.findUniqueOrThrow({
       where: { id: tenderId },
       include: {

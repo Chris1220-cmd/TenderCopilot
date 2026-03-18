@@ -11,7 +11,7 @@
 
 import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
-import { readTenderDocuments } from '@/server/services/document-reader';
+import { readTenderDocuments, requireDocuments } from '@/server/services/document-reader';
 import type { LegalClauseCategory, RiskLevel } from '@prisma/client';
 import { ANALYSIS_RULES, parseAIResponse, LEGAL_CRITICAL_FIELDS, NOT_FOUND } from './ai-prompts';
 
@@ -170,6 +170,7 @@ class AILegalAnalyzer {
    * @returns Array of created LegalClause records
    */
   async extractClauses(tenderId: string) {
+    await requireDocuments(tenderId);
     const tender = await db.tender.findUniqueOrThrow({
       where: { id: tenderId },
       include: {
@@ -301,6 +302,7 @@ class AILegalAnalyzer {
    * @returns Array of updated LegalClause records
    */
   async assessRisks(tenderId: string) {
+    await requireDocuments(tenderId);
     const clauses = await db.legalClause.findMany({
       where: { tenderId },
     });
@@ -429,6 +431,7 @@ class AILegalAnalyzer {
    * @returns Array of created ClarificationQuestion records
    */
   async proposeClarifications(tenderId: string) {
+    await requireDocuments(tenderId);
     const clauses = await db.legalClause.findMany({
       where: {
         tenderId,
