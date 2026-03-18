@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -130,6 +130,49 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load existing technical data from DB on mount
+  const technicalDataQuery = trpc.aiRoles.getTechnicalData.useQuery(
+    { tenderId },
+    { retry: false, refetchOnWindowFocus: false }
+  );
+
+  useEffect(() => {
+    if (technicalDataQuery.data) {
+      const { sections: dbSections, risks: dbRisks, team: dbTeam } = technicalDataQuery.data;
+
+      if (dbSections?.length > 0) {
+        setSections(dbSections.map((s: any) => ({
+          id: s.id,
+          order: s.ordering ?? 0,
+          title: s.title,
+          status: s.status as SectionStatus,
+          content: s.content,
+        })));
+      }
+      if (dbRisks?.length > 0) {
+        setRisks(dbRisks.map((r: any) => ({
+          id: r.id,
+          riskLevel: r.riskLevel as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+          title: r.title,
+          description: r.description,
+          mitigation: r.mitigation || '',
+        })));
+      }
+      if (dbTeam?.length > 0) {
+        setTeam(dbTeam.map((t: any) => ({
+          id: t.id,
+          role: t.role,
+          qualifications: t.qualifications || '',
+          experienceYears: t.minExperience ?? 0,
+          count: t.count ?? 1,
+          mappedStaff: t.mappedStaffName || null,
+          status: (t.status as 'MAPPED' | 'PARTIAL' | 'UNMAPPED') ?? 'UNMAPPED',
+        })));
+      }
+    }
+  }, [technicalDataQuery.data]);
 
   // tRPC mutations
   const analyzeMutation = trpc.aiRoles.analyzeTechRequirements.useMutation({
@@ -137,38 +180,44 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
       if (data?.risks) setRisks(data.risks);
       if (data?.team) setTeam(data.team);
       setLoadingAction(null);
+      setError(null);
     },
-    onError: (err: any) => { console.error('[Technical]', err?.message); setLoadingAction(null); },
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα ανάλυσης τεχνικών απαιτήσεων'); setLoadingAction(null); },
   });
 
   const proposalMutation = trpc.aiRoles.generateProposal.useMutation({
     onSuccess: (data: any) => {
       if (data?.sections) setSections(data.sections);
       setLoadingAction(null);
+      setError(null);
     },
-    onError: (err: any) => { console.error('[Technical]', err?.message); setLoadingAction(null); },
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα δημιουργίας τεχνικής πρότασης'); setLoadingAction(null); },
   });
 
   const flagRisksMutation = trpc.aiRoles.flagTechRisks.useMutation({
     onSuccess: (data: any) => {
       if (data?.risks) setRisks(data.risks);
       setLoadingAction(null);
+      setError(null);
     },
-    onError: (err: any) => { console.error('[Technical]', err?.message); setLoadingAction(null); },
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα εντοπισμού κινδύνων'); setLoadingAction(null); },
   });
 
   const handleAnalyze = () => {
     setLoadingAction('analyze');
+    setError(null);
     analyzeMutation.mutate({ tenderId });
   };
 
   const handleGenerate = () => {
     setLoadingAction('generate');
+    setError(null);
     proposalMutation.mutate({ tenderId });
   };
 
   const handleFlagRisks = () => {
     setLoadingAction('risks');
+    setError(null);
     flagRisksMutation.mutate({ tenderId });
   };
 
@@ -213,6 +262,13 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
 
   return (
     <div className="space-y-6">
+      {/* Error Banner */}
+      {error && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+          <strong>Σφάλμα:</strong> {error}
+          <button onClick={() => setError(null)} className="ml-2 underline cursor-pointer">Κλείσιμο</button>
+        </div>
+      )}
       {/* Action Buttons */}
       <div className="flex flex-wrap items-center gap-2">
         <Button
