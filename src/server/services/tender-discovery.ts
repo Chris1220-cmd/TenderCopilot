@@ -210,9 +210,10 @@ async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTen
  */
 async function getLatestFromTED(cpvCodes?: string[]): Promise<DiscoveredTender[]> {
   try {
-    // Build TED search query
-    // TD=3 = Contract notices, CY=GR = Greece
-    let query = 'TD=3 AND CY=GR';
+    // TED API v3 — new endpoint as of 2025+
+    // Country code is ISO 3166-1 alpha-3: GRC (not GR)
+    // TD=3 = Contract notices
+    let query = 'TD=3 AND CY=GRC';
     if (cpvCodes && cpvCodes.length > 0) {
       const cpvQuery = cpvCodes
         .slice(0, 5)
@@ -222,7 +223,7 @@ async function getLatestFromTED(cpvCodes?: string[]): Promise<DiscoveredTender[]
     }
 
     const res = await fetch(
-      'https://ted.europa.eu/api/v3.0/notices/search',
+      'https://api.ted.europa.eu/v3/notices/search',
       {
         method: 'POST',
         headers: {
@@ -231,11 +232,9 @@ async function getLatestFromTED(cpvCodes?: string[]): Promise<DiscoveredTender[]
         },
         body: JSON.stringify({
           query,
-          pageSize: 20,
-          pageNum: 1,
-          scope: 2, // Active notices
-          sortField: 'ND',
-          sortOrder: 'desc',
+          limit: 20,
+          page: 1,
+          fields: ['notice-identifier', 'deadline-receipt-tender-date-lot'],
         }),
         signal: AbortSignal.timeout(30000),
       }
@@ -243,77 +242,36 @@ async function getLatestFromTED(cpvCodes?: string[]): Promise<DiscoveredTender[]
 
     if (!res.ok) {
       console.error(`[TED] API error: ${res.status}`);
-      // Try fallback: TED public search RSS/XML
-      return await getLatestFromTEDFallback(cpvCodes);
-    }
-
-    const data = await res.json();
-    const notices = data.results || data.notices || [];
-
-    return notices.slice(0, 15).map((n: any) => ({
-      title: n.title?.['en'] || n.title?.['el'] || n.titleText || 'No title',
-      referenceNumber: n.documentNumber || n.tedNoticeId || '',
-      contractingAuthority: n.buyerName?.['en'] || n.buyerName?.['el'] || n.authorityName || '',
-      platform: 'TED' as const,
-      budget: n.estimatedTotalValue?.amount ? parseFloat(n.estimatedTotalValue.amount) : undefined,
-      submissionDeadline: n.deadlineReceiptTenders ? new Date(n.deadlineReceiptTenders) : undefined,
-      cpvCodes: n.cpvCodes || (n.cpvCode ? [n.cpvCode] : []),
-      sourceUrl: `https://ted.europa.eu/en/notice/-/detail/${n.documentNumber || n.tedNoticeId}`,
-      summary: n.shortDescription?.['en'] || n.shortDescription?.['el'] || undefined,
-      publishedAt: n.publicationDate ? new Date(n.publicationDate) : new Date(),
-      country: 'GR',
-      sourceLabel: 'TED',
-      isPrivate: false,
-    }));
-  } catch (err) {
-    console.error('[TED] Fetch error:', err);
-    return await getLatestFromTEDFallback(cpvCodes);
-  }
-}
-
-/**
- * TED fallback: scrape the public search page RSS feed
- */
-async function getLatestFromTEDFallback(cpvCodes?: string[]): Promise<DiscoveredTender[]> {
-  try {
-    const cpvParam = cpvCodes && cpvCodes.length > 0
-      ? cpvCodes.slice(0, 3).map(c => c.split('-')[0]).join(',')
-      : '';
-
-    const searchUrl = cpvParam
-      ? `https://ted.europa.eu/api/v2.0/notices/search?countryCode=GR&cpvCode=${cpvParam}&scope=2&limit=15`
-      : `https://ted.europa.eu/api/v2.0/notices/search?countryCode=GR&scope=2&limit=15`;
-
-    const res = await fetch(searchUrl, {
-      headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(30000),
-    });
-
-    if (!res.ok) {
-      console.error(`[TED fallback] API error: ${res.status}`);
       return [];
     }
 
     const data = await res.json();
-    const results = data.results || data.notices || [];
+    const notices = data.notices || [];
 
-    return results.slice(0, 10).map((n: any) => ({
-      title: n.title || n['title-en'] || n['title-el'] || 'TED Notice',
-      referenceNumber: n.documentNumber || n.noDocOjs || '',
-      contractingAuthority: n.buyerName || n.caName || '',
-      platform: 'TED' as const,
-      budget: undefined,
-      submissionDeadline: n.deadline ? new Date(n.deadline) : undefined,
-      cpvCodes: n.cpvCodes || [],
-      sourceUrl: `https://ted.europa.eu/en/notice/-/detail/${n.documentNumber || n.noDocOjs}`,
-      summary: n.summary || undefined,
-      publishedAt: n.publicationDate ? new Date(n.publicationDate) : new Date(),
-      country: 'GR',
-      sourceLabel: 'TED',
-      isPrivate: false,
-    }));
+    return notices.slice(0, 15).map((n: any) => {
+      const pubNumber = n['publication-number'] || '';
+      const htmlLink = n.links?.html?.ELL || n.links?.html?.ENG
+        || `https://ted.europa.eu/el/notice/-/detail/${pubNumber}`;
+      const pdfLink = n.links?.pdf?.ELL || n.links?.pdf?.ENG || undefined;
+
+      return {
+        title: `TED ${pubNumber}`,
+        referenceNumber: pubNumber,
+        contractingAuthority: '',
+        platform: 'TED' as const,
+        budget: undefined,
+        submissionDeadline: undefined,
+        cpvCodes: [],
+        sourceUrl: htmlLink,
+        summary: pdfLink ? `PDF: ${pdfLink}` : undefined,
+        publishedAt: new Date(),
+        country: 'GR',
+        sourceLabel: 'TED',
+        isPrivate: false,
+      };
+    });
   } catch (err) {
-    console.error('[TED fallback] Error:', err);
+    console.error('[TED] Fetch error:', err);
     return [];
   }
 }
