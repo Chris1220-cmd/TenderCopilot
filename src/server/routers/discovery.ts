@@ -8,6 +8,21 @@ import { uploadFile } from '@/lib/s3';
 import { db } from '@/lib/db';
 import type { TenderPlatform } from '@prisma/client';
 
+/**
+ * Exported for testing. Returns { missingKad: true } if the tenant has
+ * no company profile or no KAD codes set.
+ */
+export async function checkKadGuard(tenantId: string): Promise<{ missingKad: boolean }> {
+  const company = await db.companyProfile.findFirst({
+    where: { tenantId },
+    select: { kadCodes: true },
+  });
+  if (!company || company.kadCodes.length === 0) {
+    return { missingKad: true };
+  }
+  return { missingKad: false };
+}
+
 /** Detect the correct TenderPlatform enum value from a URL. */
 function detectPlatformFromUrl(url: string): TenderPlatform {
   try {
@@ -91,14 +106,22 @@ export const discoveryRouter = router({
       });
     }
 
+    const guard = await checkKadGuard(ctx.tenantId);
+    if (guard.missingKad) {
+      return { tenders: [], missingKad: true };
+    }
+
     const results = await tenderDiscovery.matchTendersForTenant(ctx.tenantId);
 
     // Return top 10 by relevance score
-    return results.slice(0, 10).map((t) => ({
-      ...t,
-      publishedAt: t.publishedAt.toISOString(),
-      submissionDeadline: t.submissionDeadline?.toISOString() ?? null,
-    }));
+    return {
+      tenders: results.slice(0, 10).map((t) => ({
+        ...t,
+        publishedAt: t.publishedAt.toISOString(),
+        submissionDeadline: t.submissionDeadline?.toISOString() ?? null,
+      })),
+      missingKad: false,
+    };
   }),
 
   /**
