@@ -149,6 +149,10 @@ export default function TenderDetailPage() {
   const tender = (tenderQuery.data as any) ?? null;
   const isLoading = tenderQuery.isLoading;
 
+  // Extract sourceUrl from tender notes for NoDocumentsAlert
+  const sourceUrl = tender?.notes?.match(/Imported from: (https?:\/\/\S+)/)?.[1] ?? null;
+  const tenderPlatform = tender?.platform ?? undefined;
+
   // Not found / error state
   if (!isLoading && !tender) {
     return (
@@ -420,8 +424,8 @@ export default function TenderDetailPage() {
             <div className="space-y-6">
               {/* AI Panels Row */}
               <div className="grid gap-4 lg:grid-cols-2">
-                <AIBriefPanel tenderId={tenderId} />
-                <GoNoGoPanel tenderId={tenderId} />
+                <AIBriefPanel tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
+                <GoNoGoPanel tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
               </div>
 
               {/* Existing Overview Content */}
@@ -444,17 +448,17 @@ export default function TenderDetailPage() {
 
         {/* New: Legal & Contract Tab */}
         <TabsContent value="legal">
-          <LegalTab tenderId={tenderId} />
+          <LegalTab tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
         </TabsContent>
 
         {/* New: Financial Tab */}
         <TabsContent value="financial">
-          <FinancialTab tenderId={tenderId} />
+          <FinancialTab tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
         </TabsContent>
 
         {/* New: Enhanced Technical Tab */}
         <TabsContent value="technical">
-          <TechnicalTabEnhanced tenderId={tenderId} />
+          <TechnicalTabEnhanced tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
         </TabsContent>
 
         <TabsContent value="activity">

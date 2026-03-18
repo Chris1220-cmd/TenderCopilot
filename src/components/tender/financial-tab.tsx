@@ -6,6 +6,7 @@ import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { NoDocumentsAlert } from './no-documents-alert';
 import {
   GlassCard,
   GlassCardHeader,
@@ -140,13 +141,16 @@ function getBarBg(score: number) {
 // ─── Component ────────────────────────────────────────────────
 interface FinancialTabProps {
   tenderId: string;
+  sourceUrl?: string | null;
+  platform?: string;
 }
 
-export function FinancialTab({ tenderId }: FinancialTabProps) {
+export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProps) {
   const [data, setData] = useState<FinancialData | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [noDocs, setNoDocs] = useState(false);
 
   // tRPC mutations
   const selectScenarioMutation = trpc.aiRoles.selectPricingScenario.useMutation({
@@ -162,7 +166,10 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
       setLoadingAction(null);
       setError(null);
     },
-    onError: (err: any) => { setError(err?.message || 'Σφάλμα ανάλυσης οικονομικών'); setLoadingAction(null); },
+    onError: (err: any) => {
+      if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
+      setError(err?.message || 'Σφάλμα ανάλυσης οικονομικών'); setLoadingAction(null);
+    },
   });
 
   // checkFinancialEligibility is a query, so we use useQuery with enabled flag
@@ -180,7 +187,10 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
       setLoadingAction(null);
       setError(null);
     },
-    onError: (err: any) => { setError(err?.message || 'Σφάλμα πρότασης τιμολόγησης'); setLoadingAction(null); },
+    onError: (err: any) => {
+      if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
+      setError(err?.message || 'Σφάλμα πρότασης τιμολόγησης'); setLoadingAction(null);
+    },
   });
 
   const handleAnalyze = () => {
@@ -201,6 +211,7 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
         });
       }
     } catch (err: any) {
+      if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
       setError(err?.message || 'Σφάλμα ελέγχου επιλεξιμότητας');
     }
     setLoadingAction(null);
@@ -217,6 +228,14 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* No Documents Alert */}
+      {noDocs && (
+        <NoDocumentsAlert
+          tenderId={tenderId}
+          sourceUrl={sourceUrl}
+          platform={platform}
+        />
+      )}
       {/* Error Banner */}
       {error && (
         <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">

@@ -6,6 +6,7 @@ import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { NoDocumentsAlert } from './no-documents-alert';
 import {
   GlassCard,
   GlassCardHeader,
@@ -33,6 +34,8 @@ interface AIBrief {
 
 interface AIBriefPanelProps {
   tenderId: string;
+  sourceUrl?: string | null;
+  platform?: string;
   className?: string;
 }
 
@@ -56,11 +59,12 @@ function transformBriefFromDB(data: any): AIBrief | null {
   };
 }
 
-export function AIBriefPanel({ tenderId, className }: AIBriefPanelProps) {
+export function AIBriefPanel({ tenderId, sourceUrl, platform, className }: AIBriefPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const [brief, setBrief] = useState<AIBrief | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [noDocs, setNoDocs] = useState(false);
 
   // Load existing brief from DB on mount
   const briefQuery = trpc.aiRoles.getBrief.useQuery(
@@ -83,6 +87,11 @@ export function AIBriefPanel({ tenderId, className }: AIBriefPanelProps) {
       setIsGenerating(false);
     },
     onError: (err: any) => {
+      if ((err as any).data?.code === 'PRECONDITION_FAILED') {
+        setNoDocs(true);
+        setIsGenerating(false);
+        return;
+      }
       setError(err?.message ?? 'Αποτυχία δημιουργίας brief. Δοκιμάστε ξανά.');
       setIsGenerating(false);
     },
@@ -116,6 +125,13 @@ export function AIBriefPanel({ tenderId, className }: AIBriefPanelProps) {
       </GlassCardHeader>
 
       <GlassCardContent>
+        {noDocs && (
+          <NoDocumentsAlert
+            tenderId={tenderId}
+            sourceUrl={sourceUrl}
+            platform={platform}
+          />
+        )}
         {isGenerating ? (
           <div className="space-y-3">
             <Skeleton className="h-4 w-full" />

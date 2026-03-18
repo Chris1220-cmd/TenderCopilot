@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { NoDocumentsAlert } from './no-documents-alert';
 import {
   GlassCard,
   GlassCardHeader,
@@ -119,9 +120,11 @@ const staffStatusConfig = {
 // ─── Component ────────────────────────────────────────────────
 interface TechnicalTabEnhancedProps {
   tenderId: string;
+  sourceUrl?: string | null;
+  platform?: string;
 }
 
-export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
+export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: TechnicalTabEnhancedProps) {
   const [sections, setSections] = useState<ProposalSection[]>([]);
   const [risks, setRisks] = useState<TechRisk[]>([]);
   const [team, setTeam] = useState<TeamRequirement[]>([]);
@@ -131,6 +134,7 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
   const [editContent, setEditContent] = useState('');
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [noDocs, setNoDocs] = useState(false);
 
   // Load existing technical data from DB on mount
   const technicalDataQuery = trpc.aiRoles.getTechnicalData.useQuery(
@@ -182,7 +186,10 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
       setLoadingAction(null);
       setError(null);
     },
-    onError: (err: any) => { setError(err?.message || 'Σφάλμα ανάλυσης τεχνικών απαιτήσεων'); setLoadingAction(null); },
+    onError: (err: any) => {
+      if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
+      setError(err?.message || 'Σφάλμα ανάλυσης τεχνικών απαιτήσεων'); setLoadingAction(null);
+    },
   });
 
   const proposalMutation = trpc.aiRoles.generateProposal.useMutation({
@@ -191,7 +198,10 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
       setLoadingAction(null);
       setError(null);
     },
-    onError: (err: any) => { setError(err?.message || 'Σφάλμα δημιουργίας τεχνικής πρότασης'); setLoadingAction(null); },
+    onError: (err: any) => {
+      if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
+      setError(err?.message || 'Σφάλμα δημιουργίας τεχνικής πρότασης'); setLoadingAction(null);
+    },
   });
 
   const flagRisksMutation = trpc.aiRoles.flagTechRisks.useMutation({
@@ -200,7 +210,10 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
       setLoadingAction(null);
       setError(null);
     },
-    onError: (err: any) => { setError(err?.message || 'Σφάλμα εντοπισμού κινδύνων'); setLoadingAction(null); },
+    onError: (err: any) => {
+      if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
+      setError(err?.message || 'Σφάλμα εντοπισμού κινδύνων'); setLoadingAction(null);
+    },
   });
 
   const handleAnalyze = () => {
@@ -262,6 +275,14 @@ export function TechnicalTabEnhanced({ tenderId }: TechnicalTabEnhancedProps) {
 
   return (
     <div className="space-y-6">
+      {/* No Documents Alert */}
+      {noDocs && (
+        <NoDocumentsAlert
+          tenderId={tenderId}
+          sourceUrl={sourceUrl}
+          platform={platform}
+        />
+      )}
       {/* Error Banner */}
       {error && (
         <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">

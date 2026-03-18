@@ -6,6 +6,7 @@ import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { NoDocumentsAlert } from './no-documents-alert';
 import {
   GlassCard,
   GlassCardHeader,
@@ -157,6 +158,8 @@ function CircularProgress({ score, size = 100 }: { score: number; size?: number 
 // ─── Component ────────────────────────────────────────────────
 interface GoNoGoPanelProps {
   tenderId: string;
+  sourceUrl?: string | null;
+  platform?: string;
   className?: string;
 }
 
@@ -175,12 +178,13 @@ function transformGoNoGoFromDB(data: any): GoNoGoResult | null {
   };
 }
 
-export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
+export function GoNoGoPanel({ tenderId, sourceUrl, platform, className }: GoNoGoPanelProps) {
   const [result, setResult] = useState<GoNoGoResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showReasons, setShowReasons] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [noDocs, setNoDocs] = useState(false);
 
   // Load existing Go/No-Go from DB on mount
   const goNoGoQuery = trpc.aiRoles.getGoNoGo.useQuery(
@@ -203,6 +207,11 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
       setIsAnalyzing(false);
     },
     onError: (err: any) => {
+      if ((err as any).data?.code === 'PRECONDITION_FAILED') {
+        setNoDocs(true);
+        setIsAnalyzing(false);
+        return;
+      }
       setError(err?.message ?? 'Αποτυχία ανάλυσης. Δοκιμάστε ξανά.');
       setIsAnalyzing(false);
     },
@@ -252,6 +261,13 @@ export function GoNoGoPanel({ tenderId, className }: GoNoGoPanelProps) {
       </GlassCardHeader>
 
       <GlassCardContent>
+        {noDocs && (
+          <NoDocumentsAlert
+            tenderId={tenderId}
+            sourceUrl={sourceUrl}
+            platform={platform}
+          />
+        )}
         {isAnalyzing ? (
           <div className="space-y-4">
             <div className="flex items-center justify-center py-4">

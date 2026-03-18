@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { NoDocumentsAlert } from './no-documents-alert';
 import {
   GlassCard,
   GlassCardHeader,
@@ -119,9 +120,11 @@ const clarificationStatusConfig: Record<string, { label: string; className: stri
 // ─── Component ────────────────────────────────────────────────
 interface LegalTabProps {
   tenderId: string;
+  sourceUrl?: string | null;
+  platform?: string;
 }
 
-export function LegalTab({ tenderId }: LegalTabProps) {
+export function LegalTab({ tenderId, sourceUrl, platform }: LegalTabProps) {
   const [clauses, setClauses] = useState<LegalClause[]>([]);
   const [clarifications, setClarifications] = useState<Clarification[]>([]);
   const [summary, setSummary] = useState<LegalSummary | null>(null);
@@ -131,6 +134,7 @@ export function LegalTab({ tenderId }: LegalTabProps) {
   const [editingClarification, setEditingClarification] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [noDocs, setNoDocs] = useState(false);
 
   // Load existing legal data from DB on mount
   const legalQuery = trpc.aiRoles.getLegalClauses.useQuery(
@@ -183,7 +187,10 @@ export function LegalTab({ tenderId }: LegalTabProps) {
       legalQuery.refetch();
       setLoadingAction(null);
     },
-    onError: (err: any) => { setError(err?.message || 'Σφάλμα εξαγωγής ρητρών'); setLoadingAction(null); },
+    onError: (err: any) => {
+      if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
+      setError(err?.message || 'Σφάλμα εξαγωγής ρητρών'); setLoadingAction(null);
+    },
   });
 
   const assessMutation = trpc.aiRoles.assessLegalRisks.useMutation({
@@ -191,7 +198,10 @@ export function LegalTab({ tenderId }: LegalTabProps) {
       legalQuery.refetch();
       setLoadingAction(null);
     },
-    onError: (err: any) => { setError(err?.message || 'Σφάλμα αξιολόγησης κινδύνου'); setLoadingAction(null); },
+    onError: (err: any) => {
+      if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
+      setError(err?.message || 'Σφάλμα αξιολόγησης κινδύνου'); setLoadingAction(null);
+    },
   });
 
   const clarifyMutation = trpc.aiRoles.proposeClarifications.useMutation({
@@ -199,7 +209,10 @@ export function LegalTab({ tenderId }: LegalTabProps) {
       legalQuery.refetch();
       setLoadingAction(null);
     },
-    onError: (err: any) => { setError(err?.message || 'Σφάλμα δημιουργίας διευκρινίσεων'); setLoadingAction(null); },
+    onError: (err: any) => {
+      if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
+      setError(err?.message || 'Σφάλμα δημιουργίας διευκρινίσεων'); setLoadingAction(null);
+    },
   });
 
   const handleExtract = () => {
@@ -272,6 +285,14 @@ export function LegalTab({ tenderId }: LegalTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* No Documents Alert */}
+      {noDocs && (
+        <NoDocumentsAlert
+          tenderId={tenderId}
+          sourceUrl={sourceUrl}
+          platform={platform}
+        />
+      )}
       {/* Error Banner */}
       {error && (
         <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
