@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useToast } from '@/components/ui/use-toast';
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,7 @@ import {
   Scale,
   Banknote,
   Wrench,
+  Loader2,
 } from 'lucide-react';
 
 
@@ -52,9 +54,13 @@ export default function TenderDetailPage() {
   const router = useRouter();
   const tenderId = params.id as string;
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [analysisStep, setAnalysisStep] = useState<string | null>(null);
 
   const utils = trpc.useUtils();
+  const { toast } = useToast();
 
   const tenderQuery = trpc.tender.getById.useQuery(
     { id: tenderId },
@@ -65,7 +71,80 @@ export default function TenderDetailPage() {
     onSuccess: () => {
       router.push('/tenders');
     },
+    onError: (err) => {
+      toast({ title: 'Σφάλμα διαγραφής', description: err.message, variant: 'destructive' });
+    },
   });
+
+  const summarizeMutation = trpc.aiRoles.summarizeTender.useMutation({
+    onSuccess: () => {
+      utils.aiRoles.getBrief.invalidate({ tenderId });
+      utils.tender.getById.invalidate({ id: tenderId });
+    },
+    onError: (err) => {
+      toast({ title: 'Σφάλμα ανάλυσης', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const complianceMutation = trpc.aiRoles.updateCompliance.useMutation({
+    onSuccess: () => {
+      utils.tender.getById.invalidate({ id: tenderId });
+    },
+    onError: (err) => {
+      toast({ title: 'Σφάλμα ελέγχου', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const extractLegalMutation = trpc.aiRoles.extractLegalClauses.useMutation({
+    onError: (err) => {
+      toast({ title: 'Σφάλμα νομικής ανάλυσης', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const assessLegalMutation = trpc.aiRoles.assessLegalRisks.useMutation({
+    onError: (err) => {
+      toast({ title: 'Σφάλμα αξιολόγησης κινδύνων', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const extractFinancialMutation = trpc.aiRoles.extractFinancials.useMutation({
+    onError: (err) => {
+      toast({ title: 'Σφάλμα οικονομικής ανάλυσης', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const goNoGoMutation = trpc.aiRoles.goNoGo.useMutation({
+    onError: (err) => {
+      toast({ title: 'Σφάλμα Go/No-Go', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  async function runFullAnalysis() {
+    try {
+      setAnalysisStep('Ανάγνωση εγγράφων & σύνοψη...');
+      await summarizeMutation.mutateAsync({ tenderId });
+
+      setAnalysisStep('Νομική ανάλυση...');
+      await extractLegalMutation.mutateAsync({ tenderId });
+      await assessLegalMutation.mutateAsync({ tenderId });
+
+      setAnalysisStep('Οικονομική ανάλυση...');
+      await extractFinancialMutation.mutateAsync({ tenderId });
+
+      setAnalysisStep('Αξιολόγηση Go/No-Go...');
+      await goNoGoMutation.mutateAsync({ tenderId });
+
+      setAnalysisStep(null);
+      utils.aiRoles.getBrief.invalidate({ tenderId });
+      utils.aiRoles.getGoNoGo.invalidate({ tenderId });
+      utils.aiRoles.getLegalClauses.invalidate({ tenderId });
+      utils.tender.getById.invalidate({ id: tenderId });
+      toast({ title: 'Η ανάλυση ολοκληρώθηκε!' });
+    } catch (err: any) {
+      setAnalysisStep(null);
+      toast({ title: 'Σφάλμα ανάλυσης', description: err.message, variant: 'destructive' });
+    }
+  }
 
   const tender = (tenderQuery.data as any) ?? null;
   const isLoading = tenderQuery.isLoading;
@@ -187,10 +266,36 @@ export default function TenderDetailPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* Prominent full analysis button */}
+            <Button
+              size="sm"
+              className={cn(
+                'cursor-pointer gap-1.5 h-9',
+                'bg-gradient-to-r from-indigo-600 to-violet-600',
+                'hover:from-indigo-500 hover:to-violet-500',
+                'shadow-sm shadow-indigo-500/25',
+                'border-0 text-white'
+              )}
+              disabled={!!analysisStep}
+              onClick={runFullAnalysis}
+            >
+              {analysisStep ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  {analysisStep}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Ανάλυση Διαγωνισμού
+                </>
+              )}
+            </Button>
             <Button
               variant="outline"
               size="sm"
               className="cursor-pointer gap-1.5 h-9"
+              onClick={() => setActiveTab('overview')}
             >
               <Pencil className="h-3.5 w-3.5" />
               Επεξεργασία
@@ -199,16 +304,17 @@ export default function TenderDetailPage() {
               variant="outline"
               size="sm"
               className="cursor-pointer gap-1.5 h-9"
+              disabled={complianceMutation.isPending}
+              onClick={() => {
+                complianceMutation.mutate({ tenderId });
+                setActiveTab('requirements');
+              }}
             >
-              <Sparkles className="h-3.5 w-3.5" />
-              Ανάλυση AI
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="cursor-pointer gap-1.5 h-9"
-            >
-              <ShieldCheck className="h-3.5 w-3.5" />
+              {complianceMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ShieldCheck className="h-3.5 w-3.5" />
+              )}
               Έλεγχος Συμμόρφωσης
             </Button>
             <Button
@@ -270,7 +376,7 @@ export default function TenderDetailPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="flex-wrap h-auto gap-1 p-1">
           <TabsTrigger value="overview" className="gap-1.5 cursor-pointer">
             <Eye className="h-3.5 w-3.5" />
