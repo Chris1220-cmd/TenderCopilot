@@ -48,6 +48,7 @@ interface EligibilityResult {
 }
 
 interface PricingScenario {
+  id?: string; // DB id — present when loaded from backend
   name: string;
   type: 'CONSERVATIVE' | 'BALANCED' | 'AGGRESSIVE';
   totalPrice: number;
@@ -145,14 +146,23 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
   const [data, setData] = useState<FinancialData | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // tRPC mutations
+  const selectScenarioMutation = trpc.aiRoles.selectPricingScenario.useMutation({
+    onSuccess: () => {
+      // selectedScenario state already updated optimistically
+    },
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα αποθήκευσης σεναρίου'); },
+  });
+
   const extractMutation = trpc.aiRoles.extractFinancials.useMutation({
     onSuccess: (result: any) => {
       if (result) setData((prev) => prev ? { ...prev, ...result } : result);
       setLoadingAction(null);
+      setError(null);
     },
-    onError: (err: any) => { console.error('[Financial]', err?.message); setLoadingAction(null); },
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα ανάλυσης οικονομικών'); setLoadingAction(null); },
   });
 
   // checkFinancialEligibility is a query, so we use useQuery with enabled flag
@@ -168,30 +178,37 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
     onSuccess: (result: any) => {
       if (result?.scenarios) setData((prev) => prev ? { ...prev, scenarios: result.scenarios } : null);
       setLoadingAction(null);
+      setError(null);
     },
-    onError: (err: any) => { console.error('[Financial]', err?.message); setLoadingAction(null); },
+    onError: (err: any) => { setError(err?.message || 'Σφάλμα πρότασης τιμολόγησης'); setLoadingAction(null); },
   });
 
   const handleAnalyze = () => {
     setLoadingAction('analyze');
+    setError(null);
     extractMutation.mutate({ tenderId });
   };
 
   const handleEligibility = async () => {
     setLoadingAction('eligibility');
+    setError(null);
     try {
       const res = await eligibilityQuery.refetch();
       if (res.data) {
-        setData((prev) => prev ? { ...prev, eligibility: res.data as any } : null);
+        setData((prev) => {
+          const base = prev || { eligibility: res.data as any, scenarios: [], riskScore: 0, riskFactors: [] };
+          return { ...base, eligibility: res.data as any };
+        });
       }
-    } catch {
-      // show error — no fallback
+    } catch (err: any) {
+      setError(err?.message || 'Σφάλμα ελέγχου επιλεξιμότητας');
     }
     setLoadingAction(null);
   };
 
   const handlePricing = () => {
     setLoadingAction('pricing');
+    setError(null);
     pricingMutation.mutate({ tenderId });
   };
 
@@ -200,6 +217,14 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* Error Banner */}
+      {error && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+          <strong>Σφάλμα:</strong> {error}
+          <button onClick={() => setError(null)} className="ml-2 underline cursor-pointer">Κλείσιμο</button>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="flex flex-wrap items-center gap-2">
         <Button
@@ -377,7 +402,14 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
 
                     {/* Select Button */}
                     <Button
-                      onClick={() => setSelectedScenario(isSelected ? null : scenario.type)}
+                      onClick={() => {
+                        const newSelected = isSelected ? null : scenario.type;
+                        setSelectedScenario(newSelected);
+                        if (!isSelected && scenario.id) {
+                          selectScenarioMutation.mutate({ tenderId, scenarioId: scenario.id });
+                        }
+                      }}
+                      disabled={selectScenarioMutation.isPending}
                       variant={isSelected ? 'default' : 'outline'}
                       size="sm"
                       className={cn(
