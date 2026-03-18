@@ -147,7 +147,11 @@ const platformMap: Record<string, { label: string; className: string }> = {
   ESIDIS: { label: 'ΕΣΗΔΗΣ', className: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20' },
   COSMOONE: { label: 'Cosmote One', className: 'bg-teal-500/15 text-teal-700 dark:text-teal-400 border-teal-500/20' },
   ISUPPLIES: { label: 'iSupplies', className: 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20' },
+  DIAVGEIA: { label: 'Διαύγεια', className: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20' },
+  TED: { label: 'TED Europa', className: 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20' },
+  KIMDIS: { label: 'ΚΗΜΔΗΣ', className: 'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20' },
   OTHER: { label: 'Άλλο', className: 'bg-gray-500/15 text-gray-700 dark:text-gray-400 border-gray-500/20' },
+  PRIVATE: { label: 'Ιδιωτικός Τομέας', className: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20' },
 };
 
 // ─── Generic Badge Component ────────────────────────────────
