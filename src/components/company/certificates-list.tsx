@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -65,28 +65,6 @@ const certificateTypes = [
   { value: 'OTHER', label: 'Άλλο' },
 ];
 
-// Mock data
-const mockCertificates = [
-  {
-    id: '1',
-    type: 'ISO_9001',
-    title: 'ISO 9001:2015 Σύστημα Διαχείρισης Ποιότητας',
-    issuer: 'TUV Hellas',
-    issueDate: '2024-01-15',
-    expiryDate: '2027-01-14',
-    fileUrl: null,
-  },
-  {
-    id: '2',
-    type: 'ISO_14001',
-    title: 'ISO 14001:2015 Περιβαλλοντική Διαχείριση',
-    issuer: 'Bureau Veritas',
-    issueDate: '2023-06-01',
-    expiryDate: '2025-05-31',
-    fileUrl: null,
-  },
-];
-
 function isExpired(dateStr?: string | null) {
   if (!dateStr) return false;
   return new Date(dateStr) < new Date();
@@ -117,8 +95,19 @@ export function CertificatesList() {
       certsQuery.refetch();
       closeDialog();
     },
-    onError: () => {
-      toast({ title: 'Σφάλμα', description: 'Αποτυχία δημιουργίας.', variant: 'destructive' });
+    onError: (err) => {
+      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const updateMutation = trpc.company.updateCertificate.useMutation({
+    onSuccess: () => {
+      toast({ title: 'Επιτυχία', description: 'Το πιστοποιητικό ενημερώθηκε.' });
+      certsQuery.refetch();
+      closeDialog();
+    },
+    onError: (err) => {
+      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
     },
   });
 
@@ -128,10 +117,12 @@ export function CertificatesList() {
       certsQuery.refetch();
       setDeleteConfirmId(null);
     },
-    onError: () => {
-      toast({ title: 'Σφάλμα', description: 'Αποτυχία διαγραφής.', variant: 'destructive' });
+    onError: (err) => {
+      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
     },
   });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const certs = (certsQuery.data ?? []) as any[];
 
@@ -171,7 +162,11 @@ export function CertificatesList() {
   }
 
   function onSubmit(data: CertificateFormValues) {
-    createMutation.mutate(data as any);
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, ...data } as any);
+    } else {
+      createMutation.mutate(data as any);
+    }
   }
 
   if (certsQuery.isLoading) {
@@ -308,10 +303,21 @@ export function CertificatesList() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept=".pdf,.jpg,.png,.doc,.docx"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            toast({ title: 'Upload', description: 'Η μεταφόρτωση αρχείων θα υλοποιηθεί σύντομα.' });
+                          }
+                        }}
+                      />
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => {}}
+                        onClick={() => fileInputRef.current?.click()}
                         className="cursor-pointer h-8 w-8"
                         title="Μεταφόρτωση αρχείου"
                       >
@@ -429,7 +435,7 @@ export function CertificatesList() {
               </Button>
               <Button
                 type="submit"
-                disabled={createMutation.isPending}
+                disabled={createMutation.isPending || updateMutation.isPending}
                 className={cn(
                   'cursor-pointer',
                   'bg-gradient-to-r from-indigo-600 to-violet-600',
@@ -437,7 +443,7 @@ export function CertificatesList() {
                   'border-0 text-white'
                 )}
               >
-                {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
                 {editingId ? 'Ενημέρωση' : 'Δημιουργία'}
               </Button>
             </DialogFooter>

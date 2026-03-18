@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -72,34 +72,6 @@ const docTypeColors: Record<string, string> = {
   OTHER: 'bg-gray-500/10 text-gray-600 dark:text-gray-400',
 };
 
-// Mock data
-const mockDocs = [
-  {
-    id: '1',
-    type: 'TAX_CLEARANCE',
-    title: 'Φορολογική Ενημερότητα 2025',
-    issueDate: '2025-11-01',
-    expiryDate: '2026-05-01',
-    fileUrl: null,
-  },
-  {
-    id: '2',
-    type: 'SOCIAL_SECURITY_CLEARANCE',
-    title: 'Ασφαλιστική Ενημερότητα ΕΦΚΑ',
-    issueDate: '2025-12-01',
-    expiryDate: '2026-03-01',
-    fileUrl: null,
-  },
-  {
-    id: '3',
-    type: 'CRIMINAL_RECORD',
-    title: 'Ποινικό Μητρώο Νόμιμου Εκπρόσωπου',
-    issueDate: '2025-10-15',
-    expiryDate: '2026-04-15',
-    fileUrl: null,
-  },
-];
-
 function isExpired(dateStr?: string | null) {
   if (!dateStr) return false;
   return new Date(dateStr) < new Date();
@@ -130,8 +102,19 @@ export function LegalDocsList() {
       docsQuery.refetch();
       closeDialog();
     },
-    onError: () => {
-      toast({ title: 'Σφάλμα', description: 'Αποτυχία δημιουργίας.', variant: 'destructive' });
+    onError: (err) => {
+      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const updateMutation = trpc.company.updateLegalDoc.useMutation({
+    onSuccess: () => {
+      toast({ title: 'Επιτυχία', description: 'Το έγγραφο ενημερώθηκε.' });
+      docsQuery.refetch();
+      closeDialog();
+    },
+    onError: (err) => {
+      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
     },
   });
 
@@ -141,10 +124,12 @@ export function LegalDocsList() {
       docsQuery.refetch();
       setDeleteConfirmId(null);
     },
-    onError: () => {
-      toast({ title: 'Σφάλμα', description: 'Αποτυχία διαγραφής.', variant: 'destructive' });
+    onError: (err) => {
+      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
     },
   });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const docs = (docsQuery.data ?? []) as any[];
 
@@ -183,7 +168,11 @@ export function LegalDocsList() {
   }
 
   function onSubmit(data: LegalDocFormValues) {
-    createMutation.mutate(data as any);
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, ...data } as any);
+    } else {
+      createMutation.mutate(data as any);
+    }
   }
 
   if (docsQuery.isLoading) {
@@ -322,10 +311,21 @@ export function LegalDocsList() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept=".pdf,.jpg,.png,.doc,.docx"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            toast({ title: 'Upload', description: 'Η μεταφόρτωση αρχείων θα υλοποιηθεί σύντομα.' });
+                          }
+                        }}
+                      />
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => {}}
+                        onClick={() => fileInputRef.current?.click()}
                         className="cursor-pointer h-8 w-8"
                         title="Μεταφόρτωση αρχείου"
                       >
@@ -432,7 +432,7 @@ export function LegalDocsList() {
               </Button>
               <Button
                 type="submit"
-                disabled={createMutation.isPending}
+                disabled={createMutation.isPending || updateMutation.isPending}
                 className={cn(
                   'cursor-pointer',
                   'bg-gradient-to-r from-indigo-600 to-violet-600',
@@ -440,7 +440,7 @@ export function LegalDocsList() {
                   'border-0 text-white'
                 )}
               >
-                {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
                 {editingId ? 'Ενημέρωση' : 'Δημιουργία'}
               </Button>
             </DialogFooter>

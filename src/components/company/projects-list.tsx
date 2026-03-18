@@ -49,40 +49,6 @@ const projectSchema = z.object({
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
 
-// Mock data
-const mockProjects = [
-  {
-    id: '1',
-    title: 'Ολοκληρωμένο Σύστημα ERP Δήμου Αθηναίων',
-    client: 'Δήμος Αθηναίων',
-    contractAmount: 450000,
-    startDate: '2023-03-01',
-    endDate: '2024-09-30',
-    category: 'Πληροφορική',
-    description: 'Ανάπτυξη ολοκληρωμένου πληροφοριακού συστήματος ERP.',
-  },
-  {
-    id: '2',
-    title: 'Υπηρεσίες Συμβουλευτικής Στρατηγικού Σχεδιασμού',
-    client: 'Υπουργείο Ψηφιακής Διακυβέρνησης',
-    contractAmount: 120000,
-    startDate: '2024-01-15',
-    endDate: '2024-12-31',
-    category: 'Συμβουλευτική',
-    description: 'Παροχή υπηρεσιών συμβουλευτικής για ψηφιακό μετασχηματισμό.',
-  },
-  {
-    id: '3',
-    title: 'Προμήθεια Δικτυακού Εξοπλισμού',
-    client: 'Περιφέρεια Αττικής',
-    contractAmount: 85000,
-    startDate: '2024-06-01',
-    endDate: null,
-    category: 'Προμήθειες',
-    description: null,
-  },
-];
-
 const categoryColors: Record<string, string> = {
   'Πληροφορική': 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
   'Συμβουλευτική': 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
@@ -108,8 +74,19 @@ export function ProjectsList() {
       projectsQuery.refetch();
       closeDialog();
     },
-    onError: () => {
-      toast({ title: 'Σφάλμα', description: 'Αποτυχία δημιουργίας.', variant: 'destructive' });
+    onError: (err) => {
+      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const updateMutation = trpc.company.updateProject.useMutation({
+    onSuccess: () => {
+      toast({ title: 'Επιτυχία', description: 'Το έργο ενημερώθηκε.' });
+      projectsQuery.refetch();
+      closeDialog();
+    },
+    onError: (err) => {
+      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
     },
   });
 
@@ -119,8 +96,8 @@ export function ProjectsList() {
       projectsQuery.refetch();
       setDeleteConfirmId(null);
     },
-    onError: () => {
-      toast({ title: 'Σφάλμα', description: 'Αποτυχία διαγραφής.', variant: 'destructive' });
+    onError: (err) => {
+      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
     },
   });
 
@@ -179,7 +156,11 @@ export function ProjectsList() {
   }
 
   function onSubmit(data: ProjectFormValues) {
-    createMutation.mutate(data as any);
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, ...data } as any);
+    } else {
+      createMutation.mutate(data as any);
+    }
   }
 
   // Total contract value
@@ -432,7 +413,7 @@ export function ProjectsList() {
               </Button>
               <Button
                 type="submit"
-                disabled={createMutation.isPending}
+                disabled={createMutation.isPending || updateMutation.isPending}
                 className={cn(
                   'cursor-pointer',
                   'bg-gradient-to-r from-indigo-600 to-violet-600',
@@ -440,7 +421,7 @@ export function ProjectsList() {
                   'border-0 text-white'
                 )}
               >
-                {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
                 {editingId ? 'Ενημέρωση' : 'Δημιουργία'}
               </Button>
             </DialogFooter>
