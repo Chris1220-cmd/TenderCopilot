@@ -6,6 +6,7 @@
 
 import { db } from '@/lib/db';
 import { getFileBuffer } from '@/lib/s3';
+import { TRPCError } from '@trpc/server';
 
 /**
  * Extract text from a single file buffer based on MIME type.
@@ -176,5 +177,21 @@ export async function readSingleDocument(fileKey: string, mimeType: string, file
   } catch (err) {
     console.error(`[DocumentReader] Failed to read ${fileName}:`, err);
     return '';
+  }
+}
+
+/**
+ * Guard: throws PRECONDITION_FAILED if no successfully-parsed documents exist.
+ * Call as first line of every AI service method to prevent ungrounded analysis.
+ */
+export async function requireDocuments(tenderId: string): Promise<void> {
+  const count = await db.attachedDocument.count({
+    where: { tenderId, parsingStatus: 'success' },
+  });
+  if (count === 0) {
+    throw new TRPCError({
+      code: 'PRECONDITION_FAILED',
+      message: 'Δεν βρέθηκαν αναλύσιμα έγγραφα. Κατεβάστε πρώτα τη διακήρυξη.',
+    });
   }
 }
