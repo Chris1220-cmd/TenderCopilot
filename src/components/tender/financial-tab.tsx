@@ -212,7 +212,7 @@ export function FinancialTab({ tenderId }: FinancialTabProps) {
     pricingMutation.mutate({ tenderId });
   };
 
-  const eligCfg = data ? eligibilityConfig[data.eligibility.status] : null;
+  const eligCfg = data?.eligibility?.status ? eligibilityConfig[data.eligibility.status] : null;
   const EligIcon = eligCfg?.icon ?? null;
 
   return (

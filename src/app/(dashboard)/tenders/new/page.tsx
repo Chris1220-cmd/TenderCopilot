@@ -247,9 +247,7 @@ export default function NewTenderPage() {
         title: tender.title,
         referenceNumber: tender.referenceNumber || null,
         contractingAuthority: tender.contractingAuthority || null,
-        platform: tender.platform === 'KIMDIS' || tender.platform === 'DIAVGEIA' || tender.platform === 'TED'
-          ? 'OTHER'
-          : tender.platform || 'OTHER',
+        platform: tender.platform || 'OTHER',
         cpvCodes: tender.cpvCodes || [],
         budget: tender.budget || null,
         submissionDeadline: tender.submissionDeadline || null,

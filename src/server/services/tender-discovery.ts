@@ -60,7 +60,8 @@ async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTen
     // Use LUMINAPI with subject filter for REAL tenders (not payment orders)
     // Search terms: "διακήρυξη" (tender notice), "προκήρυξη" (procurement notice),
     // "διαγωνισμός" (competition/tender)
-    const searchTerms = ['ΔΙΑΚΗΡΥΞΗ', 'ΠΡΟΚΗΡΥΞΗ', 'ΠΕΡΙΛΗΨΗ_ΔΙΑΚΗΡΥΞΗΣ', 'ΑΝΑΘΕΣΗ'];
+    // Only search for actual tender types — NOT αναθέσεις/αποφάσεις
+    const searchTerms = ['ΔΙΑΚΗΡΥΞΗ', 'ΠΡΟΚΗΡΥΞΗ', 'ΠΕΡΙΛΗΨΗ_ΔΙΑΚΗΡΥΞΗΣ'];
 
     // If CPV codes provided, also add them as keywords
     const cpvKeywords = cpvCodes && cpvCodes.length > 0
@@ -109,10 +110,38 @@ async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTen
       // Must have meaningful subject
       const subject = (d.subject || '').toLowerCase();
       if (subject.length < 15) return false;
-      // Exclude payment orders and obligations that slip through
-      if (subject.includes('εντολή πληρωμής') || subject.includes('εντολη πληρωμης')) return false;
-      if (subject.includes('οριστικοποίηση πληρωμής') || subject.includes('οριστικοποιηση πληρωμης')) return false;
-      if (subject.includes('χρηματικό ένταλμα') || subject.includes('χρηματικο ενταλμα')) return false;
+      // Exclude non-tender decisions that slip through
+      const excludeTerms = [
+        'εντολή πληρωμής', 'εντολη πληρωμης',
+        'οριστικοποίηση πληρωμής', 'οριστικοποιηση πληρωμης',
+        'χρηματικό ένταλμα', 'χρηματικο ενταλμα',
+        'κήρυξης ως άγον', 'κηρυξης ως αγον',       // "Κήρυξη ως άγονος" = failed auction, not a tender
+        'εκμίσθωση', 'εκμισθωση',                    // lease/rental, not procurement
+        'κυλικείο', 'κυλικειο',                       // canteen lease
+        'μίσθωση', 'μισθωση',                         // rental
+        'απευθείας ανάθεση', 'απευθειας αναθεση',     // direct award (already decided)
+        'έγκριση δαπάνης', 'εγκριση δαπανης',         // expense approval
+        'ανάληψη υποχρέωσης', 'αναληψη υποχρεωσης',   // commitment
+        'πρόσληψη', 'προσληψη',                       // hiring
+        'αποδοχή παραίτησης', 'αποδοχη παραιτησης',   // resignation acceptance
+      ];
+      if (excludeTerms.some(term => subject.includes(term))) return false;
+
+      // Must contain a tender-like keyword
+      const tenderKeywords = [
+        'διακήρυξη', 'διακηρυξη',
+        'προκήρυξη', 'προκηρυξη',
+        'διαγωνισμ', // covers διαγωνισμός, διαγωνισμού, etc.
+        'πρόσκληση υποβολής', 'προσκληση υποβολης',
+        'πρόσκληση εκδήλωσης', 'προσκληση εκδηλωσης',
+        'δημοπρασί', // covers δημοπρασία, δημοπρασίας
+        'σύμβαση', 'συμβαση',
+        'προμήθεια', 'προμηθεια',
+        'παροχή υπηρεσ', 'παροχη υπηρεσ',
+        'έργο', 'εργο',
+      ];
+      if (!tenderKeywords.some(kw => subject.includes(kw))) return false;
+
       return true;
     });
 

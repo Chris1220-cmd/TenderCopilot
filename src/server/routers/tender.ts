@@ -11,7 +11,7 @@ const tenderStatusEnum = z.enum([
   'LOST',
 ]);
 
-const tenderPlatformEnum = z.enum(['ESIDIS', 'COSMOONE', 'ISUPPLIES', 'OTHER']);
+const tenderPlatformEnum = z.enum(['ESIDIS', 'COSMOONE', 'ISUPPLIES', 'DIAVGEIA', 'TED', 'KIMDIS', 'OTHER', 'PRIVATE']);
 
 export const tenderRouter = router({
   list: protectedProcedure
