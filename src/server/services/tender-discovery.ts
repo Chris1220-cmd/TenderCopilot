@@ -6,9 +6,11 @@
  * - Διαύγεια (Diavgeia) OpenData API — procurement decisions
  * - TED (Tenders Electronic Daily) — EU-wide, filtered for Greece
  * - ΚΗΜΔΗΣ placeholder (no public API yet)
+ * - Private Sector — b2b.gr, eprocurement.gr, ypodomes.com
  */
 
 import { db } from '@/lib/db';
+import { kadToCpv } from '@/lib/kad-cpv-map';
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -16,11 +18,12 @@ export interface DiscoveredTender {
   title: string;
   referenceNumber: string;
   contractingAuthority: string;
-  platform: 'KIMDIS' | 'DIAVGEIA' | 'TED' | 'ESIDIS';
+  platform: 'KIMDIS' | 'DIAVGEIA' | 'TED' | 'ESIDIS' | 'PRIVATE';
   budget?: number;
   submissionDeadline?: Date;
   cpvCodes: string[];
   sourceUrl: string;
+  source?: string;
   summary?: string;
   publishedAt: Date;
 }
@@ -31,85 +34,14 @@ export interface TenderSearchParams {
   keywords?: string[];
   minBudget?: number;
   maxBudget?: number;
-  platforms?: Array<'KIMDIS' | 'DIAVGEIA' | 'TED' | 'ESIDIS'>;
+  platforms?: Array<'KIMDIS' | 'DIAVGEIA' | 'TED' | 'ESIDIS' | 'PRIVATE'>;
+  showAll?: boolean;
 }
 
 interface CompanySearchProfile {
   kadCodes: string[];
   description: string | null;
   legalName: string;
-}
-
-// ─── KAD-to-CPV Mapping ────────────────────────────────────
-
-const KAD_TO_CPV_MAP: Record<string, string[]> = {
-  '62.01': ['72210000-0', '72211000-7', '72212000-4'],
-  '62.02': ['72220000-3', '72221000-0', '72222000-7'],
-  '62.03': ['72250000-2', '72253000-3'],
-  '62.09': ['72260000-5', '72261000-2'],
-  '63.11': ['72310000-1', '72314000-9', '72315000-6'],
-  '58.29': ['48000000-8', '48600000-4', '48900000-7'],
-  '61.10': ['64210000-1', '64212000-5'],
-  '61.20': ['64212000-5'],
-  '41.10': ['45000000-7', '45210000-2'],
-  '41.20': ['45211000-9', '45211100-0'],
-  '42.11': ['45233100-0', '45233120-6'],
-  '42.12': ['45221000-2', '45221100-3'],
-  '42.21': ['45231000-5', '45232000-2'],
-  '42.22': ['45232200-4', '45232220-0'],
-  '42.91': ['45240000-1'],
-  '43.11': ['45111000-8', '45112000-5'],
-  '43.21': ['45310000-3', '45311000-0'],
-  '43.22': ['45330000-9', '45331000-6'],
-  '43.29': ['45340000-2', '45343000-3'],
-  '43.31': ['45410000-4', '45421000-4'],
-  '43.32': ['45420000-7', '45421000-4'],
-  '43.33': ['45430000-0', '45431000-7'],
-  '43.34': ['45440000-3', '45442000-7'],
-  '43.39': ['45450000-6'],
-  '71.11': ['71200000-0', '71210000-3'],
-  '71.12': ['71300000-1', '71310000-4', '71320000-7'],
-  '71.20': ['71600000-4', '71610000-7'],
-  '81.21': ['90910000-9', '90911000-6'],
-  '81.22': ['90911200-8', '90919000-2'],
-  '81.10': ['70310000-7', '70320000-0'],
-  '80.10': ['79710000-4', '79711000-1'],
-  '80.20': ['79720000-7'],
-  '70.22': ['79400000-8', '79410000-1', '79411000-8'],
-  '70.21': ['79410000-1'],
-  '73.20': ['73200000-4', '73210000-7'],
-  '85.59': ['80500000-9', '80510000-2', '80530000-8'],
-  '85.60': ['80600000-0'],
-  '49.31': ['60112000-6'],
-  '49.41': ['60100000-9'],
-  '52.29': ['63520000-0'],
-  '38.11': ['90500000-2', '90510000-5'],
-  '38.21': ['90510000-5', '90513000-6'],
-  '39.00': ['90720000-0'],
-  '56.21': ['55520000-1', '55521000-8'],
-  '56.29': ['55300000-3', '55320000-9'],
-};
-
-function mapKadToCpv(kadCodes: string[]): string[] {
-  const cpvSet = new Set<string>();
-  for (const kad of kadCodes) {
-    if (KAD_TO_CPV_MAP[kad]) {
-      KAD_TO_CPV_MAP[kad].forEach((cpv) => cpvSet.add(cpv));
-      continue;
-    }
-    const prefix = kad.substring(0, 5);
-    if (KAD_TO_CPV_MAP[prefix]) {
-      KAD_TO_CPV_MAP[prefix].forEach((cpv) => cpvSet.add(cpv));
-      continue;
-    }
-    const group = kad.substring(0, 2);
-    for (const [key, cpvs] of Object.entries(KAD_TO_CPV_MAP)) {
-      if (key.startsWith(group)) {
-        cpvs.forEach((cpv) => cpvSet.add(cpv));
-      }
-    }
-  }
-  return Array.from(cpvSet);
 }
 
 // ─── Real API: Διαύγεια (Diavgeia) OpenData ─────────────────
@@ -125,41 +57,66 @@ function mapKadToCpv(kadCodes: string[]): string[] {
  */
 async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTender[]> {
   try {
-    // Build search query from CPV codes or general procurement terms
-    const keywords = cpvCodes && cpvCodes.length > 0
-      ? cpvCodes.slice(0, 3).map(c => c.split('-')[0]).join(' OR ')
-      : 'προμήθεια OR υπηρεσίες OR ανάπτυξη λογισμικού';
+    // Use LUMINAPI with subject filter for REAL tenders (not payment orders)
+    // Search terms: "διακήρυξη" (tender notice), "προκήρυξη" (procurement notice),
+    // "διαγωνισμός" (competition/tender)
+    const searchTerms = ['ΔΙΑΚΗΡΥΞΗ', 'ΠΡΟΚΗΡΥΞΗ', 'ΠΕΡΙΛΗΨΗ_ΔΙΑΚΗΡΥΞΗΣ', 'ΑΝΑΘΕΣΗ'];
 
-    const fromDate = new Date();
-    fromDate.setMonth(fromDate.getMonth() - 3); // Last 3 months
-    const fromDateStr = fromDate.toISOString().split('T')[0];
+    // If CPV codes provided, also add them as keywords
+    const cpvKeywords = cpvCodes && cpvCodes.length > 0
+      ? cpvCodes.slice(0, 3).map(c => c.split('-')[0])
+      : [];
 
-    const params = new URLSearchParams({
-      q: keywords,
-      type: 'Β.2.1', // Procurement notices
-      from_issue_date: fromDateStr,
-      size: '20',
-      page: '0',
-    });
+    const allResults: any[] = [];
 
-    const res = await fetch(
-      `https://diavgeia.gov.gr/opendata/search.json?${params.toString()}`,
-      {
-        headers: { Accept: 'application/json' },
-        signal: AbortSignal.timeout(10000),
+    for (const term of searchTerms) {
+      try {
+        const params = new URLSearchParams({
+          subject: term,
+          size: '15',
+          page: '0',
+        });
+
+        // Add CPV as additional query if available
+        if (cpvKeywords.length > 0) {
+          params.set('q', cpvKeywords.join(' OR '));
+        }
+
+        const res = await fetch(
+          `https://diavgeia.gov.gr/luminapi/opendata/search?${params.toString()}`,
+          {
+            headers: { Accept: 'application/json' },
+            signal: AbortSignal.timeout(30000),
+          }
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.decisions) {
+            allResults.push(...data.decisions);
+          }
+        }
+      } catch {
+        // Continue with other search terms
       }
-    );
-
-    if (!res.ok) {
-      console.error(`[Diavgeia] API error: ${res.status}`);
-      return [];
     }
 
-    const data = await res.json();
-    const decisions = data.decisions || [];
+    // Deduplicate by ADA
+    const seen = new Set<string>();
+    const filteredDecisions = allResults.filter(d => {
+      if (!d.ada || seen.has(d.ada)) return false;
+      seen.add(d.ada);
+      // Must have meaningful subject
+      const subject = (d.subject || '').toLowerCase();
+      if (subject.length < 15) return false;
+      // Exclude payment orders and obligations that slip through
+      if (subject.includes('εντολή πληρωμής') || subject.includes('εντολη πληρωμης')) return false;
+      if (subject.includes('οριστικοποίηση πληρωμής') || subject.includes('οριστικοποιηση πληρωμης')) return false;
+      if (subject.includes('χρηματικό ένταλμα') || subject.includes('χρηματικο ενταλμα')) return false;
+      return true;
+    });
 
-    return decisions
-      .filter((d: any) => d.subject && d.subject.length > 10)
+    return filteredDecisions
       .slice(0, 15)
       .map((d: any) => {
         // Extract organization name from extraFieldValues.org or top-level fields
@@ -240,7 +197,7 @@ async function getLatestFromTED(cpvCodes?: string[]): Promise<DiscoveredTender[]
           sortField: 'ND',
           sortOrder: 'desc',
         }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(30000),
       }
     );
 
@@ -286,7 +243,7 @@ async function getLatestFromTEDFallback(cpvCodes?: string[]): Promise<Discovered
 
     const res = await fetch(searchUrl, {
       headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(30000),
     });
 
     if (!res.ok) {
@@ -337,7 +294,7 @@ async function getLatestFromKIMDIS(cpvCodes?: string[]): Promise<DiscoveredTende
 
     const res = await fetch(searchUrl.toString(), {
       headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(30000),
     });
 
     if (!res.ok) {
@@ -366,16 +323,178 @@ async function getLatestFromKIMDIS(cpvCodes?: string[]): Promise<DiscoveredTende
   }
 }
 
+// ─── Private Sector Discovery ────────────────────────────────
+
+/**
+ * Search for private sector tenders/procurement opportunities.
+ * Searches Greek B2B marketplaces and business directories.
+ */
+async function searchPrivateSector(
+  keywords: string[],
+  kadCodes: string[],
+): Promise<DiscoveredTender[]> {
+  const results: DiscoveredTender[] = [];
+
+  // Build search terms from KAD codes and keywords
+  const searchTerms = [
+    ...keywords,
+    ...kadCodes.map(kad => `KAD ${kad}`),
+  ].filter(Boolean);
+
+  if (searchTerms.length === 0) return results;
+
+  const query = searchTerms.slice(0, 5).join(' ');
+
+  // ── Search b2b.gr ──────────────────────────────────────
+  try {
+    const response = await fetch(
+      `https://www.b2b.gr/el/search?q=${encodeURIComponent(query + ' διαγωνισμός')}&type=tenders`,
+      {
+        headers: {
+          'Accept': 'text/html',
+          'Accept-Language': 'el,en;q=0.9',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+        signal: AbortSignal.timeout(15000),
+      }
+    );
+
+    if (response.ok) {
+      const html = await response.text();
+      // Parse results using simple regex (cheerio not available here by default)
+      const titleRegex = /<h[23][^>]*class="[^"]*title[^"]*"[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
+      let match;
+      while ((match = titleRegex.exec(html)) !== null && results.length < 10) {
+        const href = match[1];
+        const title = match[2].trim();
+        if (title.length > 10) {
+          results.push({
+            title,
+            referenceNumber: '',
+            contractingAuthority: 'b2b.gr',
+            source: 'b2b.gr (Ιδιωτικός Τομέας)',
+            platform: 'PRIVATE',
+            cpvCodes: [],
+            sourceUrl: href.startsWith('http') ? href : `https://www.b2b.gr${href}`,
+            publishedAt: new Date(),
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Discovery] b2b.gr search failed:', (err as Error).message);
+  }
+
+  // ── Search eprocurement.gr ─────────────────────────────
+  try {
+    const response = await fetch(
+      `https://www.eprocurement.gr/search?q=${encodeURIComponent(query)}&category=private`,
+      {
+        headers: {
+          'Accept': 'text/html',
+          'Accept-Language': 'el,en;q=0.9',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+        signal: AbortSignal.timeout(15000),
+      }
+    );
+
+    if (response.ok) {
+      const html = await response.text();
+      const titleRegex = /<a[^>]+href="([^"]+\/tender\/[^"]+)"[^>]*>([^<]{10,})<\/a>/gi;
+      let match;
+      while ((match = titleRegex.exec(html)) !== null && results.length < 15) {
+        const href = match[1];
+        const title = match[2].trim();
+        results.push({
+          title,
+          referenceNumber: '',
+          contractingAuthority: 'eprocurement.gr',
+          source: 'eprocurement.gr (Ιδιωτικός Τομέας)',
+          platform: 'PRIVATE',
+          cpvCodes: [],
+          sourceUrl: href.startsWith('http') ? href : `https://www.eprocurement.gr${href}`,
+          publishedAt: new Date(),
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[Discovery] eprocurement.gr search failed:', (err as Error).message);
+  }
+
+  // ── Search ypodomes.com for infrastructure projects ────
+  try {
+    const response = await fetch(
+      `https://www.ypodomes.com/search?q=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          'Accept': 'text/html',
+          'Accept-Language': 'el',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+        signal: AbortSignal.timeout(15000),
+      }
+    );
+
+    if (response.ok) {
+      const html = await response.text();
+      const titleRegex = /<a[^>]+href="([^"]+\/erga\/[^"]+)"[^>]*>([^<]{10,})<\/a>/gi;
+      let match;
+      while ((match = titleRegex.exec(html)) !== null && results.length < 20) {
+        const href = match[1];
+        const title = match[2].trim();
+        results.push({
+          title,
+          referenceNumber: '',
+          contractingAuthority: 'ypodomes.com',
+          source: 'ypodomes.com (Ιδιωτικός Τομέας)',
+          platform: 'PRIVATE',
+          cpvCodes: [],
+          sourceUrl: href.startsWith('http') ? href : `https://www.ypodomes.com${href}`,
+          publishedAt: new Date(),
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[Discovery] ypodomes.com search failed:', (err as Error).message);
+  }
+
+  return results;
+}
+
 // ─── Relevance Scoring ──────────────────────────────────────
 
-function scoreTenderRelevance(
+/**
+ * Score a tender's relevance against a list of company CPV codes.
+ * Returns a score from 0–100.
+ */
+export function scoreTenderRelevance(
+  tender: DiscoveredTender,
+  companyCpvCodes: string[],
+): number {
+  let score = 0;
+  const exactMatch = tender.cpvCodes.some(c => companyCpvCodes.includes(c));
+  if (exactMatch) score += 40;
+  const companyCategories = companyCpvCodes.map(c => c.slice(0, 2));
+  const categoryMatch = tender.cpvCodes.some(c => companyCategories.includes(c.slice(0, 2)));
+  if (categoryMatch && !exactMatch) score += 20;
+  if (tender.submissionDeadline) {
+    const daysLeft = Math.ceil((tender.submissionDeadline.getTime() - Date.now()) / 86400000);
+    if (daysLeft >= 15) score += 15;
+    else if (daysLeft >= 5) score += Math.round(15 * (daysLeft - 5) / 10);
+  }
+  return Math.min(100, score);
+}
+
+/** Internal overload that accepts a full CompanySearchProfile for richer scoring */
+function scoreTenderRelevanceInternal(
   tender: DiscoveredTender,
   profile: CompanySearchProfile
 ): number {
   let score = 0;
 
   // CPV Match (0-50 points)
-  const companyCpvCodes = mapKadToCpv(profile.kadCodes);
+  const companyCpvCodes = kadToCpv(profile.kadCodes);
   if (companyCpvCodes.length > 0 && tender.cpvCodes.length > 0) {
     const matchingCpvCount = tender.cpvCodes.filter((tenderCpv) =>
       companyCpvCodes.some((companyCpv) => {
@@ -438,16 +557,17 @@ const GREEK_STOP_WORDS = new Set([
 
 class TenderDiscoveryService {
   async searchTenders(params: TenderSearchParams = {}): Promise<DiscoveredTender[]> {
-    const { cpvCodes, kadCodes, keywords, minBudget, maxBudget, platforms } = params;
+    const { cpvCodes, kadCodes, keywords, minBudget, maxBudget, platforms, showAll } = params;
 
     let effectiveCpvCodes = cpvCodes || [];
     if (kadCodes && kadCodes.length > 0) {
-      const mappedCpv = mapKadToCpv(kadCodes);
+      const mappedCpv = kadToCpv(kadCodes);
       effectiveCpvCodes = Array.from(new Set([...effectiveCpvCodes, ...mappedCpv]));
     }
 
-    const cpvFilter = effectiveCpvCodes.length > 0 ? effectiveCpvCodes : undefined;
-    const activePlatforms = platforms || ['DIAVGEIA', 'TED', 'KIMDIS'];
+    // If showAll is true, skip CPV filtering so all tenders are returned
+    const cpvFilter = showAll ? undefined : (effectiveCpvCodes.length > 0 ? effectiveCpvCodes : undefined);
+    const activePlatforms = platforms || ['DIAVGEIA', 'TED', 'KIMDIS', 'PRIVATE'];
     const fetchers: Promise<DiscoveredTender[]>[] = [];
 
     if (activePlatforms.includes('DIAVGEIA')) {
@@ -458,6 +578,9 @@ class TenderDiscoveryService {
     }
     if (activePlatforms.includes('KIMDIS')) {
       fetchers.push(getLatestFromKIMDIS(cpvFilter));
+    }
+    if (activePlatforms.includes('PRIVATE')) {
+      fetchers.push(searchPrivateSector(keywords || [], kadCodes || []));
     }
 
     const results = await Promise.allSettled(fetchers);
@@ -511,7 +634,7 @@ class TenderDiscoveryService {
       legalName: companyProfile.legalName,
     };
 
-    const cpvCodes = mapKadToCpv(profile.kadCodes);
+    const cpvCodes = kadToCpv(profile.kadCodes);
 
     const keywords = profile.description
       ? profile.description
@@ -523,13 +646,14 @@ class TenderDiscoveryService {
 
     const tenders = await this.searchTenders({
       cpvCodes,
+      kadCodes: profile.kadCodes,
       keywords: keywords.length > 0 ? keywords : undefined,
     });
 
     const scoredTenders = tenders
       .map((tender) => ({
         ...tender,
-        relevanceScore: scoreTenderRelevance(tender, profile),
+        relevanceScore: scoreTenderRelevanceInternal(tender, profile),
       }))
       .sort((a, b) => b.relevanceScore - a.relevanceScore);
 
