@@ -23,9 +23,10 @@ model Tenant {
   legalDocs      LegalDocument[]
   projects       Project[]
   contentLibrary ContentLibraryItem[]
-  tenders           Tender[]
-  invitations       Invitation[]
-  financialProfiles FinancialProfile[]
+  tenders              Tender[]
+  invitations          Invitation[]
+  financialProfiles    FinancialProfile[]
+  privateTenderSources PrivateTenderSource[]
 }
 
 model User {
@@ -284,6 +285,8 @@ model Tender {
   technicalRisks     TechnicalRisk[]
   teamRequirements   TeamRequirement[]
 
+  analysisLanguage  String  @default("el")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -309,6 +312,20 @@ enum TenderStatus {
   SUBMITTED
   WON
   LOST
+}
+
+model PrivateTenderSource {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  url       String
+  country   String   @default("GR")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 model TenderRequirement {
