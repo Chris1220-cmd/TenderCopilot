@@ -95,7 +95,7 @@ async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTen
           `https://diavgeia.gov.gr/luminapi/opendata/search?${params.toString()}`,
           {
             headers: { Accept: 'application/json' },
-            signal: AbortSignal.timeout(30000),
+            signal: AbortSignal.timeout(8000),
           }
         );
 
@@ -236,7 +236,7 @@ async function getLatestFromTED(cpvCodes?: string[]): Promise<DiscoveredTender[]
           page: 1,
           fields: ['notice-identifier', 'deadline-receipt-tender-date-lot'],
         }),
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(8000),
       }
     );
 
@@ -298,7 +298,7 @@ async function getLatestFromKIMDIS(cpvCodes?: string[]): Promise<DiscoveredTende
 
     const res = await fetch(searchUrl.toString(), {
       headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) {
@@ -673,16 +673,20 @@ class TenderDiscoveryService {
       }
     }
 
+    console.log(`[Discovery] Running ${fetchers.length} fetchers, platforms: ${activePlatforms.join(',')}`);
     const results = await Promise.allSettled(fetchers);
     let allTenders: DiscoveredTender[] = [];
 
-    for (const result of results) {
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
       if (result.status === 'fulfilled') {
+        console.log(`[Discovery] Fetcher ${i} returned ${result.value.length} results`);
         allTenders.push(...result.value);
       } else {
-        console.error('Failed to fetch from platform:', result.reason);
+        console.error(`[Discovery] Fetcher ${i} FAILED:`, result.reason?.message || result.reason);
       }
     }
+    console.log(`[Discovery] Total: ${allTenders.length} tenders`);
 
     // Apply keyword filter
     if (keywords && keywords.length > 0) {
