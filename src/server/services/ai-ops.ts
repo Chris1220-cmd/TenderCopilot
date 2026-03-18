@@ -413,7 +413,7 @@ class AIOpsService {
         requirements: true,
         generatedDocuments: true,
         attachedDocuments: true,
-        goNoGoDecisions: { orderBy: { createdAt: 'desc' }, take: 1 },
+        goNoGoDecision: true,
         legalClauses: true,
         pricingScenarios: true,
         technicalSections: true,
@@ -512,11 +512,11 @@ class AIOpsService {
                   (s) => s.status === 'APPROVED'
                 ).length,
               },
-              goNoGo: tender.goNoGoDecisions.length > 0
+              goNoGo: tender.goNoGoDecision
                 ? {
-                    decision: tender.goNoGoDecisions[0].decision,
-                    score: tender.goNoGoDecisions[0].overallScore,
-                    approved: !!tender.goNoGoDecisions[0].approvedAt,
+                    decision: tender.goNoGoDecision.decision,
+                    score: tender.goNoGoDecision.overallScore,
+                    approved: !!tender.goNoGoDecision.approvedAt,
                   }
                 : null,
               expiringCertificates: certificates.filter(
@@ -661,7 +661,7 @@ class AIOpsService {
       complianceScore: number | null;
       requirements: Array<{ coverageStatus: string; mandatory: boolean }>;
       generatedDocuments: Array<{ status: string }>;
-      goNoGoDecisions: Array<{ decision: string; approvedAt: Date | null }>;
+      goNoGoDecision: { decision: string; approvedAt: Date | null } | null;
       legalClauses: Array<{ riskLevel: string }>;
       pricingScenarios: Array<{ isSelected: boolean }>;
       technicalSections: Array<{ status: string }>;
@@ -680,7 +680,7 @@ class AIOpsService {
       });
     }
 
-    if (tender.goNoGoDecisions.length > 0 && !tender.goNoGoDecisions[0].approvedAt) {
+    if (tender.goNoGoDecision && !tender.goNoGoDecision.approvedAt) {
       actions.push({
         rank: actions.length + 1,
         action: 'Εγκρίνετε την απόφαση Go/No-Go',

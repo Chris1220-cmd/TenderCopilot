@@ -10,6 +10,7 @@
 
 import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
+import { readTenderDocuments } from '@/server/services/document-reader';
 import type { TenderStatus } from '@prisma/client';
 
 // ─── Types ──────────────────────────────────────────────────
@@ -72,173 +73,6 @@ interface ExtractedTeamRequirement {
 interface StatusAnswer {
   answer: string;
   highlights: Array<{ label: string; value: string; status: 'ok' | 'warning' | 'critical' }>;
-}
-
-// ─── Mock Data Generators ───────────────────────────────────
-
-/**
- * Produces a realistic mock tender brief when AI_PROVIDER=mock.
- */
-function mockTenderBrief(tenderTitle: string): TenderBriefData {
-  return {
-    summaryText: `Ο διαγωνισμός "${tenderTitle}" αφορά στην προμήθεια/παροχή υπηρεσιών ` +
-      `σύμφωνα με τις διατάξεις του Ν.4412/2016. Η αναθέτουσα αρχή ζητά υποβολή φακέλου ` +
-      `δικαιολογητικών συμμετοχής, τεχνικής και οικονομικής προσφοράς σε ξεχωριστούς ` +
-      `ηλεκτρονικούς υποφακέλους μέσω ΕΣΗΔΗΣ. Κριτήριο ανάθεσης είναι η πλέον ` +
-      `συμφέρουσα από οικονομική άποψη προσφορά βάσει βέλτιστης σχέσης ποιότητας-τιμής. ` +
-      `Απαιτούνται πιστοποιήσεις ISO, αποδεδειγμένη εμπειρία σε αντίστοιχα έργα, ` +
-      `και πλήρης τεχνική μεθοδολογία υλοποίησης.`,
-    keyPoints: {
-      sector: 'Πληροφορική & Τεχνολογία',
-      mandatoryCriteria: [
-        'Εγγυητική επιστολή συμμετοχής 2%',
-        'Φορολογική & ασφαλιστική ενημερότητα',
-        'Πιστοποιητικό ISO 9001:2015',
-        'Αποδεδειγμένη εμπειρία τουλάχιστον 3 αντίστοιχων έργων',
-        'Υπεύθυνη δήλωση Ν.1599/1986 περί μη αποκλεισμού',
-        'ΕΕΕΣ/ΤΕΥΔ πλήρως συμπληρωμένο',
-      ],
-      awardType: 'best_value',
-      duration: '12 μήνες',
-      deadlines: [
-        { label: 'Υποβολή προσφορών', date: new Date(Date.now() + 30 * 86400000).toISOString() },
-        { label: 'Αποσφράγιση', date: new Date(Date.now() + 32 * 86400000).toISOString() },
-        { label: 'Ερωτήματα/Διευκρινίσεις', date: new Date(Date.now() + 20 * 86400000).toISOString() },
-      ],
-      estimatedBudget: 250000,
-      cpvCodes: ['30200000-1', '48000000-8'],
-      specialConditions: [
-        'Υποχρεωτική επίδειξη (demo) τεχνικής λύσης',
-        'Ρήτρες καθυστέρησης 0.5% ανά εβδομάδα',
-      ],
-    },
-    sector: 'Πληροφορική & Τεχνολογία',
-    awardType: 'best_value',
-    duration: '12 μήνες',
-  };
-}
-
-/**
- * Produces a realistic mock Go/No-Go analysis when AI_PROVIDER=mock.
- */
-function mockGoNoGoAnalysis(): GoNoGoAnalysisResult {
-  const factors: GoNoGoFactor[] = [
-    {
-      factor: 'Στρατηγική Συμβατότητα (CPV/KAD)',
-      score: 78,
-      weight: 0.15,
-      explanation: 'Οι κωδικοί CPV του διαγωνισμού ταιριάζουν εν μέρει με τους ΚΑΔ της εταιρείας. ' +
-        'Ο κύριος κωδικός 30200000-1 καλύπτεται πλήρως, αλλά ο δευτερεύων 48000000-8 ' +
-        'απαιτεί πιθανή συνεργασία με τρίτο.',
-    },
-    {
-      factor: 'Τεχνική Ικανότητα',
-      score: 85,
-      weight: 0.25,
-      explanation: 'Η εταιρεία διαθέτει 4 σχετικά έργα τα τελευταία 3 έτη, ' +
-        'ISO 9001:2015 σε ισχύ, και ομάδα με σχετική εμπειρία. ' +
-        'Ελαφρύ κενό σε εξειδίκευση λογισμικού ERP.',
-    },
-    {
-      factor: 'Οικονομική Επιλεξιμότητα',
-      score: 72,
-      weight: 0.20,
-      explanation: 'Ο μέσος κύκλος εργασιών τελευταίας τριετίας (€320K) ξεπερνά ' +
-        'τον προϋπολογισμό (€250K). Τα ίδια κεφάλαια καλύπτουν τις απαιτήσεις ' +
-        'εγγυητικών. Δείκτης ρευστότητας οριακός.',
-    },
-    {
-      factor: 'Διαθεσιμότητα Ομάδας',
-      score: 65,
-      weight: 0.15,
-      explanation: 'Ο Project Manager και ο Lead Developer είναι διαθέσιμοι. ' +
-        'Χρειάζεται εξωτερικός σύμβουλος για το νομικό κομμάτι. ' +
-        'Ο DBA δεν είναι διαθέσιμος — πιθανή υπεργολαβία.',
-    },
-    {
-      factor: 'Πιθανότητα Νίκης',
-      score: 60,
-      weight: 0.15,
-      explanation: 'Ανταγωνισμός μέτριος — εκτιμώνται 4-6 προσφορές. ' +
-        'Η εταιρεία δεν έχει ιστορικό με αυτή την αναθέτουσα αρχή. ' +
-        'Πλεονέκτημα στην τεχνική βαθμολόγηση λόγω εξειδίκευσης.',
-    },
-    {
-      factor: 'Εκτίμηση Κινδύνων',
-      score: 70,
-      weight: 0.10,
-      explanation: 'Χρονοδιάγραμμα σφιχτό (30 ημέρες μέχρι υποβολή). ' +
-        'Νομικοί όροι σύμβασης χρειάζονται λεπτομερή ανάλυση. ' +
-        'Ρήτρες καθυστέρησης υψηλές (0.5%/εβδομάδα).',
-    },
-  ];
-
-  const overallScore = factors.reduce((sum, f) => sum + f.score * f.weight, 0);
-
-  return {
-    decision: overallScore >= 70 ? 'GO' : overallScore >= 55 ? 'BORDERLINE' : 'NO_GO',
-    overallScore: Math.round(overallScore * 10) / 10,
-    factors,
-    recommendation: overallScore >= 70
-      ? 'Συνιστάται συμμετοχή (GO). Η εταιρεία πληροί τις βασικές προϋποθέσεις. ' +
-        'Χρειάζεται άμεση εκκίνηση προετοιμασίας λόγω σφιχτού χρονοδιαγράμματος. ' +
-        'Προτεραιότητα: εξασφάλιση εγγυητικής, σύνταξη ΤΕΥΔ, επικοινωνία με υπεργολάβους.'
-      : overallScore >= 55
-        ? 'Οριακή περίπτωση (BORDERLINE). Η εταιρεία μπορεί να συμμετάσχει αλλά ' +
-          'υπάρχουν σημαντικά κενά. Απαιτείται εγκριση διοίκησης και σχέδιο κάλυψης κενών.'
-        : 'Δεν συνιστάται συμμετοχή (NO GO). Σοβαρά κενά σε απαιτήσεις, πόρους ή ' +
-          'οικονομικά κριτήρια. Εστιάστε σε πιο κατάλληλους διαγωνισμούς.',
-  };
-}
-
-/**
- * Produces realistic mock team requirements when AI_PROVIDER=mock.
- */
-function mockTeamRequirements(): ExtractedTeamRequirement[] {
-  return [
-    {
-      role: 'Υπεύθυνος Έργου (Project Manager)',
-      qualifications: 'Πτυχίο ΑΕΙ, πιστοποίηση PMP ή PRINCE2, εμπειρία σε δημόσιους διαγωνισμούς',
-      minExperience: 10,
-      count: 1,
-      isMandatory: true,
-    },
-    {
-      role: 'Αναπληρωτής Υπεύθυνος Έργου',
-      qualifications: 'Πτυχίο ΑΕΙ, εμπειρία σε διαχείριση έργων πληροφορικής',
-      minExperience: 7,
-      count: 1,
-      isMandatory: true,
-    },
-    {
-      role: 'Senior Developer / Αρχιτέκτονας Συστήματος',
-      qualifications: 'Πτυχίο ΑΕΙ Πληροφορικής, εξειδίκευση σε web technologies',
-      minExperience: 8,
-      count: 2,
-      isMandatory: true,
-    },
-    {
-      role: 'Database Administrator',
-      qualifications: 'Πτυχίο ΑΕΙ, εξειδίκευση σε PostgreSQL/Oracle, πιστοποίηση βάσεων δεδομένων',
-      minExperience: 5,
-      count: 1,
-      isMandatory: true,
-    },
-    {
-      role: 'QA Engineer / Ελεγκτής Ποιότητας',
-      qualifications: 'Πτυχίο ΑΕΙ, πιστοποίηση ISTQB ή αντίστοιχη',
-      minExperience: 4,
-      count: 1,
-      isMandatory: false,
-    },
-    {
-      role: 'Νομικός Σύμβουλος',
-      qualifications: 'Δικηγόρος παρ\' Αρείω Πάγω, εξειδίκευση σε δημόσιες συμβάσεις',
-      minExperience: 10,
-      count: 1,
-      isMandatory: false,
-    },
-  ];
 }
 
 // ─── Work Plan Phase Definitions ────────────────────────────
@@ -638,13 +472,16 @@ class AIBidOrchestrator {
 
     const combinedText = textParts.join('\n');
 
+    // Read ACTUAL document content for AI analysis
+    const documentText = await readTenderDocuments(tenderId);
+
     // Call AI
     const result = await ai().complete({
       messages: [
         { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT },
         {
           role: 'user',
-          content: `Ανάλυσε τον παρακάτω διαγωνισμό και δημιούργησε δομημένη σύνοψη (brief):\n\n${combinedText}`,
+          content: `Ανάλυσε τον παρακάτω διαγωνισμό και δημιούργησε δομημένη σύνοψη (brief):\n\n${combinedText}${documentText ? `\n\n=== ΚΕΙΜΕΝΟ ΕΓΓΡΑΦΩΝ ===\n${documentText}` : ''}`,
         },
       ],
       maxTokens: 3000,
@@ -655,9 +492,9 @@ class AIBidOrchestrator {
     let briefData: TenderBriefData;
     try {
       briefData = JSON.parse(result.content);
-    } catch {
-      // Fallback to mock if AI returned invalid JSON
-      briefData = mockTenderBrief(tender.title);
+    } catch (err) {
+      console.error('[BidOrchestrator] AI parse error:', err);
+      throw new Error('Η AI ανάλυση απέτυχε. Βεβαιωθείτε ότι υπάρχουν συνημμένα έγγραφα με αναγνώσιμο κείμενο.');
     }
 
     // Create or update TenderBrief
@@ -841,13 +678,16 @@ class AIBidOrchestrator {
 
     const contextText = contextParts.join('\n');
 
+    // Read ACTUAL document content for AI analysis
+    const documentText = await readTenderDocuments(tenderId);
+
     // Call AI
     const aiResult = await ai().complete({
       messages: [
         { role: 'system', content: GO_NO_GO_SYSTEM_PROMPT },
         {
           role: 'user',
-          content: `Αξιολόγησε αν η εταιρεία πρέπει να συμμετάσχει στον ακόλουθο διαγωνισμό:\n\n${contextText}`,
+          content: `Αξιολόγησε αν η εταιρεία πρέπει να συμμετάσχει στον ακόλουθο διαγωνισμό:\n\n${contextText}${documentText ? `\n\n=== ΚΕΙΜΕΝΟ ΕΓΓΡΑΦΩΝ ===\n${documentText}` : ''}`,
         },
       ],
       maxTokens: 3000,
@@ -858,9 +698,9 @@ class AIBidOrchestrator {
     let analysisResult: GoNoGoAnalysisResult;
     try {
       analysisResult = JSON.parse(aiResult.content);
-    } catch {
-      // Fallback to mock
-      analysisResult = mockGoNoGoAnalysis();
+    } catch (err) {
+      console.error('[BidOrchestrator] AI parse error:', err);
+      throw new Error('Η AI ανάλυση απέτυχε. Βεβαιωθείτε ότι υπάρχουν συνημμένα έγγραφα με αναγνώσιμο κείμενο.');
     }
 
     // Validate decision
@@ -1047,14 +887,12 @@ class AIBidOrchestrator {
     try {
       const parsed = JSON.parse(aiResult.content);
       extractedRequirements = parsed.requirements || parsed;
-    } catch {
-      // Fallback to mock
-      extractedRequirements = mockTeamRequirements();
-    }
-
-    // Validate and sanitize
-    if (!Array.isArray(extractedRequirements) || extractedRequirements.length === 0) {
-      extractedRequirements = mockTeamRequirements();
+      if (!Array.isArray(extractedRequirements) || extractedRequirements.length === 0) {
+        throw new Error('AI returned empty or invalid requirements array');
+      }
+    } catch (err) {
+      console.error('[BidOrchestrator] AI parse error:', err);
+      throw new Error('Η AI ανάλυση απέτυχε. Βεβαιωθείτε ότι υπάρχουν συνημμένα έγγραφα με αναγνώσιμο κείμενο.');
     }
 
     // Delete existing AI-generated team requirements (allow re-analysis)
@@ -1118,7 +956,7 @@ class AIBidOrchestrator {
       requirements,
       teamRequirements,
       legalClauses,
-      goNoGoDecisions,
+      goNoGoDecision,
       recentActivities,
     ] = await Promise.all([
       db.tender.findUniqueOrThrow({
@@ -1138,10 +976,9 @@ class AIBidOrchestrator {
       db.legalClause.findMany({
         where: { tenderId },
       }),
-      db.goNoGoDecision.findMany({
+      db.goNoGoDecision.findFirst({
         where: { tenderId },
         orderBy: { createdAt: 'desc' },
-        take: 1,
       }),
       db.activity.findMany({
         where: { tenderId },
@@ -1177,9 +1014,8 @@ class AIBidOrchestrator {
     contextParts.push(`Compliance Score: ${tender.complianceScore?.toFixed(1) ?? 'N/A'}%`);
     contextParts.push(`Ημέρες μέχρι προθεσμία: ${daysToDeadline ?? 'Χωρίς προθεσμία'}`);
 
-    if (goNoGoDecisions.length > 0) {
-      const d = goNoGoDecisions[0];
-      contextParts.push(`\nGo/No-Go: ${d.decision} (Score: ${d.overallScore?.toFixed(1) ?? 'N/A'}/100)`);
+    if (goNoGoDecision) {
+      contextParts.push(`\nGo/No-Go: ${goNoGoDecision.decision} (Score: ${goNoGoDecision.overallScore?.toFixed(1) ?? 'N/A'}/100)`);
     }
 
     contextParts.push(`\n=== ΕΡΓΑΣΙΕΣ (${tasks.length} σύνολο) ===`);
@@ -1240,43 +1076,9 @@ class AIBidOrchestrator {
     let answer: StatusAnswer;
     try {
       answer = JSON.parse(aiResult.content);
-    } catch {
-      // Fallback: generate a basic answer from the data
-      const readiness = mandatoryReqs.length > 0
-        ? ((coveredReqs.length / mandatoryReqs.length) * 100).toFixed(0)
-        : 'N/A';
-
-      answer = {
-        answer: `Κατάσταση διαγωνισμού "${tender.title}": ` +
-          `${tasksDone}/${tasks.length} εργασίες ολοκληρωμένες, ` +
-          `${coveredReqs.length}/${mandatoryReqs.length} υποχρεωτικές απαιτήσεις καλύπτονται (${readiness}%), ` +
-          `${overdueTasks.length} εργασίες καθυστερούν, ` +
-          `${teamGaps.length} κενά ομάδας, ` +
-          `${highRiskClauses.length} νομικοί κίνδυνοι υψηλής σημασίας. ` +
-          (daysToDeadline !== null ? `Απομένουν ${daysToDeadline} ημέρες.` : ''),
-        highlights: [
-          {
-            label: 'Compliance',
-            value: `${readiness}%`,
-            status: Number(readiness) >= 80 ? 'ok' : Number(readiness) >= 50 ? 'warning' : 'critical',
-          },
-          {
-            label: 'Εργασίες',
-            value: `${tasksDone}/${tasks.length}`,
-            status: overdueTasks.length === 0 ? 'ok' : overdueTasks.length <= 2 ? 'warning' : 'critical',
-          },
-          {
-            label: 'Κενά Ομάδας',
-            value: `${teamGaps.length}`,
-            status: teamGaps.length === 0 ? 'ok' : teamGaps.length <= 2 ? 'warning' : 'critical',
-          },
-          {
-            label: 'Νομικοί Κίνδυνοι',
-            value: `${highRiskClauses.length}`,
-            status: highRiskClauses.length === 0 ? 'ok' : highRiskClauses.length <= 2 ? 'warning' : 'critical',
-          },
-        ],
-      };
+    } catch (err) {
+      console.error('[BidOrchestrator] AI parse error:', err);
+      throw new Error('Η AI ανάλυση απέτυχε. Βεβαιωθείτε ότι υπάρχουν συνημμένα έγγραφα με αναγνώσιμο κείμενο.');
     }
 
     // Log activity
