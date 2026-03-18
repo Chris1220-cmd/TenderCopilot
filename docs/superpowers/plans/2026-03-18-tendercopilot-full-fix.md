@@ -50,6 +50,7 @@
 |------|---------------|-------|
 | `src/server/services/ai-prompts.ts` | Shared AI prompt templates + validation | 6 |
 | `src/lib/kad-cpv-map.ts` | Full KAD→CPV mapping data | 7 |
+| `src/components/tender/missing-info-panel.tsx` | Missing info aggregation UI | 20B |
 
 ---
 
@@ -104,6 +105,19 @@ In `LegalClause` model (around line 508), add:
 ```prisma
   @@index([riskLevel])
 ```
+
+- [ ] **Step 3B: Make GoNoGoDecision.tenderId unique (required for upsert in Task 12)**
+
+In `GoNoGoDecision` model (around line 483), add `@unique` to `tenderId`:
+```prisma
+model GoNoGoDecision {
+  // ... existing fields ...
+  tenderId String @unique   // Changed from just String to @unique
+  // ... rest of model ...
+}
+```
+
+Also update the `Tender` model relation from `goNoGoDecisions GoNoGoDecision[]` to `goNoGoDecision GoNoGoDecision?` (singular, optional).
 
 - [ ] **Step 4: Run migration**
 
@@ -431,7 +445,7 @@ export async function readTenderDocuments(tenderId: string): Promise<string> {
     try {
       // Use cached extracted text if available
       if (doc.extractedText) {
-        parts.push(`--- ${doc.originalName} ---\n${doc.extractedText}`);
+        parts.push(`--- ${doc.fileName} ---\n${doc.extractedText}`);
         continue;
       }
 
@@ -444,7 +458,7 @@ export async function readTenderDocuments(tenderId: string): Promise<string> {
         continue;
       }
 
-      const text = await extractText(buffer, doc.mimeType || 'application/pdf', doc.originalName);
+      const text = await extractText(buffer, doc.mimeType || 'application/pdf', doc.fileName);
 
       if (!text || text.trim().length < 10) {
         await db.attachedDocument.update({
@@ -455,7 +469,7 @@ export async function readTenderDocuments(tenderId: string): Promise<string> {
             extractedText: null,
           },
         });
-        parts.push(`--- ${doc.originalName} ---\n[Σκαναρισμένο PDF — δεν εξήχθη κείμενο]`);
+        parts.push(`--- ${doc.fileName} ---\n[Σκαναρισμένο PDF — δεν εξήχθη κείμενο]`);
         continue;
       }
 
@@ -480,9 +494,9 @@ export async function readTenderDocuments(tenderId: string): Promise<string> {
         },
       });
 
-      parts.push(`--- ${doc.originalName} ---\n${text}`);
+      parts.push(`--- ${doc.fileName} ---\n${text}`);
     } catch (err) {
-      console.error(`[DocumentReader] Failed to process ${doc.originalName}:`, err);
+      console.error(`[DocumentReader] Failed to process ${doc.fileName}:`, err);
       await db.attachedDocument.update({
         where: { id: doc.id },
         data: {
@@ -490,7 +504,7 @@ export async function readTenderDocuments(tenderId: string): Promise<string> {
           parsingError: err instanceof Error ? err.message : 'Άγνωστο σφάλμα',
         },
       });
-      parts.push(`--- ${doc.originalName} ---\n[Σφάλμα ανάγνωσης: ${err instanceof Error ? err.message : 'Άγνωστο'}]`);
+      parts.push(`--- ${doc.fileName} ---\n[Σφάλμα ανάγνωσης: ${err instanceof Error ? err.message : 'Άγνωστο'}]`);
     }
   }
 
@@ -681,6 +695,101 @@ git add src/server/services/ai-prompts.ts && git commit -m "feat: add shared AI 
 
 ---
 
+### Task 6B: AI Rate Limiting & Cost Controls
+
+**Files:**
+- Modify: `src/server/ai/provider.ts`
+- Modify: `src/server/ai/claude-provider.ts`
+
+- [ ] **Step 1: Add token tracking to the AI provider**
+
+In `src/server/ai/provider.ts`, wrap the `ai()` singleton to track tokens per tenant:
+
+```typescript
+import { db } from '@/lib/db';
+
+const DAILY_TOKEN_LIMIT = parseInt(process.env.AI_DAILY_TOKEN_LIMIT || '500000');
+
+/** Check if tenant has exceeded daily AI token limit */
+export async function checkTokenBudget(tenantId: string): Promise<{ allowed: boolean; used: number; limit: number }> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const usage = await db.activity.aggregate({
+    where: {
+      tenantId,
+      createdAt: { gte: today },
+      type: 'AI_USAGE',
+    },
+    _sum: { metadata: true }, // We'll store tokens in a JSON field
+  });
+
+  // Sum tokens from activity metadata
+  const activities = await db.activity.findMany({
+    where: { tenantId, createdAt: { gte: today }, type: 'AI_USAGE' },
+    select: { details: true },
+  });
+
+  const used = activities.reduce((sum, a) => {
+    const details = a.details as any;
+    return sum + (details?.totalTokens || 0);
+  }, 0);
+
+  return { allowed: used < DAILY_TOKEN_LIMIT, used, limit: DAILY_TOKEN_LIMIT };
+}
+
+/** Log AI token usage to Activity */
+export async function logTokenUsage(
+  tenantId: string,
+  tenderId: string,
+  operation: string,
+  tokens: { input: number; output: number; total: number }
+): Promise<void> {
+  await db.activity.create({
+    data: {
+      type: 'AI_USAGE',
+      description: `AI: ${operation}`,
+      details: { ...tokens, operation },
+      tenderId,
+      tenantId,
+    },
+  });
+}
+```
+
+- [ ] **Step 2: Integrate token checks into AI service calls**
+
+In each AI service (bid-orchestrator, legal, financial), before making an AI call:
+```typescript
+const budget = await checkTokenBudget(tenantId);
+if (!budget.allowed) {
+  throw new Error(`Ξεπεράσατε το ημερήσιο όριο AI (${budget.used}/${budget.limit} tokens). Δοκιμάστε αύριο.`);
+}
+```
+
+After each call, log usage:
+```typescript
+await logTokenUsage(tenantId, tenderId, 'brief_analysis', {
+  input: result.inputTokens || 0,
+  output: result.outputTokens || 0,
+  total: result.totalTokens || 0,
+});
+```
+
+- [ ] **Step 3: Verify build**
+
+```bash
+npx next build
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/server/ai/ && git commit -m "feat: add AI token tracking and daily rate limiting per tenant"
+```
+
+---
+
 ## PHASE 2: Discovery Upgrade
 
 ### Task 7: Expand KAD→CPV Mapping + Fix Discovery Sources
@@ -755,6 +864,62 @@ showAll?: boolean; // If true, skip KAD/CPV filtering
 ```
 
 In `searchTenders()`, if `params.showAll` is true, skip the CPV filtering step.
+
+- [ ] **Step 3B: Implement relevance scoring (spec 2.3)**
+
+In `tender-discovery.ts`, replace the existing `scoreTenderRelevance` function with the spec's formula:
+
+```typescript
+export function scoreTenderRelevance(
+  tender: DiscoveredTender,
+  companyCpvCodes: string[],
+  companyBudgetRange?: { min: number; max: number },
+): number {
+  let score = 0;
+
+  // CPV exact match: 40 points
+  const exactMatch = tender.cpvCodes.some(c => companyCpvCodes.includes(c));
+  if (exactMatch) score += 40;
+
+  // CPV category match (first 2 digits): 20 points
+  const companyCategories = companyCpvCodes.map(c => c.slice(0, 2));
+  const categoryMatch = tender.cpvCodes.some(c => companyCategories.includes(c.slice(0, 2)));
+  if (categoryMatch && !exactMatch) score += 20;
+
+  // Budget within range: 15 points
+  if (tender.budget && companyBudgetRange) {
+    if (tender.budget >= companyBudgetRange.min && tender.budget <= companyBudgetRange.max) {
+      score += 15;
+    }
+  }
+
+  // Deadline >= 15 days: 15 points (linear scale, 0 if < 5 days)
+  if (tender.submissionDeadline) {
+    const daysLeft = Math.ceil((tender.submissionDeadline.getTime() - Date.now()) / 86400000);
+    if (daysLeft >= 15) score += 15;
+    else if (daysLeft >= 5) score += Math.round(15 * (daysLeft - 5) / 10);
+  }
+
+  // Geographic match: 10 points (placeholder — needs company location data)
+  // TODO: Implement when company address is structured
+
+  return Math.min(100, score);
+}
+```
+
+Sort discovery results by relevance score descending.
+
+- [ ] **Step 3C: Ensure KIMDIS source works**
+
+Verify the existing `getLatestFromKIMDIS` function in `tender-discovery.ts`. If it exists:
+- Increase timeout to 30s
+- Use clear selector constants for HTML parsing (so they can be updated if site changes)
+- Add pagination support
+
+If it does NOT exist, implement it following the same pattern as Diavgeia:
+- Target: `https://www.promitheus.gov.gr/webcenter/portal/TestPortal`
+- Parse search results HTML for tender listings
+- Extract: title, budget, deadline, CPV codes, document links
 
 - [ ] **Step 4: Verify build**
 
@@ -1245,15 +1410,18 @@ When user clicks "Select" on a pricing scenario, call a tRPC mutation to save th
 selectPricingScenario: protectedProcedure
   .input(z.object({ tenderId: z.string(), scenarioId: z.string() }))
   .mutation(async ({ input }) => {
-    return db.pricingScenario.update({
-      where: { id: input.scenarioId },
-      data: { selected: true },
-    });
-    // Unselect others
-    await db.pricingScenario.updateMany({
-      where: { tenderId: input.tenderId, id: { not: input.scenarioId } },
-      data: { selected: false },
-    });
+    // Use transaction to ensure both operations complete
+    await db.$transaction([
+      db.pricingScenario.updateMany({
+        where: { tenderId: input.tenderId, id: { not: input.scenarioId } },
+        data: { selected: false },
+      }),
+      db.pricingScenario.update({
+        where: { id: input.scenarioId },
+        data: { selected: true },
+      }),
+    ]);
+    return db.pricingScenario.findUnique({ where: { id: input.scenarioId } });
   }),
 ```
 
@@ -1401,6 +1569,48 @@ Check `tender?.analysisInProgress` from the query and disable button.
 
 ```bash
 git add src/app/(dashboard)/tenders/[id]/page.tsx && git commit -m "feat: centralized analysis button with progress steps, error handling"
+```
+
+---
+
+### Task 20B: Missing Info Aggregation Panel
+
+**Files:**
+- Create: `src/components/tender/missing-info-panel.tsx`
+- Modify: `src/app/(dashboard)/tenders/[id]/page.tsx`
+
+- [ ] **Step 1: Create MissingInfoPanel component**
+
+Create `src/components/tender/missing-info-panel.tsx` that:
+- Accepts `tenderId` as prop
+- Fetches Brief, Legal, Financial analysis results via tRPC queries
+- Extracts `missingInfo` arrays from each
+- Displays as categorized alert list:
+  - "Σύνοψη" section → brief missingInfo items
+  - "Νομική" section → legal missingInfo items
+  - "Οικονομική" section → financial missingInfo items
+- Uses warning icons and amber/yellow styling for visibility
+- Shows "Δεν βρέθηκαν ελλείψεις" when all arrays are empty
+
+```tsx
+// Key structure:
+interface MissingInfoPanelProps { tenderId: string; }
+
+export function MissingInfoPanel({ tenderId }: MissingInfoPanelProps) {
+  const brief = trpc.aiRoles.getBrief.useQuery({ tenderId });
+  const legal = trpc.aiRoles.getLegalClauses.useQuery({ tenderId });
+  // Extract missingInfo from each, display categorized
+}
+```
+
+- [ ] **Step 2: Add panel to tender detail page**
+
+In `src/app/(dashboard)/tenders/[id]/page.tsx`, render `<MissingInfoPanel tenderId={tenderId} />` prominently above the tabs section, so it's always visible.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/components/tender/missing-info-panel.tsx src/app/(dashboard)/tenders/[id]/page.tsx && git commit -m "feat: missing info aggregation panel on tender detail"
 ```
 
 ---
