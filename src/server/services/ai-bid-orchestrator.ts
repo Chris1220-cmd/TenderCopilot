@@ -841,15 +841,25 @@ class AIBidOrchestrator {
       ? analysisResult.decision
       : (analysisResult.overallScore >= 70 ? 'GO' : analysisResult.overallScore >= 55 ? 'BORDERLINE' : 'NO_GO');
 
-    // Create GoNoGoDecision record
-    const goNoGoDecision = await db.goNoGoDecision.create({
-      data: {
+    // Upsert GoNoGoDecision record — one decision per tender, no duplicates
+    const tenantId = (await db.tender.findUnique({ where: { id: tenderId }, select: { tenantId: true } }))?.tenantId ?? '';
+    const goNoGoDecision = await db.goNoGoDecision.upsert({
+      where: { tenderId },
+      create: {
         tenderId,
+        tenantId,
         decision,
         overallScore: analysisResult.overallScore,
         reasons: analysisResult.factors as any,
         recommendation: analysisResult.recommendation,
-        createdBy: 'AI',
+      },
+      update: {
+        decision,
+        overallScore: analysisResult.overallScore,
+        reasons: analysisResult.factors as any,
+        recommendation: analysisResult.recommendation,
+        approvedAt: null,      // Reset approval on re-analysis
+        approvedById: null,
       },
     });
 
