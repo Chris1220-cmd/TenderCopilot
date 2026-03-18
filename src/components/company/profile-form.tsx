@@ -31,6 +31,9 @@ import {
   Loader2,
 } from 'lucide-react';
 
+// Greek KAD format: two digits, dot, two to four digits (e.g., 62.01, 43.2200)
+const KAD_REGEX = /^\d{2}\.\d{2,4}$/;
+
 const profileSchema = z.object({
   legalName: z.string().min(1, 'Η επωνυμία είναι υποχρεωτική'),
   tradeName: z.string().optional(),
@@ -52,7 +55,13 @@ const profileSchema = z.object({
   legalRepName: z.string().min(1, 'Το όνομα νόμιμου εκπροσώπου είναι υποχρεωτικό'),
   legalRepTitle: z.string().optional(),
   legalRepIdNumber: z.string().optional(),
-  kadCodes: z.string().optional(),
+  kadCodes: z.string().optional().refine(
+    (val) => {
+      if (!val) return true;
+      return val.split(',').map((s) => s.trim()).filter(Boolean).every((code) => KAD_REGEX.test(code));
+    },
+    { message: 'Μη έγκυρος ΚΑΔ — απαιτείται μορφή ΧΧ.ΧΧ (π.χ. 62.01)' }
+  ),
   description: z.string().optional(),
 });
 
