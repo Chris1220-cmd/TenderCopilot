@@ -1,5 +1,7 @@
 import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
+import { readTenderDocuments } from '@/server/services/document-reader';
+import { ANALYSIS_RULES, parseAIResponse, FINANCIAL_CRITICAL_FIELDS, NOT_FOUND } from './ai-prompts';
 import type { RequirementCategory, RequirementType } from '@prisma/client';
 
 /**
@@ -105,64 +107,68 @@ class AIFinancialService {
 
     const existingTexts = allRequirements.map((r) => r.text).join('\n');
     const docList = tender.attachedDocuments.map((d) => d.fileName).join(', ');
+    const documentText = await readTenderDocuments(tenderId);
 
     const result = await ai().complete({
       messages: [
         {
           role: 'system',
-          content: `Είσαι Οικονομικός Διευθυντής (CFO) με ειδίκευση σε ελληνικούς δημόσιους διαγωνισμούς (Ν.4412/2016 & Ν.4782/2021).
+          content: `Είσαι οικονομικός σύμβουλος δημοσίων συμβάσεων εξειδικευμένος στον Ν.4412/2016.
 
-ΡΟΛΟΣ: Εξάγεις και αναλύεις όλες τις οικονομικές απαιτήσεις ενός διαγωνισμού.
+${ANALYSIS_RULES}
 
-Για κάθε οικονομική απαίτηση, εντόπισε:
+Εξάγαγε τις οικονομικές απαιτήσεις αποκλειστικά από το παρεχόμενο κείμενο. ΜΗΝ εφαρμόζεις default τιμές — αν μια απαίτηση δεν αναφέρεται ρητά, μην την συμπεριλάβεις.
+
+Για κάθε οικονομική απαίτηση που ΒΡΙΣΚΕΤΑΙ στο κείμενο, εντόπισε:
 1. **Ελάχιστος κύκλος εργασιών** (τελευταία 3 έτη) — Άρθρο 75 παρ. 3 Ν.4412/2016
 2. **Ελάχιστα ίδια κεφάλαια** — κριτήριο φερεγγυότητας
-3. **Εγγυητική συμμετοχής** — % του προϋπολογισμού (συνήθως 2%) — Άρθρο 72
-4. **Εγγυητική καλής εκτέλεσης** — % της σύμβασης (συνήθως 4%) — Άρθρο 72 παρ. 1β
-5. **Εγγυητική προκαταβολής** — αν προβλέπεται
+3. **Εγγυητική συμμετοχής** — % του προϋπολογισμού — Άρθρο 72
+4. **Εγγυητική καλής εκτέλεσης** — % της σύμβασης — Άρθρο 72 παρ. 1β
+5. **Εγγυητική προκαταβολής** — αν προβλέπεται ρητά
 6. **Όροι πληρωμής** — ημέρες, τμηματική/εφάπαξ, παρακράτηση
 7. **Ρήτρες/Ποινικές** — % ανά ημέρα/εβδομάδα καθυστέρησης, μέγιστο % ποινικών
 8. **Ασφαλιστικές απαιτήσεις** — τύπος, ελάχιστη κάλυψη
 9. **Χρηματοοικονομικοί δείκτες** — ρευστότητα, δανειοληψία κλπ.
 10. **Τραπεζικές βεβαιώσεις/πιστωτικές γραμμές**
 
-ΜΟΡΦΗ ΑΠΑΝΤΗΣΗΣ: JSON array. Κάθε στοιχείο:
+ΜΟΡΦΗ ΑΠΑΝΤΗΣΗΣ: JSON object:
 {
-  "text": "πλήρες κείμενο απαίτησης στα ελληνικά",
-  "articleReference": "Άρθρο XX Ν.XXXX/XXXX" | null,
-  "mandatory": true/false,
-  "type": "FINANCIAL",
-  "confidence": 0.0-1.0,
-  "structuredData": {
-    "minimumTurnover": { "amount": number, "years": 3, "description": "..." } | null,
-    "minimumEquity": { "amount": number, "description": "..." } | null,
-    "participationGuarantee": { "percentage": 2, "fixedAmount": null, "description": "..." } | null,
-    "performanceGuarantee": { "percentage": 4, "description": "..." } | null,
-    "advancePaymentGuarantee": { "percentage": number, "description": "..." } | null,
-    "paymentTerms": { "days": 60, "description": "..." } | null,
-    "penalties": { "percentPerDay": 0.05, "percentPerWeek": null, "maxPenalty": 10, "description": "..." } | null,
-    "insuranceRequirements": [{ "type": "...", "minCoverage": number, "description": "..." }] | null,
-    "financialRatios": [{ "ratio": "...", "threshold": number, "description": "..." }] | null,
-    "bankLetterOfCredit": { "required": true, "description": "..." } | null,
-    "retentionPercentage": number | null
-  }
+  "requirements": [
+    {
+      "text": "πλήρες κείμενο απαίτησης στα ελληνικά",
+      "articleReference": "Άρθρο XX Ν.XXXX/XXXX" | null,
+      "mandatory": true/false,
+      "type": "FINANCIAL",
+      "confidence": 0.0-1.0,
+      "structuredData": {
+        "minimumTurnover": { "amount": number, "years": 3, "description": "..." } | null,
+        "minimumEquity": { "amount": number, "description": "..." } | null,
+        "participationGuarantee": { "percentage": number, "fixedAmount": number | null, "description": "..." } | null,
+        "performanceGuarantee": { "percentage": number, "description": "..." } | null,
+        "advancePaymentGuarantee": { "percentage": number, "description": "..." } | null,
+        "paymentTerms": { "days": number, "description": "..." } | null,
+        "penalties": { "percentPerDay": number | null, "percentPerWeek": number | null, "maxPenalty": number | null, "description": "..." } | null,
+        "insuranceRequirements": [{ "type": "...", "minCoverage": number | null, "description": "..." }] | null,
+        "financialRatios": [{ "ratio": "...", "threshold": number, "description": "..." }] | null,
+        "bankLetterOfCredit": { "required": true, "description": "..." } | null,
+        "retentionPercentage": number | null
+      }
+    }
+  ],
+  "missingInfo": ["Δεν βρέθηκε: Προϋπολογισμός", "Δεν βρέθηκε: Ποσοστό εγγυητικής"]
 }
 
-Αν δεν υπάρχουν ρητές αναφορές, εφάρμοσε τις default τιμές Ν.4412/2016:
-- Εγγυητική συμμετοχής: 2% προϋπολογισμού
-- Εγγυητική καλής εκτέλεσης: 4% σύμβασης
-- Ελάχιστος κύκλος εργασιών: έως 2x ετήσιου προϋπολογισμού
-
-Απάντησε ΜΟΝΟ με valid JSON array.`,
+Στο "missingInfo" συμπερίλαβε κάθε κρίσιμο πεδίο από: [${FINANCIAL_CRITICAL_FIELDS.join(', ')}] που ΔΕΝ αναφέρεται στο κείμενο.
+Απάντησε ΜΟΝΟ με valid JSON object.`,
         },
         {
           role: 'user',
           content: JSON.stringify({
             tenderTitle: tender.title,
             referenceNumber: tender.referenceNumber,
-            budget: tender.budget,
             contractingAuthority: tender.contractingAuthority,
             attachedDocuments: docList,
+            documentText,
             existingRequirementTexts: existingTexts,
           }),
         },
@@ -172,13 +178,37 @@ class AIFinancialService {
       responseFormat: 'json',
     });
 
+    interface ExtractFinancialResponse {
+      requirements: ExtractedFinancialRequirement[];
+      missingInfo?: string[];
+    }
+
     let extracted: ExtractedFinancialRequirement[];
+    let missingInfo: string[] = [];
     try {
-      const parsed = JSON.parse(result.content);
-      extracted = Array.isArray(parsed) ? parsed : parsed.requirements || [];
+      const parsed = parseAIResponse<ExtractFinancialResponse>(
+        result.content,
+        ['requirements'],
+        'extractFinancialRequirements'
+      );
+      extracted = Array.isArray(parsed.requirements) ? parsed.requirements : [];
+      // Collect missingInfo from AI response, supplementing with any critical fields not present
+      missingInfo = parsed.missingInfo ?? [];
+      // Also flag critical fields that the AI found as NOT_FOUND in requirements text
+      for (const field of FINANCIAL_CRITICAL_FIELDS) {
+        const alreadyFlagged = missingInfo.some((m) => m.includes(field));
+        if (!alreadyFlagged) {
+          const mentionedInRequirements = extracted.some((r) =>
+            r.text.includes(field) && !r.text.includes(NOT_FOUND)
+          );
+          // Only add if nothing was extracted about this field
+          if (!mentionedInRequirements && extracted.length === 0) {
+            missingInfo.push(`${NOT_FOUND}: ${field}`);
+          }
+        }
+      }
     } catch {
-      console.error('[AIFinancial] Failed to parse AI response for extractFinancialRequirements');
-      extracted = this.mockFinancialRequirements(tender.budget ?? 200000);
+      throw new Error('Η AI ανάλυση οικονομικών απέτυχε. Δοκιμάστε ξανά.');
     }
 
     // Persist to DB: upsert TenderRequirement records with category=FINANCIAL_REQUIREMENTS
@@ -265,6 +295,23 @@ class AIFinancialService {
       }
     }
 
+    // ── Guard: no FinancialProfile → cannot check eligibility ─
+    if (profiles.length === 0) {
+      await db.activity.create({
+        data: {
+          tenderId,
+          action: 'financial_eligibility_check',
+          details: 'Αξιολόγηση επιλεξιμότητας: BORDERLINE — Λείπουν τα οικονομικά στοιχεία εταιρείας',
+        },
+      });
+      return {
+        eligible: false,
+        status: 'BORDERLINE',
+        checks: [],
+        missingInfo: ['Λείπουν τα οικονομικά στοιχεία εταιρείας'],
+      } as EligibilityResult & { missingInfo: string[] };
+    }
+
     const checks: EligibilityCheck[] = [];
 
     // ── Check 1: Minimum Turnover ──────────────────────────────
@@ -288,23 +335,7 @@ class AIFinancialService {
           ? `Ο μέσος κύκλος εργασιών (${this.formatCurrency(avgTurnover)}) υπερβαίνει το ελάχιστο (${this.formatCurrency(requiredAmount)}).`
           : `Ο μέσος κύκλος εργασιών (${this.formatCurrency(avgTurnover)}) υπολείπεται του ελάχιστου (${this.formatCurrency(requiredAmount)}).`,
       });
-    } else if (tender.budget) {
-      // Default N.4412/2016: max required turnover is 2x annual budget
-      const defaultRequired = tender.budget * 2;
-      const avgTurnover =
-        profiles.length > 0
-          ? profiles.reduce((sum, p) => sum + (p.turnover ?? 0), 0) / profiles.length
-          : 0;
-
-      checks.push({
-        criterion: 'Ελάχιστος κύκλος εργασιών (default Ν.4412)',
-        required: `${this.formatCurrency(defaultRequired)} (2x προϋπολογισμού)`,
-        actual: profiles.length > 0
-          ? `${this.formatCurrency(avgTurnover)}`
-          : 'Δεν υπάρχουν οικονομικά στοιχεία',
-        passed: avgTurnover >= defaultRequired,
-        explanation: 'Βάσει Ν.4412/2016, ο ελάχιστος κύκλος εργασιών δεν μπορεί να υπερβαίνει το 2x του ετήσιου προϋπολογισμού.',
-      });
+      // If no explicit minimum turnover in documents, skip — do NOT fabricate a default
     }
 
     // ── Check 2: Minimum Equity ────────────────────────────────
@@ -363,18 +394,17 @@ class AIFinancialService {
         let ratioName = ratio.ratio;
 
         if (latestProfile) {
-          if (ratio.ratio.toLowerCase().includes('ρευστότητ') || ratio.ratio.toLowerCase().includes('liquidity')) {
-            // Current ratio approx: equity / debt (simplified)
-            actualValue = latestProfile.debt && latestProfile.debt > 0
-              ? (latestProfile.equity ?? 0) / latestProfile.debt
-              : 999;
-            ratioName = 'Δείκτης ρευστότητας (Ίδια Κεφάλαια / Δανεισμός)';
-          } else if (ratio.ratio.toLowerCase().includes('δανει') || ratio.ratio.toLowerCase().includes('debt')) {
-            actualValue = latestProfile.turnover && latestProfile.turnover > 0
-              ? (latestProfile.debt ?? 0) / latestProfile.turnover
-              : 999;
-            ratioName = 'Δείκτης δανεισμού (Δανεισμός / Κύκλος Εργασιών)';
+          if (ratio.ratio.toLowerCase().includes('δανει') || ratio.ratio.toLowerCase().includes('debt')) {
+            // Debt-to-turnover ratio: only calculate if turnover is available
+            if (latestProfile.turnover && latestProfile.turnover > 0) {
+              actualValue = (latestProfile.debt ?? 0) / latestProfile.turnover;
+              ratioName = 'Δείκτης δανεισμού (Δανεισμός / Κύκλος Εργασιών)';
+            } else {
+              ratioName = ratio.ratio;
+            }
           }
+          // Note: current ratio (κυκλοφοριακή ρευστότητα) requires current assets / current liabilities
+          // which are not stored in FinancialProfile — skip auto-calculation to avoid wrong approximations
         }
 
         checks.push({
@@ -484,7 +514,19 @@ class AIFinancialService {
       margin: t.pricingScenarios[0]?.margin ?? null,
     }));
 
-    const budget = tender.budget ?? 0;
+    // Guard: no confirmed budget → cannot generate valid pricing scenarios
+    if (!tender.budget || tender.budget <= 0) {
+      await db.activity.create({
+        data: {
+          tenderId,
+          action: 'pricing_scenarios_generated',
+          details: 'Αδυναμία δημιουργίας σεναρίων τιμολόγησης: δεν βρέθηκε επιβεβαιωμένος προϋπολογισμός στα έγγραφα',
+        },
+      });
+      return [];
+    }
+
+    const budget = tender.budget;
     const costs = costInputs ?? {};
     const totalCosts =
       (costs.labor ?? 0) +
@@ -493,8 +535,8 @@ class AIFinancialService {
       (costs.overhead ?? 0) +
       (costs.other ?? 0);
 
-    // If no cost inputs provided, estimate from budget
-    const effectiveCosts = totalCosts > 0 ? totalCosts : budget * 0.7; // default assumption: 70% of budget is cost
+    // Only use actual cost inputs — do NOT assume 70% of budget
+    const hasCostInputs = totalCosts > 0;
 
     const result = await ai().complete({
       messages: [
@@ -507,6 +549,7 @@ class AIFinancialService {
 - Ασυνήθιστα χαμηλές προσφορές (<70% του budget) μπορεί να απορριφθούν (Άρθρο 88 Ν.4412/2016)
 - Κριτήρια ανάθεσης: "χαμηλότερη τιμή" ή "βέλτιστη σχέση ποιότητας-τιμής"
 - Η πιθανότητα νίκης εξαρτάται από: απόσταση από budget, ανταγωνισμό, ιστορικά δεδομένα
+- ΑΠΑΓΟΡΕΥΕΤΑΙ totalPrice > budget
 
 Δημιούργησε 3 σενάρια:
 1. **Συντηρητικό (Conservative)**: Υψηλό περιθώριο (20-25%), χαμηλότερη πιθανότητα νίκης
@@ -531,14 +574,11 @@ class AIFinancialService {
             tenderTitle: tender.title,
             budget,
             awardCriteria: tender.awardCriteria ?? 'χαμηλότερη τιμή',
-            costInputs: {
-              labor: costs.labor ?? effectiveCosts * 0.45,
-              materials: costs.materials ?? effectiveCosts * 0.20,
-              subcontracting: costs.subcontracting ?? effectiveCosts * 0.15,
-              overhead: costs.overhead ?? effectiveCosts * 0.15,
-              other: costs.other ?? effectiveCosts * 0.05,
-            },
-            totalEstimatedCosts: effectiveCosts,
+            costInputs: hasCostInputs ? costs : null,
+            totalEstimatedCosts: hasCostInputs ? totalCosts : null,
+            note: hasCostInputs
+              ? 'Χρησιμοποίησε τα παρεχόμενα κόστη ως βάση.'
+              : 'Δεν παρασχέθηκαν στοιχεία κόστους. Δημιούργησε σενάρια βάσει μόνο του budget.',
             historicalData,
           }),
         },
@@ -553,16 +593,15 @@ class AIFinancialService {
       const parsed = JSON.parse(result.content);
       scenarios = Array.isArray(parsed) ? parsed : parsed.scenarios || [];
     } catch {
-      console.error('[AIFinancial] Failed to parse AI response for suggestPricingScenarios');
-      scenarios = this.mockPricingScenarios(budget, effectiveCosts);
+      throw new Error('Η AI ανάλυση οικονομικών απέτυχε. Δοκιμάστε ξανά.');
     }
 
-    // Validate and clamp values
+    // Validate and clamp values — totalPrice must not exceed confirmed budget
     scenarios = scenarios.map((s) => ({
       ...s,
       margin: Math.max(0, Math.min(50, s.margin)),
       winProbability: Math.max(0, Math.min(100, s.winProbability)),
-      totalPrice: Math.min(s.totalPrice, budget > 0 ? budget : s.totalPrice),
+      totalPrice: Math.min(s.totalPrice, budget),
     }));
 
     // Delete existing non-selected scenarios for this tender
@@ -691,8 +730,7 @@ class AIFinancialService {
         impact: Math.max(0, Math.min(25, f.impact)),
       }));
     } catch {
-      console.error('[AIFinancial] Failed to parse AI response for getFinancialRiskScore');
-      riskResult = this.mockFinancialRiskScore();
+      throw new Error('Η AI ανάλυση οικονομικών απέτυχε. Δοκιμάστε ξανά.');
     }
 
     // Log activity
@@ -722,167 +760,6 @@ class AIFinancialService {
     return new Intl.NumberFormat('el-GR', { style: 'currency', currency: 'EUR' }).format(amount);
   }
 
-  // ─── Mock Fallbacks ──────────────────────────────────────────
-
-  private mockFinancialRequirements(budget: number): ExtractedFinancialRequirement[] {
-    return [
-      {
-        text: `Εγγυητική επιστολή συμμετοχής ύψους 2% του προϋπολογισμού (${this.formatCurrency(budget * 0.02)})`,
-        articleReference: 'Άρθρο 72 Ν.4412/2016',
-        mandatory: true,
-        type: 'FINANCIAL',
-        confidence: 0.95,
-        structuredData: {
-          participationGuarantee: {
-            percentage: 2,
-            fixedAmount: budget * 0.02,
-            description: 'Εγγυητική συμμετοχής 2% επί του προϋπολογισμού χωρίς ΦΠΑ',
-          },
-        },
-      },
-      {
-        text: `Εγγυητική επιστολή καλής εκτέλεσης ύψους 4% της αξίας της σύμβασης`,
-        articleReference: 'Άρθρο 72 παρ. 1β Ν.4412/2016',
-        mandatory: true,
-        type: 'FINANCIAL',
-        confidence: 0.93,
-        structuredData: {
-          performanceGuarantee: {
-            percentage: 4,
-            description: 'Εγγυητική καλής εκτέλεσης 4% επί του συμβατικού τιμήματος',
-          },
-        },
-      },
-      {
-        text: `Ελάχιστος μέσος ετήσιος κύκλος εργασιών τελευταίας τριετίας: ${this.formatCurrency(budget * 1.5)}`,
-        articleReference: 'Άρθρο 75 παρ. 3 Ν.4412/2016',
-        mandatory: true,
-        type: 'FINANCIAL',
-        confidence: 0.88,
-        structuredData: {
-          minimumTurnover: {
-            amount: budget * 1.5,
-            years: 3,
-            description: 'Ελάχιστος μέσος ετήσιος κύκλος εργασιών 1.5x του προϋπολογισμού',
-          },
-        },
-      },
-      {
-        text: `Ποινική ρήτρα 0,05% ανά ημέρα καθυστέρησης, μέγιστο 5% της σύμβασης`,
-        articleReference: 'Άρθρο 218 Ν.4412/2016',
-        mandatory: true,
-        type: 'FINANCIAL',
-        confidence: 0.85,
-        structuredData: {
-          penalties: {
-            percentPerDay: 0.05,
-            maxPenalty: 5,
-            description: 'Ποινική ρήτρα 0,05%/ημέρα, max 5% σύμβασης',
-          },
-        },
-      },
-      {
-        text: `Πληρωμή εντός 60 ημερών από την παραλαβή τιμολογίου`,
-        articleReference: 'Άρθρο 200 Ν.4412/2016',
-        mandatory: false,
-        type: 'FINANCIAL',
-        confidence: 0.80,
-        structuredData: {
-          paymentTerms: {
-            days: 60,
-            description: 'Πληρωμή σε 60 ημέρες από παραλαβή τιμολογίου και πρωτοκόλλου οριστικής παραλαβής',
-          },
-        },
-      },
-      {
-        text: `Ασφάλιση επαγγελματικής ευθύνης ελάχιστης κάλυψης ${this.formatCurrency(budget * 0.5)}`,
-        articleReference: undefined,
-        mandatory: false,
-        type: 'FINANCIAL',
-        confidence: 0.72,
-        structuredData: {
-          insuranceRequirements: [
-            {
-              type: 'Επαγγελματική ευθύνη',
-              minCoverage: budget * 0.5,
-              description: 'Ασφάλιση επαγγελματικής ευθύνης για κάλυψη ζημιών τρίτων',
-            },
-          ],
-        },
-      },
-    ];
-  }
-
-  private mockPricingScenarios(budget: number, costs: number): PricingScenarioData[] {
-    const laborShare = costs * 0.45;
-    const materialsShare = costs * 0.20;
-    const subShare = costs * 0.15;
-    const overheadShare = costs * 0.15;
-    const otherShare = costs * 0.05;
-
-    const baseCosts: CostInputs = {
-      labor: Math.round(laborShare),
-      materials: Math.round(materialsShare),
-      subcontracting: Math.round(subShare),
-      overhead: Math.round(overheadShare),
-      other: Math.round(otherShare),
-    };
-
-    return [
-      {
-        name: 'Συντηρητικό',
-        baseCosts,
-        margin: 22,
-        totalPrice: Math.min(Math.round(costs * 1.22), budget),
-        winProbability: 25,
-        comments: `Υψηλό περιθώριο κέρδους (22%). Η τιμή ${this.formatCurrency(Math.round(costs * 1.22))} αφήνει σημαντικό buffer για απρόβλεπτα. Χαμηλότερη πιθανότητα κατακύρωσης σε ανταγωνιστικούς διαγωνισμούς.`,
-      },
-      {
-        name: 'Ισορροπημένο',
-        baseCosts,
-        margin: 15,
-        totalPrice: Math.min(Math.round(costs * 1.15), budget),
-        winProbability: 50,
-        comments: `Μεσαίο περιθώριο (15%). Ισορροπία μεταξύ κερδοφορίας και ανταγωνιστικότητας. Προτεινόμενο σενάριο για τις περισσότερες περιπτώσεις.`,
-      },
-      {
-        name: 'Επιθετικό',
-        baseCosts,
-        margin: 7,
-        totalPrice: Math.min(Math.round(costs * 1.07), budget),
-        winProbability: 72,
-        comments: `Χαμηλό περιθώριο (7%). Ανταγωνιστική τιμή με υψηλή πιθανότητα νίκης. Προσοχή: μικρό περιθώριο για απρόβλεπτες δαπάνες. Κατάλληλο αν η κατακύρωση έχει στρατηγική αξία.`,
-      },
-    ];
-  }
-
-  private mockFinancialRiskScore(): FinancialRiskResult {
-    return {
-      score: 38,
-      factors: [
-        {
-          name: 'Ποινικές ρήτρες & κυρώσεις',
-          impact: 8,
-          details: 'Ποινική ρήτρα 0,05%/ημέρα με max 5% — εντός συνήθων ορίων Ν.4412/2016.',
-        },
-        {
-          name: 'Όροι πληρωμής & ταμειακές ροές',
-          impact: 12,
-          details: 'Πληρωμή σε 60 ημέρες — μέτριος κίνδυνος ταμειακής ροής, ιδιαίτερα για μικρότερες εταιρείες.',
-        },
-        {
-          name: 'Εγγυήσεις & δεσμεύσεις κεφαλαίου',
-          impact: 10,
-          details: 'Εγγυητικές 2% (συμμετοχή) + 4% (εκτέλεση) = 6% σύνολο. Τυπικό για δημόσιους διαγωνισμούς.',
-        },
-        {
-          name: 'Ασφάλεια & ευθύνη',
-          impact: 8,
-          details: 'Τυπικές ασφαλιστικές απαιτήσεις. Δεν εντοπίστηκε απεριόριστη ευθύνη.',
-        },
-      ],
-    };
-  }
 }
 
 export const aiFinancial = new AIFinancialService();
