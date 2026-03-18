@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Search,
   Import,
@@ -45,6 +47,7 @@ const platformColors: Record<string, string> = {
   DIAVGEIA: 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20',
   TED: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/20',
   KIMDIS: 'bg-teal-500/15 text-teal-700 dark:text-teal-400 border-teal-500/20',
+  PRIVATE: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20',
 };
 
 const platformLabels: Record<string, string> = {
@@ -54,6 +57,7 @@ const platformLabels: Record<string, string> = {
   DIAVGEIA: 'ΔΙΑΥΓΕΙΑ',
   TED: 'TED Europa',
   KIMDIS: 'ΚΗΜΔΗΣ',
+  PRIVATE: 'Ιδιωτικός Τομέας',
 };
 
 function getRelevanceColor(score: number) {
@@ -97,8 +101,11 @@ function SkeletonCard() {
 export function DiscoveryResults({ onImport }: DiscoveryResultsProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [importingId, setImportingId] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
-  const { data: tenders, isLoading, error } = trpc.discovery.getRecommended.useQuery();
+  const { data: tenders, isLoading, error } = trpc.discovery.search.useQuery(
+    showAll ? { showAll: true } : undefined
+  );
 
   const filteredTenders = useMemo(() => {
     if (!tenders) return [];
@@ -120,15 +127,27 @@ export function DiscoveryResults({ onImport }: DiscoveryResultsProps) {
 
   return (
     <div className="space-y-4">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Αναζήτηση σε αποτελέσματα..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border-white/30 dark:border-white/10"
-        />
+      {/* Search + Show All Toggle */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Αναζήτηση σε αποτελέσματα..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border-white/30 dark:border-white/10"
+          />
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Switch
+            checked={showAll}
+            onCheckedChange={setShowAll}
+            id="show-all"
+          />
+          <Label htmlFor="show-all" className="text-xs text-muted-foreground cursor-pointer">
+            Εμφάνιση όλων (χωρίς φίλτρο KAD)
+          </Label>
+        </div>
       </div>
 
       {/* Loading */}
@@ -189,14 +208,25 @@ export function DiscoveryResults({ onImport }: DiscoveryResultsProps) {
                     </span>
                   </div>
                 </div>
-                <Badge
-                  className={cn(
-                    'shrink-0 text-[10px] font-semibold border',
-                    platformColors[tender.platform] || 'bg-gray-500/15 text-gray-600 border-gray-500/20'
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <Badge
+                    className={cn(
+                      'text-[10px] font-semibold border',
+                      platformColors[tender.platform] || 'bg-gray-500/15 text-gray-600 border-gray-500/20'
+                    )}
+                  >
+                    {platformLabels[tender.platform] || tender.platform}
+                  </Badge>
+                  {tender.relevanceScore > 0 ? (
+                    <Badge className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                      Σχετικός με KAD
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px]">
+                      Γενικός
+                    </Badge>
                   )}
-                >
-                  {platformLabels[tender.platform] || tender.platform}
-                </Badge>
+                </div>
               </div>
 
               {/* Meta row */}
