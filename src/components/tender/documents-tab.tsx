@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { cn, fileSize, formatDate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/tender/status-badge';
 import {
   Upload,
@@ -36,14 +42,17 @@ interface DocumentsTabProps {
 }
 
 const generatedDocTypes = [
-  { type: 'SOLEMN_DECLARATION', label: 'Υπεύθυνη Δήλωση', icon: FileSignature },
-  { type: 'NON_EXCLUSION_DECLARATION', label: 'Δήλωση Μη Αποκλεισμού', icon: ShieldCheck },
-  { type: 'TECHNICAL_COMPLIANCE', label: 'Πίνακας Τεχνικής Συμμόρφωσης', icon: Table2 },
-  { type: 'TECHNICAL_PROPOSAL', label: 'Τεχνική Προσφορά', icon: FileCode },
+  { type: 'SOLEMN_DECLARATION' as const, label: 'Υπεύθυνη Δήλωση', icon: FileSignature },
+  { type: 'NON_EXCLUSION_DECLARATION' as const, label: 'Δήλωση Μη Αποκλεισμού', icon: ShieldCheck },
+  { type: 'TECHNICAL_COMPLIANCE' as const, label: 'Πίνακας Τεχνικής Συμμόρφωσης', icon: Table2 },
+  { type: 'TECHNICAL_PROPOSAL' as const, label: 'Τεχνική Προσφορά', icon: FileCode },
 ];
 
 export function DocumentsTab({ tenderId }: DocumentsTabProps) {
   const [isDragActive, setIsDragActive] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<any>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
 
@@ -60,13 +69,54 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
   // Mutations
   const deleteAttached = trpc.document.deleteAttached.useMutation({
     onSuccess: () => utils.document.listAttached.invalidate({ tenderId }),
+    onError: (err: any) => alert(`Σφάλμα διαγραφής: ${err?.message || 'Άγνωστο σφάλμα'}`),
   });
   const deleteGenerated = trpc.document.deleteGenerated.useMutation({
     onSuccess: () => utils.document.listGenerated.invalidate({ tenderId }),
+    onError: (err: any) => alert(`Σφάλμα διαγραφής: ${err?.message || 'Άγνωστο σφάλμα'}`),
+  });
+  const uploadMutation = trpc.document.createAttached.useMutation({
+    onSuccess: () => utils.document.listAttached.invalidate({ tenderId }),
+    onError: (err: any) => alert(`Σφάλμα αποθήκευσης εγγράφου: ${err?.message || 'Άγνωστο σφάλμα'}`),
+  });
+  const generateMutation = trpc.document.createGenerated.useMutation({
+    onSuccess: () => utils.document.listGenerated.invalidate({ tenderId }),
+    onError: (err: any) => alert(`Σφάλμα δημιουργίας εγγράφου: ${err?.message || 'Άγνωστο σφάλμα'}`),
   });
 
   const attached = (attachedQuery.data ?? []) as any[];
   const generated = (generatedQuery.data ?? []) as any[];
+
+  const handleFileUpload = useCallback(async (files: File[]) => {
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('tenderId', tenderId);
+
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData?.error || `Upload failed (${res.status})`);
+        }
+        const data = await res.json();
+
+        uploadMutation.mutate({
+          tenderId,
+          fileName: file.name,
+          fileKey: data.key,
+          fileSize: file.size,
+          mimeType: file.type,
+        });
+      } catch (err: any) {
+        console.error('Upload failed:', err);
+        alert(`Σφάλμα ανεβάσματος αρχείου: ${err?.message || 'Άγνωστο σφάλμα'}`);
+      }
+    }
+  }, [tenderId, uploadMutation]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -80,9 +130,9 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragActive(false);
-    // File upload would be implemented with S3 presigned URLs
-    // const files = Array.from(e.dataTransfer.files);
-  }, []);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) handleFileUpload(files);
+  }, [handleFileUpload]);
 
   const getCategoryLabel = (cat: string | null) => {
     const map: Record<string, string> = {
@@ -119,6 +169,7 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
         >
           <CardContent className="flex flex-col items-center justify-center py-10">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 mb-3">
@@ -131,6 +182,18 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
               PDF, DOCX, XLSX - Μέγιστο 50MB
             </p>
           </CardContent>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.docx,.doc,.xlsx,.xls,.zip"
+            className="hidden"
+            onChange={(e) => {
+              const files = Array.from(e.target.files || []);
+              if (files.length > 0) handleFileUpload(files);
+              e.target.value = '';
+            }}
+          />
         </Card>
 
         {/* Files List */}
@@ -186,6 +249,7 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                       variant="ghost"
                       className="h-8 w-8 cursor-pointer"
                       title="Λήψη"
+                      onClick={() => window.open(`/api/download/${encodeURIComponent(doc.fileKey)}`, '_blank')}
                     >
                       <Download className="h-4 w-4" />
                     </Button>
@@ -194,6 +258,7 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                       variant="ghost"
                       className="h-8 w-8 cursor-pointer text-destructive hover:text-destructive"
                       title="Διαγραφή"
+                      disabled={deleteAttached.isPending}
                       onClick={() => deleteAttached.mutate({ id: doc.id })}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -212,6 +277,7 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
+              disabled={generateMutation.isPending}
               className={cn(
                 'cursor-pointer gap-2',
                 'bg-gradient-to-r from-indigo-600 to-violet-600',
@@ -229,6 +295,16 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
               <DropdownMenuItem
                 key={dt.type}
                 className="cursor-pointer gap-2.5 py-2.5"
+                disabled={generateMutation.isPending}
+                onClick={() => {
+                  generateMutation.mutate({
+                    tenderId,
+                    type: dt.type,
+                    title: dt.label,
+                    content: '',
+                    status: 'DRAFT',
+                  });
+                }}
               >
                 <dt.icon className="h-4 w-4 text-muted-foreground" />
                 <span>{dt.label}</span>
@@ -299,6 +375,10 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                         variant="ghost"
                         className="h-8 w-8 cursor-pointer"
                         title="Προεπισκόπηση"
+                        onClick={() => {
+                          setPreviewDoc(doc);
+                          setPreviewOpen(true);
+                        }}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -307,6 +387,10 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                         variant="ghost"
                         className="h-8 w-8 cursor-pointer"
                         title="Επεξεργασία"
+                        onClick={() => {
+                          setPreviewDoc(doc);
+                          setPreviewOpen(true);
+                        }}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -315,6 +399,15 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                         variant="ghost"
                         className="h-8 w-8 cursor-pointer"
                         title="Λήψη"
+                        onClick={() => {
+                          const blob = new Blob([doc.content || ''], { type: 'text/plain;charset=utf-8' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `${doc.title || 'document'}.txt`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -323,6 +416,7 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                         variant="ghost"
                         className="h-8 w-8 cursor-pointer text-destructive hover:text-destructive"
                         title="Διαγραφή"
+                        disabled={deleteGenerated.isPending}
                         onClick={() => deleteGenerated.mutate({ id: doc.id })}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -335,6 +429,17 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
           </div>
         )}
       </TabsContent>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{previewDoc?.title || 'Προεπισκόπηση'}</DialogTitle>
+          </DialogHeader>
+          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
+            {previewDoc?.content || 'Δεν υπάρχει περιεχόμενο.'}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Tabs>
   );
 }
