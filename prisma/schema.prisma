@@ -384,12 +384,16 @@ model RequirementMapping {
 // ─── Documents ──────────────────────────────────────────────
 
 model AttachedDocument {
-  id       String  @id @default(cuid())
-  fileName String
-  fileKey  String  // S3 key
-  fileSize Int?
-  mimeType String?
-  category String? // e.g. "specification", "appendix", "clarification"
+  id            String  @id @default(cuid())
+  fileName      String
+  fileKey       String  // S3 key
+  fileSize      Int?
+  mimeType      String?
+  category      String? // e.g. "specification", "appendix", "clarification"
+  extractedText String? @db.Text
+  pageCount     Int?
+  parsingStatus String? // 'success' | 'partial' | 'failed'
+  parsingError  String?
 
   tenderId String
   tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
