@@ -11,6 +11,7 @@
 import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
 import { readTenderDocuments } from '@/server/services/document-reader';
+import { ANALYSIS_RULES, parseAIResponse, chunkText, shouldChunk, BRIEF_CRITICAL_FIELDS, NOT_FOUND } from './ai-prompts';
 import type { TenderStatus } from '@prisma/client';
 
 // ─── Types ──────────────────────────────────────────────────
@@ -24,13 +25,15 @@ interface TenderBriefData {
     awardType: string;
     duration: string;
     deadlines: Array<{ label: string; date: string }>;
-    estimatedBudget?: number;
+    estimatedBudget?: number | null;
     cpvCodes?: string[];
     specialConditions?: string[];
+    missingInfo?: string[];
   };
   sector: string;
   awardType: string;
   duration: string;
+  missingInfo?: string[];
 }
 
 /** Single scoring factor in the Go/No-Go analysis. */
@@ -314,35 +317,28 @@ const WORK_PLAN_PHASES: WorkPlanTask[] = [
 
 // ─── System Prompts ─────────────────────────────────────────
 
-const SUMMARIZE_SYSTEM_PROMPT = `Είσαι έμπειρος Bid Manager ελληνικών δημοσίων διαγωνισμών με βαθιά γνώση του Ν.4412/2016.
-Αναλύεις έγγραφα διαγωνισμών (διακηρύξεις, τεχνικές προδιαγραφές, παραρτήματα) και παράγεις
-δομημένη σύνοψη (brief) για την ομάδα προετοιμασίας προσφοράς.
+const SUMMARIZE_SYSTEM_PROMPT = `Είσαι ειδικός σύμβουλος δημοσίων συμβάσεων. Αναλύεις κείμενα διαγωνισμών σύμφωνα με τον Ν.4412/2016.
 
-Η σύνοψή σου πρέπει να περιλαμβάνει:
-1. Γενική περιγραφή αντικειμένου
-2. Τομέα (IT, κατασκευές, υπηρεσίες, προμήθειες, κλπ)
-3. Υποχρεωτικά κριτήρια συμμετοχής
-4. Κριτήριο ανάθεσης (χαμηλότερη τιμή / βέλτιστη σχέση ποιότητας-τιμής)
-5. Διάρκεια σύμβασης
-6. Σημαντικές ημερομηνίες
-7. Ειδικούς όρους
+${ANALYSIS_RULES}
 
-Απάντησε ΜΟΝΟ σε JSON format:
+Αναλύσε το παρακάτω κείμενο διαγωνισμού και εξάγαγε τις πληροφορίες σε μορφή JSON:
+
 {
-  "summaryText": "...",
+  "summaryText": "Σύνοψη 200-300 λέξεις του αντικειμένου, της αναθέτουσας αρχής, των βασικών απαιτήσεων και των κριτηρίων ανάθεσης",
   "keyPoints": {
-    "sector": "...",
-    "mandatoryCriteria": ["..."],
-    "awardType": "lowest_price" | "best_value",
-    "duration": "...",
-    "deadlines": [{"label": "...", "date": "ISO-8601"}],
-    "estimatedBudget": number | null,
-    "cpvCodes": ["..."],
-    "specialConditions": ["..."]
+    "sector": "τομέας ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ",
+    "mandatoryCriteria": ["κριτήριο 1", "κριτήριο 2"],
+    "awardType": "lowest_price ή best_value ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ",
+    "duration": "διάρκεια σύμβασης ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ",
+    "deadlines": [{"label": "Προθεσμία υποβολής", "date": "ISO-8601 ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ"}],
+    "estimatedBudget": null,
+    "cpvCodes": [],
+    "specialConditions": []
   },
-  "sector": "...",
-  "awardType": "lowest_price" | "best_value",
-  "duration": "..."
+  "sector": "τομέας ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ",
+  "awardType": "lowest_price ή best_value ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ",
+  "duration": "διάρκεια ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ",
+  "missingInfo": ["Δεν βρέθηκε: πεδίο που λείπει"]
 }`;
 
 const GO_NO_GO_SYSTEM_PROMPT = `Είσαι στρατηγικός σύμβουλος δημοσίων διαγωνισμών (Bid Director) με 20+ χρόνια εμπειρία
@@ -432,101 +428,237 @@ class AIBidOrchestrator {
    * @returns The created/updated TenderBrief record
    */
   async summarizeTender(tenderId: string) {
-    const tender = await db.tender.findUniqueOrThrow({
-      where: { id: tenderId },
-      include: {
-        attachedDocuments: true,
-        requirements: true,
-        brief: true,
-      },
-    });
-
-    // Collect all available text content
-    const textParts: string[] = [];
-
-    // Add tender metadata
-    textParts.push(`Τίτλος: ${tender.title}`);
-    if (tender.referenceNumber) textParts.push(`Αρ. Αναφοράς: ${tender.referenceNumber}`);
-    if (tender.contractingAuthority) textParts.push(`Αναθέτουσα Αρχή: ${tender.contractingAuthority}`);
-    if (tender.budget) textParts.push(`Προϋπολογισμός: ${tender.budget.toLocaleString('el-GR')}€`);
-    if (tender.submissionDeadline) textParts.push(`Προθεσμία: ${tender.submissionDeadline.toISOString()}`);
-    if (tender.cpvCodes.length > 0) textParts.push(`CPV: ${tender.cpvCodes.join(', ')}`);
-    if (tender.awardCriteria) textParts.push(`Κριτήριο Ανάθεσης: ${tender.awardCriteria}`);
-    if (tender.notes) textParts.push(`Σημειώσεις: ${tender.notes}`);
-
-    // Add extracted requirements as context
-    if (tender.requirements.length > 0) {
-      textParts.push('\n--- Εξαχθείσες Απαιτήσεις ---');
-      for (const req of tender.requirements) {
-        textParts.push(`[${req.category}] ${req.text}${req.articleReference ? ` (${req.articleReference})` : ''}`);
-      }
+    // ── Concurrency guard ─────────────────────────────────────
+    const tenderCheck = await db.tender.findUniqueOrThrow({ where: { id: tenderId } });
+    if (tenderCheck.analysisInProgress) {
+      throw new Error('Η ανάλυση βρίσκεται ήδη σε εξέλιξη');
     }
+    await db.tender.update({ where: { id: tenderId }, data: { analysisInProgress: true } });
 
-    // Add document filenames as additional context
-    if (tender.attachedDocuments.length > 0) {
-      textParts.push('\n--- Συνημμένα Έγγραφα ---');
-      for (const doc of tender.attachedDocuments) {
-        textParts.push(`- ${doc.fileName} (${doc.category || 'other'})`);
-      }
-    }
-
-    const combinedText = textParts.join('\n');
-
-    // Read ACTUAL document content for AI analysis
-    const documentText = await readTenderDocuments(tenderId);
-
-    // Call AI
-    const result = await ai().complete({
-      messages: [
-        { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: `Ανάλυσε τον παρακάτω διαγωνισμό και δημιούργησε δομημένη σύνοψη (brief):\n\n${combinedText}${documentText ? `\n\n=== ΚΕΙΜΕΝΟ ΕΓΓΡΑΦΩΝ ===\n${documentText}` : ''}`,
-        },
-      ],
-      maxTokens: 3000,
-      temperature: 0.2,
-      responseFormat: 'json',
-    });
-
-    let briefData: TenderBriefData;
     try {
-      briefData = JSON.parse(result.content);
-    } catch (err) {
-      console.error('[BidOrchestrator] AI parse error:', err);
-      throw new Error('Η AI ανάλυση απέτυχε. Βεβαιωθείτε ότι υπάρχουν συνημμένα έγγραφα με αναγνώσιμο κείμενο.');
+      const tender = await db.tender.findUniqueOrThrow({
+        where: { id: tenderId },
+        include: {
+          attachedDocuments: true,
+          requirements: true,
+          brief: true,
+        },
+      });
+
+      // ── Collect tender metadata ───────────────────────────────
+      const textParts: string[] = [];
+      textParts.push(`Τίτλος: ${tender.title}`);
+      if (tender.referenceNumber) textParts.push(`Αρ. Αναφοράς: ${tender.referenceNumber}`);
+      if (tender.contractingAuthority) textParts.push(`Αναθέτουσα Αρχή: ${tender.contractingAuthority}`);
+      if (tender.budget) textParts.push(`Προϋπολογισμός: ${tender.budget.toLocaleString('el-GR')}€`);
+      if (tender.submissionDeadline) textParts.push(`Προθεσμία: ${tender.submissionDeadline.toISOString()}`);
+      if (tender.cpvCodes.length > 0) textParts.push(`CPV: ${tender.cpvCodes.join(', ')}`);
+      if (tender.awardCriteria) textParts.push(`Κριτήριο Ανάθεσης: ${tender.awardCriteria}`);
+      if (tender.notes) textParts.push(`Σημειώσεις: ${tender.notes}`);
+
+      if (tender.requirements.length > 0) {
+        textParts.push('\n--- Εξαχθείσες Απαιτήσεις ---');
+        for (const req of tender.requirements) {
+          textParts.push(`[${req.category}] ${req.text}${req.articleReference ? ` (${req.articleReference})` : ''}`);
+        }
+      }
+
+      if (tender.attachedDocuments.length > 0) {
+        textParts.push('\n--- Συνημμένα Έγγραφα ---');
+        for (const doc of tender.attachedDocuments) {
+          textParts.push(`- ${doc.fileName} (${doc.category || 'other'})`);
+        }
+      }
+
+      const metadataText = textParts.join('\n');
+
+      // ── Read actual document content ──────────────────────────
+      const documentText = await readTenderDocuments(tenderId);
+      const fullText = documentText
+        ? `${metadataText}\n\n=== ΚΕΙΜΕΝΟ ΕΓΓΡΑΦΩΝ ===\n${documentText}`
+        : metadataText;
+
+      // ── AI call (with chunking if text is too long) ───────────
+      let briefData: TenderBriefData;
+
+      if (shouldChunk(fullText)) {
+        const chunks = chunkText(fullText);
+        console.log(`[BidOrchestrator] Chunking document into ${chunks.length} parts for brief analysis`);
+
+        // Process each chunk and collect partial results
+        const partialResults: TenderBriefData[] = [];
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk = chunks[i];
+          const result = await ai().complete({
+            messages: [
+              { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT },
+              {
+                role: 'user',
+                content: `Ανάλυσε το παρακάτω τμήμα (${i + 1}/${chunks.length}) του διαγωνισμού:\n\n${chunk}`,
+              },
+            ],
+            maxTokens: 3000,
+            temperature: 0.2,
+            responseFormat: 'json',
+          });
+
+          try {
+            const partial = parseAIResponse<TenderBriefData>(result.content, ['summaryText', 'keyPoints'], `brief chunk ${i + 1}`);
+            partialResults.push(partial);
+          } catch (err) {
+            console.warn(`[BidOrchestrator] Chunk ${i + 1} parse error, skipping:`, err);
+          }
+        }
+
+        if (partialResults.length === 0) {
+          throw new Error('Η AI ανάλυση απέτυχε σε όλα τα τμήματα του εγγράφου.');
+        }
+
+        // Merge partial results — use first chunk's summary, merge arrays from all chunks
+        const merged = partialResults[0];
+        for (let i = 1; i < partialResults.length; i++) {
+          const p = partialResults[i];
+          // Merge mandatoryCriteria
+          if (p.keyPoints?.mandatoryCriteria?.length) {
+            merged.keyPoints.mandatoryCriteria = Array.from(
+              new Set([...(merged.keyPoints.mandatoryCriteria || []), ...p.keyPoints.mandatoryCriteria])
+            );
+          }
+          // Merge deadlines
+          if (p.keyPoints?.deadlines?.length) {
+            merged.keyPoints.deadlines = [...(merged.keyPoints.deadlines || []), ...p.keyPoints.deadlines];
+          }
+          // Merge CPV codes
+          if (p.keyPoints?.cpvCodes?.length) {
+            merged.keyPoints.cpvCodes = Array.from(
+              new Set([...(merged.keyPoints.cpvCodes || []), ...p.keyPoints.cpvCodes])
+            );
+          }
+          // Merge special conditions
+          if (p.keyPoints?.specialConditions?.length) {
+            merged.keyPoints.specialConditions = Array.from(
+              new Set([...(merged.keyPoints.specialConditions || []), ...p.keyPoints.specialConditions])
+            );
+          }
+          // Merge missingInfo
+          if (p.missingInfo?.length) {
+            merged.missingInfo = Array.from(
+              new Set([...(merged.missingInfo || []), ...p.missingInfo])
+            );
+          }
+          // Take non-NOT_FOUND values from later chunks if first chunk had NOT_FOUND
+          if (!merged.sector || merged.sector === NOT_FOUND) merged.sector = p.sector;
+          if (!merged.awardType || merged.awardType === NOT_FOUND) merged.awardType = p.awardType;
+          if (!merged.duration || merged.duration === NOT_FOUND) merged.duration = p.duration;
+          if (merged.keyPoints.estimatedBudget == null && p.keyPoints?.estimatedBudget != null) {
+            merged.keyPoints.estimatedBudget = p.keyPoints.estimatedBudget;
+          }
+        }
+
+        briefData = merged;
+      } else {
+        // Single call for normal-sized documents
+        const result = await ai().complete({
+          messages: [
+            { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT },
+            {
+              role: 'user',
+              content: `Ανάλυσε τον παρακάτω διαγωνισμό και δημιούργησε δομημένη σύνοψη (brief):\n\n${fullText}`,
+            },
+          ],
+          maxTokens: 3000,
+          temperature: 0.2,
+          responseFormat: 'json',
+        });
+
+        briefData = parseAIResponse<TenderBriefData>(result.content, ['summaryText', 'keyPoints'], 'brief');
+      }
+
+      // ── Missing info detection ────────────────────────────────
+      const missingInfo: string[] = briefData.missingInfo || [];
+
+      // Map critical field names to where they appear in the parsed data
+      const fieldValueMap: Record<string, string | null | undefined> = {
+        'Τίτλος διαγωνισμού': tender.title || briefData.summaryText,
+        'Προϋπολογισμός': tender.budget != null
+          ? String(tender.budget)
+          : briefData.keyPoints?.estimatedBudget != null
+          ? String(briefData.keyPoints.estimatedBudget)
+          : null,
+        'Προθεσμία υποβολής': tender.submissionDeadline
+          ? tender.submissionDeadline.toISOString()
+          : briefData.keyPoints?.deadlines?.[0]?.date || null,
+        'Αναθέτουσα αρχή': tender.contractingAuthority || null,
+        'CPV κωδικοί': tender.cpvCodes.length > 0
+          ? tender.cpvCodes.join(', ')
+          : briefData.keyPoints?.cpvCodes?.length
+          ? briefData.keyPoints.cpvCodes.join(', ')
+          : null,
+      };
+
+      for (const field of BRIEF_CRITICAL_FIELDS) {
+        const value = fieldValueMap[field];
+        const isNotFound =
+          value == null ||
+          value === '' ||
+          value === NOT_FOUND ||
+          String(value).includes('ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ');
+
+        const alreadyReported = missingInfo.some(m =>
+          m.toLowerCase().includes(field.toLowerCase())
+        );
+
+        if (isNotFound && !alreadyReported) {
+          missingInfo.push(`Δεν βρέθηκε: ${field}`);
+        }
+      }
+
+      // Store missingInfo inside keyPoints JSON (no separate DB column)
+      const keyPointsWithMissing = {
+        ...briefData.keyPoints,
+        missingInfo: missingInfo.length > 0 ? missingInfo : undefined,
+      };
+
+      // ── Upsert TenderBrief ────────────────────────────────────
+      const normalizeNotFound = (val: string | null | undefined): string | null => {
+        if (!val || val === NOT_FOUND || val.includes('ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ')) return null;
+        return val;
+      };
+
+      const brief = await db.tenderBrief.upsert({
+        where: { tenderId },
+        create: {
+          tenderId,
+          summaryText: briefData.summaryText,
+          keyPoints: keyPointsWithMissing as any,
+          sector: normalizeNotFound(briefData.sector || briefData.keyPoints?.sector),
+          awardType: normalizeNotFound(briefData.awardType || briefData.keyPoints?.awardType),
+          duration: normalizeNotFound(briefData.duration || briefData.keyPoints?.duration),
+        },
+        update: {
+          summaryText: briefData.summaryText,
+          keyPoints: keyPointsWithMissing as any,
+          sector: normalizeNotFound(briefData.sector || briefData.keyPoints?.sector),
+          awardType: normalizeNotFound(briefData.awardType || briefData.keyPoints?.awardType),
+          duration: normalizeNotFound(briefData.duration || briefData.keyPoints?.duration),
+        },
+      });
+
+      // ── Log activity ──────────────────────────────────────────
+      const missingCount = missingInfo.length;
+      await db.activity.create({
+        data: {
+          tenderId,
+          action: 'tender_summarized',
+          details: `Δημιουργήθηκε σύνοψη διαγωνισμού (brief) — Τομέας: ${briefData.sector || 'N/A'}, Ανάθεση: ${briefData.awardType || 'N/A'}${missingCount > 0 ? `, Ελλείποντα πεδία: ${missingCount}` : ''}`,
+        },
+      });
+
+      return brief;
+    } finally {
+      // Always reset the concurrency guard
+      await db.tender.update({ where: { id: tenderId }, data: { analysisInProgress: false } });
     }
-
-    // Create or update TenderBrief
-    const brief = await db.tenderBrief.upsert({
-      where: { tenderId },
-      create: {
-        tenderId,
-        summaryText: briefData.summaryText,
-        keyPoints: briefData.keyPoints as any,
-        sector: briefData.sector || briefData.keyPoints?.sector || null,
-        awardType: briefData.awardType || briefData.keyPoints?.awardType || null,
-        duration: briefData.duration || briefData.keyPoints?.duration || null,
-      },
-      update: {
-        summaryText: briefData.summaryText,
-        keyPoints: briefData.keyPoints as any,
-        sector: briefData.sector || briefData.keyPoints?.sector || null,
-        awardType: briefData.awardType || briefData.keyPoints?.awardType || null,
-        duration: briefData.duration || briefData.keyPoints?.duration || null,
-      },
-    });
-
-    // Log activity
-    await db.activity.create({
-      data: {
-        tenderId,
-        action: 'tender_summarized',
-        details: `Δημιουργήθηκε σύνοψη διαγωνισμού (brief) — Τομέας: ${briefData.sector || 'N/A'}, Ανάθεση: ${briefData.awardType || 'N/A'}`,
-      },
-    });
-
-    return brief;
   }
 
   /**
