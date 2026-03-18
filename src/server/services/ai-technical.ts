@@ -154,7 +154,7 @@ class AITechnicalService {
    * Functional, Performance, Interface, Standard/Certification, Safety,
    * Staffing, Timeline, Deliverable. Sets criticality 1-5.
    */
-  async analyzeTechnicalRequirements(tenderId: string): Promise<ClassifiedRequirement[]> {
+  async analyzeTechnicalRequirements(tenderId: string, language: 'el' | 'en' = 'el'): Promise<ClassifiedRequirement[]> {
     await requireDocuments(tenderId);
     const requirements = await db.tenderRequirement.findMany({
       where: {
@@ -172,6 +172,11 @@ class AITechnicalService {
     });
 
     const documentText = await readTenderDocuments(tenderId);
+
+    // Language instruction
+    const langInstruction = language === 'en'
+      ? 'Respond entirely in English.'
+      : 'Απάντησε εξ ολοκλήρου στα ελληνικά.';
 
     const result = await ai().complete({
       messages: [
@@ -211,7 +216,9 @@ class AITechnicalService {
   "criticality": 1-5,
   "keywords": ["string", ...],
   "evaluationWeight": number | null
-}]`,
+}]
+
+${langInstruction}`,
         },
         {
           role: 'user',

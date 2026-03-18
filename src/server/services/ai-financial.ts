@@ -89,7 +89,7 @@ class AIFinancialService {
    * Updates TenderRequirement records with category=FINANCIAL_REQUIREMENTS
    * and stores structured data in evidenceRefs JSON.
    */
-  async extractFinancialRequirements(tenderId: string): Promise<ExtractedFinancialRequirement[]> {
+  async extractFinancialRequirements(tenderId: string, language: 'el' | 'en' = 'el'): Promise<ExtractedFinancialRequirement[]> {
     await requireDocuments(tenderId);
     const tender = await db.tender.findUniqueOrThrow({
       where: { id: tenderId },
@@ -115,6 +115,11 @@ class AIFinancialService {
     if (!budget.allowed) {
       throw new Error(`Ξεπεράσατε το ημερήσιο όριο AI (${budget.used.toLocaleString()}/${budget.limit.toLocaleString()} tokens). Δοκιμάστε αύριο.`);
     }
+
+    // Language instruction
+    const langInstruction = language === 'en'
+      ? 'Respond entirely in English.'
+      : 'Απάντησε εξ ολοκλήρου στα ελληνικά.';
 
     // If document text is very large, chunk it and merge results
     const fullUserContent = JSON.stringify({
@@ -145,7 +150,7 @@ class AIFinancialService {
 
         const chunkResult = await ai().complete({
           messages: [
-            { role: 'system', content: this.getFinancialExtractionPrompt() },
+            { role: 'system', content: this.getFinancialExtractionPrompt() + `\n\n${langInstruction}` },
             { role: 'user', content: chunkContent },
           ],
           maxTokens: 4000,
@@ -226,7 +231,9 @@ ${ANALYSIS_RULES}
 }
 
 Στο "missingInfo" συμπερίλαβε κάθε κρίσιμο πεδίο από: [${FINANCIAL_CRITICAL_FIELDS.join(', ')}] που ΔΕΝ αναφέρεται στο κείμενο.
-Απάντησε ΜΟΝΟ με valid JSON object.`,
+Απάντησε ΜΟΝΟ με valid JSON object.
+
+${langInstruction}`,
         },
         {
           role: 'user',

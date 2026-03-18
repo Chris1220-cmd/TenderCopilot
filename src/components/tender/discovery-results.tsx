@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { FilterBar, type CountryFilter, type EntityTypeFilter } from '@/components/discovery/filter-bar';
 import {
   Search,
   Import,
@@ -102,6 +103,9 @@ export function DiscoveryResults({ onImport }: DiscoveryResultsProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [importingId, setImportingId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [country, setCountry] = useState<CountryFilter>('GR');
+  const [entityType, setEntityType] = useState<EntityTypeFilter>('all');
+  const [relevanceOnly, setRelevanceOnly] = useState(false);
 
   const { data: tenders, isLoading, error } = trpc.discovery.search.useQuery(
     showAll ? { showAll: true } : undefined
@@ -109,16 +113,54 @@ export function DiscoveryResults({ onImport }: DiscoveryResultsProps) {
 
   const filteredTenders = useMemo(() => {
     if (!tenders) return [];
-    if (!searchQuery.trim()) return tenders;
-    const q = searchQuery.toLowerCase();
-    return tenders.filter(
-      (t) =>
-        t.title.toLowerCase().includes(q) ||
-        t.contractingAuthority.toLowerCase().includes(q) ||
-        t.platform.toLowerCase().includes(q) ||
-        t.cpvCodes.some((c) => c.toLowerCase().includes(q))
-    );
-  }, [tenders, searchQuery]);
+    let result = tenders;
+
+    // Text search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          t.contractingAuthority.toLowerCase().includes(q) ||
+          t.platform.toLowerCase().includes(q) ||
+          t.cpvCodes.some((c) => c.toLowerCase().includes(q))
+      );
+    }
+
+    // Country filter
+    if (country !== 'all') {
+      result = result.filter((t) => {
+        if (country === 'GR') {
+          return ['ESIDIS', 'PROMITHEUS', 'DIAVGEIA', 'KIMDIS', 'COSMOONE'].includes(t.platform);
+        }
+        if (country === 'EU') {
+          return ['TED', 'ESIDIS', 'PROMITHEUS', 'DIAVGEIA', 'KIMDIS', 'COSMOONE'].includes(t.platform);
+        }
+        // international: show all
+        return true;
+      });
+    }
+
+    // Entity type filter
+    if (entityType !== 'all') {
+      result = result.filter((t) => {
+        if (entityType === 'public') {
+          return t.platform !== 'PRIVATE';
+        }
+        if (entityType === 'private') {
+          return t.platform === 'PRIVATE';
+        }
+        return true;
+      });
+    }
+
+    // Relevance (KAD matching) filter
+    if (relevanceOnly) {
+      result = result.filter((t) => t.relevanceScore > 0);
+    }
+
+    return result;
+  }, [tenders, searchQuery, country, entityType, relevanceOnly]);
 
   function handleImport(tender: DiscoveredTender) {
     setImportingId(tender.referenceNumber);
@@ -127,6 +169,16 @@ export function DiscoveryResults({ onImport }: DiscoveryResultsProps) {
 
   return (
     <div className="space-y-4">
+      {/* Filter Bar */}
+      <FilterBar
+        country={country}
+        entityType={entityType}
+        relevanceOnly={relevanceOnly}
+        onCountryChange={setCountry}
+        onEntityTypeChange={setEntityType}
+        onRelevanceOnlyChange={setRelevanceOnly}
+      />
+
       {/* Search + Show All Toggle */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="relative flex-1 w-full">

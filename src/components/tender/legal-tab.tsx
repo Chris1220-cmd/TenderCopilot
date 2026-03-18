@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { NoDocumentsAlert } from './no-documents-alert';
+import { LanguageModal, type AnalysisLanguage } from './language-modal';
 import {
   GlassCard,
   GlassCardHeader,
@@ -135,6 +136,7 @@ export function LegalTab({ tenderId, sourceUrl, platform }: LegalTabProps) {
   const [editText, setEditText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [noDocs, setNoDocs] = useState(false);
+  const [langModalOpen, setLangModalOpen] = useState(false);
 
   // Load existing legal data from DB on mount
   const legalQuery = trpc.aiRoles.getLegalClauses.useQuery(
@@ -216,8 +218,13 @@ export function LegalTab({ tenderId, sourceUrl, platform }: LegalTabProps) {
   });
 
   const handleExtract = () => {
+    setLangModalOpen(true);
+  };
+
+  const handleExtractWithLang = (lang: AnalysisLanguage) => {
+    setLangModalOpen(false);
     setLoadingAction('extract');
-    extractMutation.mutate({ tenderId });
+    extractMutation.mutate({ tenderId, language: lang });
   };
 
   const handleAssess = () => {
@@ -720,6 +727,12 @@ export function LegalTab({ tenderId, sourceUrl, platform }: LegalTabProps) {
           )}
         </SheetContent>
       </Sheet>
+
+      <LanguageModal
+        open={langModalOpen}
+        onSelect={handleExtractWithLang}
+        onClose={() => setLangModalOpen(false)}
+      />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NoDocumentsAlert } from './no-documents-alert';
+import { LanguageModal, type AnalysisLanguage } from './language-modal';
 import {
   GlassCard,
   GlassCardHeader,
@@ -185,6 +186,7 @@ export function GoNoGoPanel({ tenderId, sourceUrl, platform, className }: GoNoGo
   const [isApproving, setIsApproving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [noDocs, setNoDocs] = useState(false);
+  const [langModalOpen, setLangModalOpen] = useState(false);
 
   // Load existing Go/No-Go from DB on mount
   const goNoGoQuery = trpc.aiRoles.getGoNoGo.useQuery(
@@ -230,9 +232,14 @@ export function GoNoGoPanel({ tenderId, sourceUrl, platform, className }: GoNoGo
   });
 
   const handleAnalyze = () => {
+    setLangModalOpen(true);
+  };
+
+  const handleAnalyzeWithLang = (lang: AnalysisLanguage) => {
+    setLangModalOpen(false);
     setIsAnalyzing(true);
     setError(null);
-    goNoGoMutation.mutate({ tenderId });
+    goNoGoMutation.mutate({ tenderId, language: lang });
   };
 
   const handleApproval = (approved: boolean) => {
@@ -481,6 +488,12 @@ export function GoNoGoPanel({ tenderId, sourceUrl, platform, className }: GoNoGo
           </div>
         )}
       </GlassCardFooter>
+
+      <LanguageModal
+        open={langModalOpen}
+        onSelect={handleAnalyzeWithLang}
+        onClose={() => setLangModalOpen(false)}
+      />
     </GlassCard>
   );
 }

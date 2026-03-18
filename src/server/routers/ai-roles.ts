@@ -89,17 +89,17 @@ export const aiRolesRouter = router({
   // ═══════════════════════════════════════════════════════════
 
   summarizeTender: protectedProcedure
-    .input(z.object({ tenderId: z.string() }))
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
-      return aiBidOrchestrator.summarizeTender(input.tenderId);
+      return aiBidOrchestrator.summarizeTender(input.tenderId, input.language);
     }),
 
   goNoGo: protectedProcedure
-    .input(z.object({ tenderId: z.string() }))
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       const { tenantId } = await ensureTenderAccess(input.tenderId, ctx.tenantId);
-      return aiBidOrchestrator.goNoGoAnalysis(input.tenderId, tenantId);
+      return aiBidOrchestrator.goNoGoAnalysis(input.tenderId, tenantId, input.language);
     }),
 
   approveGoNoGo: protectedProcedure
@@ -168,10 +168,10 @@ export const aiRolesRouter = router({
   // ═══════════════════════════════════════════════════════════
 
   extractLegalClauses: protectedProcedure
-    .input(z.object({ tenderId: z.string() }))
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
-      return aiLegalAnalyzer.extractClauses(input.tenderId);
+      return aiLegalAnalyzer.extractClauses(input.tenderId, input.language);
     }),
 
   assessLegalRisks: protectedProcedure
@@ -235,10 +235,10 @@ export const aiRolesRouter = router({
   // ═══════════════════════════════════════════════════════════
 
   extractFinancials: protectedProcedure
-    .input(z.object({ tenderId: z.string() }))
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
-      return aiFinancial.extractFinancialRequirements(input.tenderId);
+      return aiFinancial.extractFinancialRequirements(input.tenderId, input.language);
     }),
 
   checkFinancialEligibility: protectedProcedure
@@ -273,10 +273,10 @@ export const aiRolesRouter = router({
   // ═══════════════════════════════════════════════════════════
 
   analyzeTechRequirements: protectedProcedure
-    .input(z.object({ tenderId: z.string() }))
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
-      return aiTechnical.analyzeTechnicalRequirements(input.tenderId);
+      return aiTechnical.analyzeTechnicalRequirements(input.tenderId, input.language);
     }),
 
   generateProposal: protectedProcedure

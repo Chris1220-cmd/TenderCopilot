@@ -169,7 +169,7 @@ class AILegalAnalyzer {
    * @param tenderId - The ID of the tender to analyze
    * @returns Array of created LegalClause records
    */
-  async extractClauses(tenderId: string) {
+  async extractClauses(tenderId: string, language: 'el' | 'en' = 'el') {
     await requireDocuments(tenderId);
     const tender = await db.tender.findUniqueOrThrow({
       where: { id: tenderId },
@@ -227,6 +227,11 @@ class AILegalAnalyzer {
       throw new Error(`Ξεπεράσατε το ημερήσιο όριο AI (${budget.used.toLocaleString()}/${budget.limit.toLocaleString()} tokens). Δοκιμάστε αύριο.`);
     }
 
+    // Language instruction
+    const langInstruction = language === 'en'
+      ? 'Respond entirely in English.'
+      : 'Απάντησε εξ ολοκλήρου στα ελληνικά.';
+
     // Chunk large documents for legal analysis
     let extractedClauses: ExtractedClause[] = [];
 
@@ -235,7 +240,7 @@ class AILegalAnalyzer {
       for (let i = 0; i < chunks.length; i++) {
         const aiResult = await ai().complete({
           messages: [
-            { role: 'system', content: EXTRACT_CLAUSES_SYSTEM_PROMPT },
+            { role: 'system', content: EXTRACT_CLAUSES_SYSTEM_PROMPT + `\n\n${langInstruction}` },
             {
               role: 'user',
               content: `Εντόπισε τις νομικές ρήτρες/όρους από το τμήμα ${i + 1}/${chunks.length}:\n\n${chunks[i]}`,
@@ -267,7 +272,7 @@ class AILegalAnalyzer {
       // Single call for normal-sized documents
       const aiResult = await ai().complete({
         messages: [
-          { role: 'system', content: EXTRACT_CLAUSES_SYSTEM_PROMPT },
+          { role: 'system', content: EXTRACT_CLAUSES_SYSTEM_PROMPT + `\n\n${langInstruction}` },
           {
             role: 'user',
             content: `Εντόπισε τις νομικές ρήτρες/όρους από τα ακόλουθα έγγραφα διαγωνισμού:\n\n${contextText}`,

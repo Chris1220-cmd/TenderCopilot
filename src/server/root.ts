@@ -9,6 +9,7 @@ import { documentRouter } from '@/server/routers/document';
 import { analyticsRouter } from '@/server/routers/analytics';
 import { discoveryRouter } from '@/server/routers/discovery';
 import { aiRolesRouter } from '@/server/routers/ai-roles';
+import { privateSourcesRouter } from '@/server/routers/private-sources';
 
 export const appRouter = router({
   auth: authRouter,
@@ -21,6 +22,7 @@ export const appRouter = router({
   analytics: analyticsRouter,
   discovery: discoveryRouter,
   aiRoles: aiRolesRouter,
+  privateSources: privateSourcesRouter,
 });
 
 export type AppRouter = typeof appRouter;

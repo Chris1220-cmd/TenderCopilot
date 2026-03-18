@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NoDocumentsAlert } from './no-documents-alert';
+import { LanguageModal, type AnalysisLanguage } from './language-modal';
 import {
   GlassCard,
   GlassCardHeader,
@@ -65,6 +66,7 @@ export function AIBriefPanel({ tenderId, sourceUrl, platform, className }: AIBri
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [noDocs, setNoDocs] = useState(false);
+  const [langModalOpen, setLangModalOpen] = useState(false);
 
   // Load existing brief from DB on mount
   const briefQuery = trpc.aiRoles.getBrief.useQuery(
@@ -98,9 +100,14 @@ export function AIBriefPanel({ tenderId, sourceUrl, platform, className }: AIBri
   });
 
   const handleGenerate = () => {
+    setLangModalOpen(true);
+  };
+
+  const handleAnalyze = (lang: AnalysisLanguage) => {
+    setLangModalOpen(false);
     setIsGenerating(true);
     setError(null);
-    summarizeMutation.mutate({ tenderId });
+    summarizeMutation.mutate({ tenderId, language: lang });
   };
 
   const displayBrief = brief ?? null;
@@ -249,6 +256,12 @@ export function AIBriefPanel({ tenderId, sourceUrl, platform, className }: AIBri
           {isGenerating ? 'Ανάλυση...' : displayBrief ? 'Ανανέωση Brief' : 'Δημιουργία AI Brief'}
         </Button>
       </GlassCardFooter>
+
+      <LanguageModal
+        open={langModalOpen}
+        onSelect={handleAnalyze}
+        onClose={() => setLangModalOpen(false)}
+      />
     </GlassCard>
   );
 }

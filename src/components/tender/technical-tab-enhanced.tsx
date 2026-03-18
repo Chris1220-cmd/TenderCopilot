@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { NoDocumentsAlert } from './no-documents-alert';
+import { LanguageModal, type AnalysisLanguage } from './language-modal';
 import {
   GlassCard,
   GlassCardHeader,
@@ -135,6 +136,7 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [noDocs, setNoDocs] = useState(false);
+  const [langModalOpen, setLangModalOpen] = useState(false);
 
   // Load existing technical data from DB on mount
   const technicalDataQuery = trpc.aiRoles.getTechnicalData.useQuery(
@@ -217,9 +219,14 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
   });
 
   const handleAnalyze = () => {
+    setLangModalOpen(true);
+  };
+
+  const handleAnalyzeWithLang = (lang: AnalysisLanguage) => {
+    setLangModalOpen(false);
     setLoadingAction('analyze');
     setError(null);
-    analyzeMutation.mutate({ tenderId });
+    analyzeMutation.mutate({ tenderId, language: lang });
   };
 
   const handleGenerate = () => {
@@ -658,6 +665,12 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
           )}
         </GlassCardContent>
       </GlassCard>
+
+      <LanguageModal
+        open={langModalOpen}
+        onSelect={handleAnalyzeWithLang}
+        onClose={() => setLangModalOpen(false)}
+      />
     </div>
   );
 }

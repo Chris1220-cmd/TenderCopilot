@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NoDocumentsAlert } from './no-documents-alert';
+import { LanguageModal, type AnalysisLanguage } from './language-modal';
 import {
   GlassCard,
   GlassCardHeader,
@@ -151,6 +152,7 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [noDocs, setNoDocs] = useState(false);
+  const [langModalOpen, setLangModalOpen] = useState(false);
 
   // tRPC mutations
   const selectScenarioMutation = trpc.aiRoles.selectPricingScenario.useMutation({
@@ -194,9 +196,14 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
   });
 
   const handleAnalyze = () => {
+    setLangModalOpen(true);
+  };
+
+  const handleAnalyzeWithLang = (lang: AnalysisLanguage) => {
+    setLangModalOpen(false);
     setLoadingAction('analyze');
     setError(null);
-    extractMutation.mutate({ tenderId });
+    extractMutation.mutate({ tenderId, language: lang });
   };
 
   const handleEligibility = async () => {
@@ -517,6 +524,12 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
           )}
         </GlassCardContent>
       </GlassCard>
+
+      <LanguageModal
+        open={langModalOpen}
+        onSelect={handleAnalyzeWithLang}
+        onClose={() => setLangModalOpen(false)}
+      />
     </div>
   );
 }

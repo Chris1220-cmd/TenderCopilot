@@ -51,9 +51,12 @@ export const discoveryRouter = router({
           minBudget: z.number().optional(),
           maxBudget: z.number().optional(),
           platforms: z
-            .array(z.enum(['KIMDIS', 'DIAVGEIA', 'TED', 'ESIDIS']))
+            .array(z.enum(['KIMDIS', 'DIAVGEIA', 'TED', 'ESIDIS', 'OTHER', 'PRIVATE']))
             .optional(),
           showAll: z.boolean().optional(),
+          country: z.enum(['GR', 'EU', 'international', 'all']).optional(),
+          entityType: z.enum(['public', 'private', 'all']).optional(),
+          relevanceOnly: z.boolean().optional(),
         })
         .optional()
     )
@@ -75,6 +78,10 @@ export const discoveryRouter = router({
           maxBudget: input.maxBudget,
           platforms: input.platforms,
           showAll: input.showAll,
+          country: input.country,
+          entityType: input.entityType,
+          relevanceOnly: input.relevanceOnly,
+          tenantId: ctx.tenantId!,
         });
 
         return tenders.map((t) => ({

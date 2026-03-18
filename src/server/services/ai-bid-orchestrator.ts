@@ -427,7 +427,7 @@ class AIBidOrchestrator {
    * @param tenderId - The ID of the tender to summarize
    * @returns The created/updated TenderBrief record
    */
-  async summarizeTender(tenderId: string) {
+  async summarizeTender(tenderId: string, language: 'el' | 'en' = 'el') {
     await requireDocuments(tenderId);
     // ── Concurrency guard ─────────────────────────────────────
     const tenderCheck = await db.tender.findUniqueOrThrow({ where: { id: tenderId } });
@@ -486,6 +486,11 @@ class AIBidOrchestrator {
         ? `${metadataText}\n\n=== ΚΕΙΜΕΝΟ ΕΓΓΡΑΦΩΝ ===\n${documentText}`
         : metadataText;
 
+      // ── Language instruction ─────────────────────────────────
+      const langInstruction = language === 'en'
+        ? 'Respond entirely in English.'
+        : 'Απάντησε εξ ολοκλήρου στα ελληνικά.';
+
       // ── AI call (with chunking if text is too long) ───────────
       let briefData: TenderBriefData;
 
@@ -499,7 +504,7 @@ class AIBidOrchestrator {
           const chunk = chunks[i];
           const result = await ai().complete({
             messages: [
-              { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT },
+              { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT + `\n\n${langInstruction}` },
               {
                 role: 'user',
                 content: `Ανάλυσε το παρακάτω τμήμα (${i + 1}/${chunks.length}) του διαγωνισμού:\n\n${chunk}`,
@@ -574,7 +579,7 @@ class AIBidOrchestrator {
         // Single call for normal-sized documents
         const result = await ai().complete({
           messages: [
-            { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT },
+            { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT + `\n\n${langInstruction}` },
             {
               role: 'user',
               content: `Ανάλυσε τον παρακάτω διαγωνισμό και δημιούργησε δομημένη σύνοψη (brief):\n\n${fullText}`,
@@ -664,6 +669,9 @@ class AIBidOrchestrator {
         },
       });
 
+      // ── Save language to tender ─────────────────────────────
+      await db.tender.update({ where: { id: tenderId }, data: { analysisLanguage: language } });
+
       // ── Log activity ──────────────────────────────────────────
       const missingCount = missingInfo.length;
       await db.activity.create({
@@ -689,7 +697,7 @@ class AIBidOrchestrator {
    * @param tenantId - The tenant (company) ID for loading company data
    * @returns The created GoNoGoDecision record
    */
-  async goNoGoAnalysis(tenderId: string, tenantId: string) {
+  async goNoGoAnalysis(tenderId: string, tenantId: string, language: 'el' | 'en' = 'el') {
     await requireDocuments(tenderId);
     // Load all relevant data in parallel
     const [
@@ -834,10 +842,15 @@ class AIBidOrchestrator {
     // Read ACTUAL document content for AI analysis
     const documentText = await readTenderDocuments(tenderId);
 
+    // Language instruction
+    const langInstruction = language === 'en'
+      ? 'Respond entirely in English.'
+      : 'Απάντησε εξ ολοκλήρου στα ελληνικά.';
+
     // Call AI
     const aiResult = await ai().complete({
       messages: [
-        { role: 'system', content: GO_NO_GO_SYSTEM_PROMPT },
+        { role: 'system', content: GO_NO_GO_SYSTEM_PROMPT + `\n\n${langInstruction}` },
         {
           role: 'user',
           content: `Αξιολόγησε αν η εταιρεία πρέπει να συμμετάσχει στον ακόλουθο διαγωνισμό:\n\n${contextText}${documentText ? `\n\n=== ΚΕΙΜΕΝΟ ΕΓΓΡΑΦΩΝ ===\n${documentText}` : ''}`,

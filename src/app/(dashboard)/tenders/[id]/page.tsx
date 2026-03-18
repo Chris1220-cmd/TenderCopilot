@@ -18,6 +18,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import { LanguageModal, type AnalysisLanguage } from '@/components/tender/language-modal';
 import { StatusBadge } from '@/components/tender/status-badge';
 import { OverviewTab, OverviewTabSkeleton } from '@/components/tender/overview-tab';
 import { RequirementsTab } from '@/components/tender/requirements-tab';
@@ -59,6 +60,7 @@ export default function TenderDetailPage() {
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [analysisStep, setAnalysisStep] = useState<string | null>(null);
+  const [fullAnalysisLangModalOpen, setFullAnalysisLangModalOpen] = useState(false);
 
   const utils = trpc.useUtils();
   const { toast } = useToast();
@@ -120,20 +122,25 @@ export default function TenderDetailPage() {
     },
   });
 
-  async function runFullAnalysis() {
+  function handleRunFullAnalysis() {
+    setFullAnalysisLangModalOpen(true);
+  }
+
+  async function runFullAnalysis(language: AnalysisLanguage) {
+    setFullAnalysisLangModalOpen(false);
     try {
       setAnalysisStep('Ανάγνωση εγγράφων & σύνοψη...');
-      await summarizeMutation.mutateAsync({ tenderId });
+      await summarizeMutation.mutateAsync({ tenderId, language });
 
       setAnalysisStep('Νομική ανάλυση...');
-      await extractLegalMutation.mutateAsync({ tenderId });
+      await extractLegalMutation.mutateAsync({ tenderId, language });
       await assessLegalMutation.mutateAsync({ tenderId });
 
       setAnalysisStep('Οικονομική ανάλυση...');
-      await extractFinancialMutation.mutateAsync({ tenderId });
+      await extractFinancialMutation.mutateAsync({ tenderId, language });
 
       setAnalysisStep('Αξιολόγηση Go/No-Go...');
-      await goNoGoMutation.mutateAsync({ tenderId });
+      await goNoGoMutation.mutateAsync({ tenderId, language });
 
       setAnalysisStep(null);
       utils.aiRoles.getBrief.invalidate({ tenderId });
@@ -282,7 +289,7 @@ export default function TenderDetailPage() {
                 'border-0 text-white'
               )}
               disabled={!!analysisStep}
-              onClick={runFullAnalysis}
+              onClick={handleRunFullAnalysis}
             >
               {analysisStep ? (
                 <>
@@ -506,6 +513,13 @@ export default function TenderDetailPage() {
         tenderId={tenderId}
         open={assistantOpen}
         onOpenChange={setAssistantOpen}
+      />
+
+      {/* Language Modal for Full Analysis */}
+      <LanguageModal
+        open={fullAnalysisLangModalOpen}
+        onSelect={runFullAnalysis}
+        onClose={() => setFullAnalysisLangModalOpen(false)}
       />
     </div>
   );
