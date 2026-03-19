@@ -317,29 +317,39 @@ const WORK_PLAN_PHASES: WorkPlanTask[] = [
 
 // ─── System Prompts ─────────────────────────────────────────
 
-const SUMMARIZE_SYSTEM_PROMPT = `Είσαι ειδικός σύμβουλος δημοσίων συμβάσεων. Αναλύεις κείμενα διαγωνισμών σύμφωνα με τον Ν.4412/2016.
+const SUMMARIZE_SYSTEM_PROMPT = `Είσαι ειδικός σύμβουλος δημοσίων συμβάσεων. Αναλύεις κείμενα διαγωνισμών σύμφωνα με τον Ν.4412/2016 και τον Ν.3130/2003 (στεγάσεις).
 
 ${ANALYSIS_RULES}
 
-Αναλύσε το παρακάτω κείμενο διαγωνισμού και εξάγαγε τις πληροφορίες σε μορφή JSON:
+ΣΗΜΑΝΤΙΚΟ: Διάβασε ΟΛΟΚΛΗΡΟ το κείμενο. Ψάξε σε κάθε παράγραφο, άρθρο και πίνακα.
+Για μειοδοτικές δημοπρασίες μίσθωσης: το "ανώτατο μηνιαίο μίσθωμα" = estimatedBudget.
+
+Αναλύσε το κείμενο και εξάγαγε τις πληροφορίες σε μορφή JSON:
 
 {
-  "summaryText": "Σύνοψη 200-300 λέξεις του αντικειμένου, της αναθέτουσας αρχής, των βασικών απαιτήσεων και των κριτηρίων ανάθεσης",
+  "summaryText": "Σύνοψη 200-300 λέξεις",
   "keyPoints": {
-    "sector": "τομέας ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ",
+    "contractingAuthority": "πλήρης επωνυμία αναθέτουσας αρχής (π.χ. Κτηματική Υπηρεσία Χίου)",
+    "sector": "τομέας",
     "mandatoryCriteria": ["κριτήριο 1", "κριτήριο 2"],
-    "awardType": "lowest_price ή best_value ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ",
-    "duration": "διάρκεια σύμβασης ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ",
-    "deadlines": [{"label": "Προθεσμία υποβολής", "date": "ISO-8601 ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ"}],
-    "estimatedBudget": null,
+    "awardType": "lowest_price ή best_value",
+    "duration": "διάρκεια σύμβασης (π.χ. 12 έτη)",
+    "deadlines": [{"label": "Προθεσμία υποβολής", "date": "2026-03-27T11:00:00"}],
+    "estimatedBudget": 5416.00,
+    "budgetPeriod": "monthly ή total",
     "cpvCodes": [],
-    "specialConditions": []
+    "specialConditions": [],
+    "guaranteeRequired": "περιγραφή εγγυητικής αν αναφέρεται",
+    "eligibilityCriteria": ["κριτήριο 1"],
+    "technicalSpecs": "σύντομη περίληψη τεχνικών απαιτήσεων"
   },
-  "sector": "τομέας ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ",
-  "awardType": "lowest_price ή best_value ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ",
-  "duration": "διάρκεια ή ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ ΣΤΟ ΕΓΓΡΑΦΟ",
-  "missingInfo": ["Δεν βρέθηκε: πεδίο που λείπει"]
-}`;
+  "sector": "τομέας",
+  "awardType": "lowest_price ή best_value",
+  "duration": "διάρκεια",
+  "missingInfo": ["Δεν βρέθηκε: πεδίο"]
+}
+
+ΠΡΟΣΟΧΗ: Μην απαντάς "ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ" αν η πληροφορία υπάρχει κάπου στο κείμενο. Ψάξε τα πάντα.`;
 
 const GO_NO_GO_SYSTEM_PROMPT = `Είσαι στρατηγικός σύμβουλος δημοσίων διαγωνισμών (Bid Director) με 20+ χρόνια εμπειρία
 στην Ελλάδα (Ν.4412/2016). Αξιολογείς αν μια εταιρεία πρέπει να συμμετάσχει σε διαγωνισμό.
@@ -669,8 +679,43 @@ class AIBidOrchestrator {
         },
       });
 
-      // ── Save language to tender ─────────────────────────────
-      await db.tender.update({ where: { id: tenderId }, data: { analysisLanguage: language } });
+      // ── Backfill tender fields from AI extraction ────────────
+      // If the AI found budget, deadlines, authority etc. that are missing from
+      // the tender record, write them back so the overview cards are populated.
+      const tenderUpdate: Record<string, unknown> = { analysisLanguage: language };
+
+      // Budget
+      if (!tender.budget && briefData.keyPoints?.estimatedBudget != null) {
+        tenderUpdate.budget = Number(briefData.keyPoints.estimatedBudget);
+      }
+
+      // Contracting authority
+      if (!tender.contractingAuthority) {
+        const authority = (briefData.keyPoints as any)?.contractingAuthority;
+        if (authority && typeof authority === 'string' && !authority.includes('ΔΕΝ ΑΝΑΦ')) {
+          tenderUpdate.contractingAuthority = authority;
+        }
+      }
+
+      // Submission deadline
+      if (!tender.submissionDeadline && briefData.keyPoints?.deadlines?.length) {
+        const firstDeadline = briefData.keyPoints.deadlines[0];
+        if (firstDeadline?.date && firstDeadline.date !== NOT_FOUND && !firstDeadline.date.includes('ΔΕΝ')) {
+          try {
+            const parsed = new Date(firstDeadline.date);
+            if (!isNaN(parsed.getTime())) {
+              tenderUpdate.submissionDeadline = parsed;
+            }
+          } catch { /* ignore */ }
+        }
+      }
+
+      // CPV codes
+      if (tender.cpvCodes.length === 0 && briefData.keyPoints?.cpvCodes?.length) {
+        tenderUpdate.cpvCodes = briefData.keyPoints.cpvCodes;
+      }
+
+      await db.tender.update({ where: { id: tenderId }, data: tenderUpdate });
 
       // ── Log activity ──────────────────────────────────────────
       const missingCount = missingInfo.length;
