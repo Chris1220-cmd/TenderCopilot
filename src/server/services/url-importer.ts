@@ -244,33 +244,50 @@ class UrlImporterService {
   async importFromUrl(url: string, tenantId: string): Promise<ImportResult> {
     const platform = detectPlatform(url);
 
-    // ── Fetch page HTML ──────────────────────────────────────
+    // ── Fetch page HTML (with Jina fallback for blocked sites) ──
     let html: string;
+    let usedJina = false;
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000);
-
       const response = await fetch(url, {
         headers: {
           'Accept': 'text/html,application/xhtml+xml',
           'Accept-Language': 'el,en;q=0.9',
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
-        signal: controller.signal,
+        signal: AbortSignal.timeout(15000),
       });
-
-      clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       html = await response.text();
-    } catch (err: any) {
-      throw new Error(
-        `Αποτυχία λήψης σελίδας από ${url}: ${err.message || 'Άγνωστο σφάλμα'}. ` +
-        'Ελέγξτε ότι η διεύθυνση είναι σωστή και προσβάσιμη.'
-      );
+    } catch (directErr: any) {
+      // Direct fetch failed (403 Forbidden, timeout, etc.) — try via Jina AI Reader
+      console.log(`[URLImporter] Direct fetch failed (${directErr.message}), trying Jina Reader...`);
+      try {
+        const jinaRes = await fetch(`https://r.jina.ai/${url}`, {
+          headers: {
+            'Accept': 'text/html',
+            'X-Return-Format': 'html',
+          },
+          signal: AbortSignal.timeout(20000),
+        });
+
+        if (!jinaRes.ok) {
+          throw new Error(`Jina returned HTTP ${jinaRes.status}`);
+        }
+
+        html = await jinaRes.text();
+        usedJina = true;
+        console.log(`[URLImporter] Jina Reader succeeded, got ${html.length} chars`);
+      } catch (jinaErr: any) {
+        throw new Error(
+          `Αποτυχία λήψης σελίδας από ${url}: ${directErr.message}. ` +
+          `Jina fallback: ${jinaErr.message}. ` +
+          'Ελέγξτε ότι η διεύθυνση είναι σωστή και προσβάσιμη.'
+        );
+      }
     }
 
     // ── Extract metadata ─────────────────────────────────────

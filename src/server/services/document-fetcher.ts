@@ -135,54 +135,96 @@ export async function fetchDocumentsForTender(params: {
 
       if (pageRes.ok) {
         const html = await pageRes.text();
-        // Look for PDF/DOCX/DOC/ZIP/XML links
-        const linkRegex = /href=["']([^"']*\.(?:pdf|docx?|xlsx?|zip|xml)(?:\?[^"']*)?)["']/gi;
         const origin = new URL(sourceUrl).origin;
-        let match;
         const seen = new Set<string>();
+        const candidateUrls: Array<{ url: string; label: string }> = [];
 
-        while ((match = linkRegex.exec(html)) !== null && documentCount < 10) {
-          const href = match[1];
+        // Strategy 1: Links with file extensions (.pdf, .docx, etc.)
+        const extRegex = /href=["']([^"']*\.(?:pdf|docx?|xlsx?|zip|xml|rar|odt)(?:\?[^"']*)?)["']/gi;
+        let match;
+        while ((match = extRegex.exec(html)) !== null) {
+          candidateUrls.push({ url: match[1], label: '' });
+        }
+
+        // Strategy 2: Links with download-related keywords in href or text
+        // Catches dynamic URLs like /download?id=123, /api/getFile, /attachment/view/456
+        const downloadRegex = /href=["']([^"']+(?:download|attachment|getFile|getDocument|document|arxeio|archeio|file)[^"']*)["'][^>]*>([^<]*)/gi;
+        while ((match = downloadRegex.exec(html)) !== null) {
+          candidateUrls.push({ url: match[1], label: match[2].trim() });
+        }
+
+        // Strategy 3: Links with text containing "Λήψη", "Download", "PDF", "Αρχείο"
+        const labelRegex = /href=["']([^"']+)["'][^>]*>\s*(?:[^<]*?)?(Λήψη|λήψη|Download|download|PDF|pdf|Αρχείο|αρχείο|Συνημμένο|συνημμένο|Κατέβασμα|Έγγραφο|έγγραφο)[^<]*/gi;
+        while ((match = labelRegex.exec(html)) !== null) {
+          candidateUrls.push({ url: match[1], label: match[2] });
+        }
+
+        console.log(`[fetchDocumentsForTender] Found ${candidateUrls.length} candidate URLs on page`);
+
+        for (const candidate of candidateUrls) {
+          if (documentCount >= 10) break;
+          const href = candidate.url;
+          // Skip anchors, javascript, mailto
+          if (href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) continue;
           const fullUrl = href.startsWith('http') ? href : `${origin}${href.startsWith('/') ? '' : '/'}${href}`;
           if (seen.has(fullUrl)) continue;
           seen.add(fullUrl);
 
           try {
             const fileRes = await fetch(fullUrl, {
-              headers: { 'User-Agent': 'Mozilla/5.0' },
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/pdf,application/octet-stream,*/*',
+              },
               signal: AbortSignal.timeout(30000),
+              redirect: 'follow',
             });
 
             if (!fileRes.ok) {
-              console.error(`[fetchDocumentsForTender] Download failed (HTTP ${fileRes.status}): ${fullUrl}`);
+              console.warn(`[fetchDocumentsForTender] Download failed (HTTP ${fileRes.status}): ${fullUrl}`);
               continue;
             }
 
-            const ct = fileRes.headers.get('content-type');
-            if (!isAcceptedContentType(ct)) {
-              console.error(`[fetchDocumentsForTender] Rejected content-type "${ct}" for: ${fullUrl}`);
-              continue;
-            }
+            const ct = fileRes.headers.get('content-type') || '';
+            const ctBase = ct.split(';')[0].trim().toLowerCase();
+            // Accept PDFs, documents, and octet-stream (often used for downloads)
+            const isDocument = isAcceptedContentType(ct)
+              || ctBase === 'application/octet-stream'
+              || ctBase === 'application/force-download';
+
+            if (!isDocument) continue;
 
             const buf = Buffer.from(await fileRes.arrayBuffer());
-            if (buf.length > 100) {
-              const ext = fullUrl.match(/\.(pdf|docx?|xlsx?|zip|xml)/i)?.[1]?.toLowerCase() || 'pdf';
-              const filename = `document_${documentCount + 1}.${ext}`;
-              const s3Key = `tenants/${tenantId}/tenders/${tenderId}/docs/${Date.now()}-${filename}`;
-              const mimeType = MIME_BY_EXT[ext] || 'application/octet-stream';
-              await uploadFile(s3Key, buf, mimeType);
-              await db.attachedDocument.create({
-                data: {
-                  tenderId,
-                  fileName: filename,
-                  fileKey: s3Key,
-                  fileSize: buf.length,
-                  mimeType,
-                  category: 'specification',
-                },
-              });
-              documentCount++;
+            if (buf.length < 500) continue; // Skip tiny files
+
+            // Determine extension from URL, content-type, or label
+            let ext = fullUrl.match(/\.(pdf|docx?|xlsx?|zip|xml|rar|odt)/i)?.[1]?.toLowerCase();
+            if (!ext) {
+              if (ctBase.includes('pdf')) ext = 'pdf';
+              else if (ctBase.includes('word') || ctBase.includes('docx')) ext = 'docx';
+              else if (ctBase.includes('excel') || ctBase.includes('xlsx')) ext = 'xlsx';
+              else if (ctBase.includes('zip')) ext = 'zip';
+              else ext = 'pdf'; // Default to PDF for octet-stream
             }
+
+            const filename = candidate.label && candidate.label.length > 2
+              ? `${candidate.label.replace(/[^a-zA-Z0-9α-ωΑ-Ωά-ώ._\- ]/g, '_').slice(0, 60)}.${ext}`
+              : `document_${documentCount + 1}.${ext}`;
+            const s3Key = `tenants/${tenantId}/tenders/${tenderId}/docs/${Date.now()}-${filename}`;
+            const mimeType = MIME_BY_EXT[ext] || 'application/octet-stream';
+            await uploadFile(s3Key, buf, mimeType);
+            await db.attachedDocument.create({
+              data: {
+                tenderId,
+                fileName: filename,
+                fileKey: s3Key,
+                fileSize: buf.length,
+                mimeType,
+                category: 'specification',
+              },
+            });
+            documentCount++;
+            console.log(`[fetchDocumentsForTender] Downloaded: ${filename} (${buf.length} bytes)`);
           } catch (err) {
             console.error(`[fetchDocumentsForTender] Failed to download ${fullUrl}:`, err);
           }
@@ -190,6 +232,19 @@ export async function fetchDocumentsForTender(params: {
       }
     } catch (err) {
       console.error(`[fetchDocumentsForTender] Page scraping failed for ${sourceUrl}:`, err);
+    }
+  }
+
+  // ── Fallback: Deep Research with Jina + Claude AI ─────────────
+  if (documentCount === 0 && sourceUrl.startsWith('http')) {
+    console.log(`[fetchDocumentsForTender] No documents found via scraping, trying deep research...`);
+    try {
+      const { deepResearchTender } = await import('./deep-research');
+      const deepResult = await deepResearchTender(tenderId, sourceUrl, tenantId);
+      documentCount += deepResult.documentCount;
+      console.log(`[fetchDocumentsForTender] Deep research found ${deepResult.documentCount} documents, enriched: ${deepResult.enriched}`);
+    } catch (err) {
+      console.error(`[fetchDocumentsForTender] Deep research failed:`, err);
     }
   }
 
