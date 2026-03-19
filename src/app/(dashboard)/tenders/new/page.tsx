@@ -198,36 +198,43 @@ export default function NewTenderPage() {
     setFileSteps([...steps]);
 
     try {
-      // Upload files first
-      const formData = new FormData();
-      files.forEach((f) => formData.append('files', f));
+      // Upload files ONE BY ONE to avoid Vercel 4.5MB body limit
+      const uploadedFiles: Array<{ key: string; name: string; mimeType: string }> = [];
+
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('files', file);
+
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          console.error(`Upload failed for ${file.name}: HTTP ${uploadRes.status}`);
+          throw new Error(`Αποτυχία μεταφόρτωσης: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+        }
+
+        const uploadData = await uploadRes.json();
+        for (const f of uploadData.files || []) {
+          uploadedFiles.push({ key: f.fileKey, name: f.fileName, mimeType: f.mimeType });
+        }
+      }
 
       steps[0].status = 'done';
       steps[1].status = 'active';
       setFileSteps([...steps]);
 
-      const uploadRes = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadRes.ok) throw new Error('Αποτυχία μεταφόρτωσης αρχείων');
-      const uploadData = await uploadRes.json();
-
       // Step through remaining progress
       for (let i = 1; i < steps.length; i++) {
-        await new Promise((r) => setTimeout(r, 700 + Math.random() * 500));
+        await new Promise((r) => setTimeout(r, 500));
         steps[i].status = 'done';
         if (i + 1 < steps.length) steps[i + 1].status = 'active';
         setFileSteps([...steps]);
       }
 
       const result = await importFromFiles.mutateAsync({
-        files: (uploadData.files || []).map((f: any) => ({
-          key: f.key,
-          name: f.name,
-          mimeType: f.mimeType,
-        })),
+        files: uploadedFiles,
       });
       router.push(`/tenders/${result.tenderId}`);
     } catch (err: any) {

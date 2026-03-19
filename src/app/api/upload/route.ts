@@ -70,4 +70,4 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ files: results });
 }
 
-// Next.js App Router handles body parsing automatically for FormData
+export const maxDuration = 30;
