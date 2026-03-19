@@ -63,7 +63,10 @@
       "mcp__sequential-thinking__sequentialthinking",
       "Bash(curl -s \"https://tender-copilot-kappa.vercel.app/api/debug-analysis\")",
       "Bash(python -m json.tool)",
-      "Bash(curl -s https://tender-copilot-kappa.vercel.app/api/debug-analysis)"
+      "Bash(curl -s https://tender-copilot-kappa.vercel.app/api/debug-analysis)",
+      "Bash(curl -v -X POST \"https://tender-copilot-kappa.vercel.app/api/trpc/aiRoles.summarizeTender?batch=1\" -H \"Content-Type: application/json\" -d '{\"\"\"\"0\"\"\"\":{\"\"\"\"json\"\"\"\":{\"\"\"\"tenderId\"\"\"\":\"\"\"\"cmmxi81ea0007jo049kf7u51w\"\"\"\",\"\"\"\"language\"\"\"\":\"\"\"\"el\"\"\"\"}}}')",
+      "Bash(time curl:*)",
+      "Read(//tmp/**)"
     ]
   }
 }
