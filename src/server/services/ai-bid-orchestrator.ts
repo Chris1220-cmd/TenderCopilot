@@ -439,10 +439,16 @@ class AIBidOrchestrator {
    */
   async summarizeTender(tenderId: string, language: 'el' | 'en' = 'el') {
     await requireDocuments(tenderId);
-    // ── Concurrency guard ─────────────────────────────────────
+    // ── Concurrency guard (auto-reset after 2 min to prevent stuck state) ──
     const tenderCheck = await db.tender.findUniqueOrThrow({ where: { id: tenderId } });
     if (tenderCheck.analysisInProgress) {
-      throw new Error('Η ανάλυση βρίσκεται ήδη σε εξέλιξη');
+      const stuckThreshold = 2 * 60 * 1000; // 2 minutes
+      const timeSinceUpdate = Date.now() - new Date(tenderCheck.updatedAt).getTime();
+      if (timeSinceUpdate < stuckThreshold) {
+        throw new Error('Η ανάλυση βρίσκεται ήδη σε εξέλιξη');
+      }
+      // Auto-reset stuck flag
+      console.warn(`[BidOrchestrator] Resetting stuck analysisInProgress for tender ${tenderId}`);
     }
 
     // ── Token budget check ────────────────────────────────────
