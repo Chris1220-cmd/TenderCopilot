@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '@/server/trpc';
 import { deleteFile } from '@/lib/s3';
+import { readTenderDocuments } from '@/server/services/document-reader';
 
 const generatedDocTypeEnum = z.enum([
   'SOLEMN_DECLARATION',
@@ -57,9 +58,17 @@ export const documentRouter = router({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Tender not found.' });
       }
 
-      return ctx.db.attachedDocument.create({
+      const doc = await ctx.db.attachedDocument.create({
         data: input,
       });
+
+      // Fire-and-forget: pre-extract text (including OCR for scanned PDFs)
+      // so it's cached before analysis runs — avoids timeout during AI analysis
+      readTenderDocuments(input.tenderId).catch((err) => {
+        console.error(`[createAttached] Background text extraction failed:`, err);
+      });
+
+      return doc;
     }),
 
   deleteAttached: protectedProcedure
