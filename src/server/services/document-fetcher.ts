@@ -235,6 +235,94 @@ export async function fetchDocumentsForTender(params: {
     }
   }
 
+  // ── Jina Reader fallback: extract links from JS-rendered pages ──
+  if (documentCount === 0 && sourceUrl.startsWith('http')) {
+    console.log(`[fetchDocumentsForTender] HTML scraping found 0 docs, trying Jina Reader...`);
+    try {
+      const jinaRes = await fetch(`https://r.jina.ai/${sourceUrl}`, {
+        headers: { Accept: 'text/markdown' },
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (jinaRes.ok) {
+        const markdown = await jinaRes.text();
+        const origin = new URL(sourceUrl).origin;
+        const seen = new Set<string>();
+
+        // Extract URLs from markdown links: [text](url)
+        const mdLinkRegex = /\[([^\]]*)\]\((https?:\/\/[^)]+)\)/gi;
+        let match;
+        while ((match = mdLinkRegex.exec(markdown)) !== null) {
+          const label = match[1];
+          const url = match[2];
+          if (seen.has(url) || documentCount >= 10) continue;
+
+          // Check if URL or label suggests a document
+          const isDocUrl = /\.(pdf|docx?|xlsx?|zip|xml|rar|odt)(\?|$)/i.test(url)
+            || /download|attachment|getFile|getDocument|arxeio|archeio/i.test(url);
+          const isDocLabel = /Λήψη|λήψη|Download|download|PDF|pdf|Αρχείο|αρχείο|Συνημμένο|Κατέβασμα|Έγγραφο|έγγραφο|Τεύχος|Διακήρυξη|διακήρυξη|document/i.test(label);
+
+          if (!isDocUrl && !isDocLabel) continue;
+          seen.add(url);
+
+          try {
+            const fileRes = await fetch(url, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/pdf,application/octet-stream,*/*',
+              },
+              signal: AbortSignal.timeout(30000),
+              redirect: 'follow',
+            });
+            if (!fileRes.ok) continue;
+
+            const ct = fileRes.headers.get('content-type')?.split(';')[0].trim().toLowerCase() || '';
+            const isDocument = isAcceptedContentType(fileRes.headers.get('content-type'))
+              || ct === 'application/octet-stream'
+              || ct === 'application/force-download';
+            if (!isDocument) continue;
+
+            const buf = Buffer.from(await fileRes.arrayBuffer());
+            if (buf.length < 500) continue;
+
+            let ext = url.match(/\.(pdf|docx?|xlsx?|zip|xml|rar|odt)/i)?.[1]?.toLowerCase();
+            if (!ext) {
+              if (ct.includes('pdf')) ext = 'pdf';
+              else if (ct.includes('word') || ct.includes('docx')) ext = 'docx';
+              else if (ct.includes('excel') || ct.includes('xlsx')) ext = 'xlsx';
+              else if (ct.includes('zip')) ext = 'zip';
+              else ext = 'pdf';
+            }
+
+            const filename = label && label.length > 2
+              ? `${label.replace(/[^a-zA-Z0-9α-ωΑ-Ωά-ώ._\- ]/g, '_').slice(0, 60)}.${ext}`
+              : `document_${documentCount + 1}.${ext}`;
+            const s3Key = `tenants/${tenantId}/tenders/${tenderId}/docs/${Date.now()}-${filename}`;
+            const mimeType = MIME_BY_EXT[ext] || 'application/octet-stream';
+            await uploadFile(s3Key, buf, mimeType);
+            await db.attachedDocument.create({
+              data: {
+                tenderId,
+                fileName: filename,
+                fileKey: s3Key,
+                fileSize: buf.length,
+                mimeType,
+                category: 'specification',
+              },
+            });
+            documentCount++;
+            console.log(`[fetchDocumentsForTender] Jina: Downloaded ${filename} (${buf.length} bytes)`);
+          } catch (err) {
+            console.error(`[fetchDocumentsForTender] Jina: Failed to download ${url}:`, err);
+          }
+        }
+        console.log(`[fetchDocumentsForTender] Jina strategy found ${documentCount} documents`);
+      }
+    } catch (err) {
+      console.error(`[fetchDocumentsForTender] Jina Reader failed:`, err);
+    }
+  }
+
   // ── Fallback: Deep Research with Jina + Claude AI ─────────────
   if (documentCount === 0 && sourceUrl.startsWith('http')) {
     console.log(`[fetchDocumentsForTender] No documents found via scraping, trying deep research...`);

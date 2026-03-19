@@ -176,9 +176,10 @@ ${pageMarkdown.slice(0, 30000)}`,
   // ── Step 5: Download documents → upload to S3 → create AttachedDocument records ──
   let documentCount = 0;
 
+  // Accept any HTTP URL — don't require file extensions in URL
+  // (many Greek procurement sites use dynamic download URLs like /download?id=123)
   const validUrls = extracted.documentUrls
     .filter((url): url is string => typeof url === 'string' && url.startsWith('http'))
-    .filter((url) => ACCEPTED_EXTENSIONS.test(url))
     .slice(0, MAX_DOCUMENTS);
 
   for (const docUrl of validUrls) {
@@ -193,15 +194,32 @@ ${pageMarkdown.slice(0, 30000)}`,
         continue;
       }
 
+      // Check content-type to verify it's a document (not an HTML page)
+      const ct = docRes.headers.get('content-type')?.split(';')[0].trim().toLowerCase() || '';
+      const isDocument = ct.includes('pdf') || ct.includes('word') || ct.includes('zip')
+        || ct.includes('octet-stream') || ct.includes('force-download')
+        || ct.includes('excel') || ct.includes('xml') || ct.includes('rar');
+      if (!isDocument && !ACCEPTED_EXTENSIONS.test(docUrl)) {
+        console.warn(`[DeepResearch] Skipping non-document content-type (${ct}): ${docUrl}`);
+        continue;
+      }
+
       const buffer = Buffer.from(await docRes.arrayBuffer());
-      if (buffer.length < 100) {
+      if (buffer.length < 500) {
         console.warn(`[DeepResearch] Doc too small (${buffer.length} bytes): ${docUrl}`);
         continue;
       }
 
-      // Determine extension and MIME type
-      const extMatch = docUrl.match(/\.(pdf|docx?|zip|xml)/i);
-      const ext = extMatch?.[1]?.toLowerCase() || 'pdf';
+      // Determine extension from URL or content-type
+      const extMatch = docUrl.match(/\.(pdf|docx?|xlsx?|zip|xml)/i);
+      let ext = extMatch?.[1]?.toLowerCase();
+      if (!ext) {
+        if (ct.includes('pdf')) ext = 'pdf';
+        else if (ct.includes('word') || ct.includes('docx')) ext = 'docx';
+        else if (ct.includes('excel') || ct.includes('xlsx')) ext = 'xlsx';
+        else if (ct.includes('zip')) ext = 'zip';
+        else ext = 'pdf'; // Default for octet-stream/force-download
+      }
       const mimeType = MIME_BY_EXT[ext] || 'application/octet-stream';
 
       // Extract a filename from URL

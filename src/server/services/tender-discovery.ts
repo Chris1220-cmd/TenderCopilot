@@ -534,7 +534,12 @@ async function searchGoogleCustomSearch(
     });
 
     if (!res.ok) {
-      console.error(`[Google] API error: ${res.status}`);
+      const errorBody = await res.text().catch(() => '');
+      console.error(`[Google] API error: ${res.status} - ${errorBody}`);
+      // Common fixes:
+      // 403 = Custom Search API not enabled, or API key restricted to wrong project
+      // 429 = quota exceeded (100 queries/day free tier)
+      // Go to console.cloud.google.com → APIs & Services → Enable "Custom Search API"
       return [];
     }
 

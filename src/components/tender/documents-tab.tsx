@@ -87,35 +87,59 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
   const attached = (attachedQuery.data ?? []) as any[];
   const generated = (generatedQuery.data ?? []) as any[];
 
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
+
   const handleFileUpload = useCallback(async (files: File[]) => {
+    setUploading(true);
     for (const file of files) {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('tenderId', tenderId);
-
       try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData?.error || `Upload failed (${res.status})`);
-        }
-        const data = await res.json();
+        setUploadProgress(`Ανέβασμα: ${file.name}...`);
 
+        // Step 1: Get signed upload URL from our API
+        const urlRes = await fetch('/api/upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: file.name,
+            contentType: file.type || 'application/octet-stream',
+          }),
+        });
+        if (!urlRes.ok) {
+          const errData = await urlRes.json().catch(() => ({}));
+          throw new Error(errData?.error || `Failed to get upload URL (${urlRes.status})`);
+        }
+        const { uploadUrl, key } = await urlRes.json();
+
+        // Step 2: Upload file directly to Supabase (bypasses Vercel body limit)
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream',
+          },
+          body: file,
+        });
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text().catch(() => '');
+          throw new Error(`Direct upload failed (${uploadRes.status}): ${errText}`);
+        }
+
+        // Step 3: Create DB record via tRPC
         uploadMutation.mutate({
           tenderId,
           fileName: file.name,
-          fileKey: data.key,
+          fileKey: key,
           fileSize: file.size,
           mimeType: file.type,
+          category: 'specification',
         });
       } catch (err: any) {
         console.error('Upload failed:', err);
-        alert(`Σφάλμα ανεβάσματος αρχείου: ${err?.message || 'Άγνωστο σφάλμα'}`);
+        alert(`Σφάλμα ανεβάσματος αρχείου "${file.name}": ${err?.message || 'Άγνωστο σφάλμα'}`);
       }
     }
+    setUploading(false);
+    setUploadProgress('');
   }, [tenderId, uploadMutation]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -181,6 +205,11 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
             <p className="mt-1 text-xs text-muted-foreground">
               PDF, DOCX, XLSX - Μέγιστο 50MB
             </p>
+            {uploading && (
+              <p className="mt-2 text-xs text-primary font-medium animate-pulse">
+                {uploadProgress}
+              </p>
+            )}
           </CardContent>
           <input
             ref={fileInputRef}

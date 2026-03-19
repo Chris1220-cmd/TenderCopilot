@@ -181,17 +181,42 @@ export async function readSingleDocument(fileKey: string, mimeType: string, file
 }
 
 /**
- * Guard: throws PRECONDITION_FAILED if no successfully-parsed documents exist.
- * Call as first line of every AI service method to prevent ungrounded analysis.
+ * Guard: ensures documents exist AND are parsed before AI analysis.
+ * If documents exist but haven't been parsed yet, triggers parsing first.
+ * Throws PRECONDITION_FAILED only if no documents exist at all.
  */
 export async function requireDocuments(tenderId: string): Promise<void> {
-  const count = await db.attachedDocument.count({
-    where: { tenderId, parsingStatus: 'success' },
+  const totalDocs = await db.attachedDocument.count({
+    where: { tenderId },
   });
-  if (count === 0) {
+
+  if (totalDocs === 0) {
     throw new TRPCError({
       code: 'PRECONDITION_FAILED',
-      message: 'Δεν βρέθηκαν αναλύσιμα έγγραφα. Κατεβάστε πρώτα τη διακήρυξη.',
+      message: 'Δεν βρέθηκαν έγγραφα. Ανεβάστε πρώτα τη διακήρυξη.',
+    });
+  }
+
+  // Check if any docs are unparsed (parsingStatus is null)
+  const unparsedCount = await db.attachedDocument.count({
+    where: { tenderId, parsingStatus: null },
+  });
+
+  if (unparsedCount > 0) {
+    // Trigger parsing by reading all documents (this will cache extracted text)
+    console.log(`[requireDocuments] ${unparsedCount} unparsed docs found, triggering parsing...`);
+    await readTenderDocuments(tenderId);
+  }
+
+  // Now check for successfully parsed docs
+  const parsedCount = await db.attachedDocument.count({
+    where: { tenderId, parsingStatus: 'success' },
+  });
+
+  if (parsedCount === 0) {
+    throw new TRPCError({
+      code: 'PRECONDITION_FAILED',
+      message: 'Τα έγγραφα δεν περιέχουν αναγνώσιμο κείμενο (σκαναρισμένα PDF;). Δοκιμάστε με searchable PDF.',
     });
   }
 }
