@@ -46,6 +46,23 @@ export interface TenderSearchParams {
   tenantId?: string;
 }
 
+// Merge two duplicate tenders, keeping the most complete data
+function mergeTenders(existing: DiscoveredTender, incoming: DiscoveredTender): DiscoveredTender {
+  return {
+    ...existing,
+    title: existing.title.length >= incoming.title.length ? existing.title : incoming.title,
+    budget: existing.budget ?? incoming.budget,
+    submissionDeadline: existing.submissionDeadline ?? incoming.submissionDeadline,
+    contractingAuthority: existing.contractingAuthority || incoming.contractingAuthority,
+    summary: existing.summary || incoming.summary,
+    cpvCodes: Array.from(new Set([...existing.cpvCodes, ...incoming.cpvCodes])),
+    // Keep source info from both
+    sourceLabel: existing.sourceLabel
+      ? `${existing.sourceLabel}, ${incoming.platform}`
+      : `${existing.platform}, ${incoming.platform}`,
+  };
+}
+
 interface CompanySearchProfile {
   kadCodes: string[];
   description: string | null;
@@ -786,7 +803,55 @@ class TenderDiscoveryService {
         console.error(`[Discovery] Fetcher ${i} FAILED:`, result.reason?.message || result.reason);
       }
     }
-    console.log(`[Discovery] Total: ${allTenders.length} tenders`);
+    console.log(`[Discovery] Total before dedup: ${allTenders.length} tenders`);
+
+    // ── Cross-platform deduplication ──────────────────────────
+    // Same tender can appear in Diavgeia + TED + Google with different titles.
+    // Deduplicate by: (1) exact sourceUrl, (2) referenceNumber, (3) fuzzy title match
+    {
+      const seen = new Map<string, number>(); // key → index in deduped array
+      const deduped: DiscoveredTender[] = [];
+
+      for (const tender of allTenders) {
+        // Key 1: exact URL match
+        const urlKey = tender.sourceUrl?.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '').toLowerCase();
+        if (urlKey && seen.has(`url:${urlKey}`)) {
+          // Merge: keep the one with more data (higher relevanceScore or budget info)
+          const existingIdx = seen.get(`url:${urlKey}`)!;
+          deduped[existingIdx] = mergeTenders(deduped[existingIdx], tender);
+          continue;
+        }
+
+        // Key 2: reference number match (if both have one)
+        const refKey = tender.referenceNumber?.replace(/[\s\-\/\.]/g, '').toLowerCase();
+        if (refKey && refKey.length > 3 && seen.has(`ref:${refKey}`)) {
+          const existingIdx = seen.get(`ref:${refKey}`)!;
+          deduped[existingIdx] = mergeTenders(deduped[existingIdx], tender);
+          continue;
+        }
+
+        // Key 3: fuzzy title match — normalize and compare
+        const titleKey = tender.title
+          .toLowerCase()
+          .replace(/[^a-zα-ωά-ώ0-9]/g, '')
+          .slice(0, 60);
+        if (titleKey.length > 20 && seen.has(`title:${titleKey}`)) {
+          const existingIdx = seen.get(`title:${titleKey}`)!;
+          deduped[existingIdx] = mergeTenders(deduped[existingIdx], tender);
+          continue;
+        }
+
+        // Not a duplicate — add it
+        const idx = deduped.length;
+        deduped.push(tender);
+        if (urlKey) seen.set(`url:${urlKey}`, idx);
+        if (refKey && refKey.length > 3) seen.set(`ref:${refKey}`, idx);
+        if (titleKey.length > 20) seen.set(`title:${titleKey}`, idx);
+      }
+
+      allTenders = deduped;
+      console.log(`[Discovery] After dedup: ${allTenders.length} tenders`);
+    }
 
     // Apply keyword filter
     if (keywords && keywords.length > 0) {
