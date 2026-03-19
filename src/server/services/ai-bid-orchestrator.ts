@@ -703,10 +703,61 @@ class AIBidOrchestrator {
         tenderUpdate.budget = Number(briefData.keyPoints.estimatedBudget);
       }
 
-      // Contracting authority
+      // Contracting authority — check multiple possible locations in AI response,
+      // then fall back to regex-based extraction from document text.
       if (!tender.contractingAuthority) {
-        const authority = (briefData.keyPoints as any)?.contractingAuthority;
-        if (authority && typeof authority === 'string' && !authority.includes('ΔΕΝ ΑΝΑΦ')) {
+        const kp = briefData.keyPoints as any;
+        const candidateAuthority =
+          kp?.contractingAuthority ||
+          kp?.awardingAuthority ||
+          kp?.authority ||
+          kp?.anathetousa ||
+          (briefData as any)?.contractingAuthority;
+
+        let authority: string | undefined;
+
+        if (candidateAuthority && typeof candidateAuthority === 'string' && !candidateAuthority.includes('ΔΕΝ ΑΝΑΦ') && candidateAuthority !== NOT_FOUND) {
+          authority = candidateAuthority;
+        }
+
+        // If not found in keyPoints, try to regex-match from the summary text
+        if (!authority && briefData.summaryText) {
+          const authorityMatch = briefData.summaryText.match(
+            /(?:αναθέτουσα\s*αρχή|φορέας)[:\s]*([^\n,.;]{3,80})/i
+          );
+          if (authorityMatch?.[1]) {
+            authority = authorityMatch[1].trim();
+          }
+        }
+
+        // If still not found, search the raw document text for common Greek authority patterns
+        if (!authority && documentText) {
+          const authorityPatterns = [
+            /(?:Κτηματικ[ήη]\s+Υπηρεσ[ίι]α\s+\S+)/i,
+            /(?:Δ[ήη]μος\s+\S+(?:\s+\S+)?)/i,
+            /(?:Υπουργε[ίι]ο\s+\S+(?:\s+\S+){0,3})/i,
+            /(?:ΑΑΔΕ|Α\.Α\.Δ\.Ε\.)/,
+            /(?:Περιφ[έε]ρεια\s+\S+(?:\s+\S+)?)/i,
+            /(?:Αποκεντρωμ[έε]νη\s+Διο[ίι]κηση\s+\S+(?:\s+\S+){0,2})/i,
+            /(?:Ν\.Π\.Δ\.Δ\.\s+\S+(?:\s+\S+){0,2})/i,
+            /(?:Ο\.Τ\.Α\.\s+\S+(?:\s+\S+)?)/i,
+            /(?:Πανεπιστ[ήη]μιο\s+\S+(?:\s+\S+)?)/i,
+            /(?:Νοσοκομε[ίι]ο\s+\S+(?:\s+\S+)?)/i,
+            /(?:ΕΦΚΑ|Ε\.Φ\.Κ\.Α\.)/,
+            /(?:ΔΕΥΑ\s+\S+)/i,
+            /(?:ΔΕΗ|Δ\.Ε\.Η\.)/,
+            /(?:ΕΥΔΑΠ|Ε\.ΥΔ\.Α\.Π\.)/,
+          ];
+          for (const pattern of authorityPatterns) {
+            const match = documentText.match(pattern);
+            if (match?.[0]) {
+              authority = match[0].trim();
+              break;
+            }
+          }
+        }
+
+        if (authority) {
           tenderUpdate.contractingAuthority = authority;
         }
       }

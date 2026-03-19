@@ -66,7 +66,11 @@
       "Bash(curl -s https://tender-copilot-kappa.vercel.app/api/debug-analysis)",
       "Bash(curl -v -X POST \"https://tender-copilot-kappa.vercel.app/api/trpc/aiRoles.summarizeTender?batch=1\" -H \"Content-Type: application/json\" -d '{\"\"\"\"0\"\"\"\":{\"\"\"\"json\"\"\"\":{\"\"\"\"tenderId\"\"\"\":\"\"\"\"cmmxi81ea0007jo049kf7u51w\"\"\"\",\"\"\"\"language\"\"\"\":\"\"\"\"el\"\"\"\"}}}')",
       "Bash(time curl:*)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(npm init:*)",
+      "Bash(npx create-playwright:*)",
+      "Bash(npx playwright:*)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx|js|jsx\\)$\")"
     ]
   }
 }

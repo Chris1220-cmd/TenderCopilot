@@ -638,19 +638,45 @@ class AILegalAnalyzer {
 
     // Check which LEGAL_CRITICAL_FIELDS are covered by extracted clauses
     // Use broader keyword matching (synonyms, related terms) to reduce false negatives
+    // Also normalize text by removing Greek accents for more robust matching
     const FIELD_KEYWORDS: Record<string, string[]> = {
-      'Εγγυητική συμμετοχής': ['εγγυητικ', 'εγγύηση', 'guarantee', 'bank guarantee', 'τραπεζ'],
-      'Δικαιολογητικά συμμετοχής': ['δικαιολογητικ', 'επισυνάπτ', 'προσκομι', 'υπεύθυνη δήλωση', 'πιστοποιητικ', 'βεβαίωση'],
-      'Κριτήρια αποκλεισμού': ['αποκλεισμ', 'αποκλει', 'exclusion', 'ακατάλληλ', 'απόρριψ', 'δεν γίνονται δεκτ'],
-      'Κριτήρια ανάθεσης': ['κριτήρι', 'ανάθεσ', 'award', 'μειοδοτ', 'χαμηλότερη τιμή', 'βαθμολόγ', 'αξιολόγ'],
+      'Εγγυητική συμμετοχής': ['εγγυητικ', 'εγγυηση', 'guarantee', 'bank guarantee', 'τραπεζ', 'εγγυοδοσ'],
+      'Δικαιολογητικά συμμετοχής': [
+        'δικαιολογητικ', 'επισυναπτ', 'προσκομι', 'υπευθυνη δηλωση', 'πιστοποιητικ',
+        'βεβαιωση', 'προσφορα πρεπει', 'συνημμεν', 'υποβαλλ', 'κατατεθ',
+        'οικοδομικ', 'αδεια', 'συμμετοχ', 'δηλωση', 'εγγραφ',
+        'φακελ', 'απαιτουμεν', 'προαπαιτουμ',
+      ],
+      'Κριτήρια αποκλεισμού': ['αποκλεισμ', 'αποκλει', 'exclusion', 'ακαταλληλ', 'απορριψ', 'δεν γινονται δεκτ', 'λογοι αποκλεισμ'],
+      'Κριτήρια ανάθεσης': ['κριτηρι', 'αναθεσ', 'award', 'μειοδοτ', 'χαμηλοτερη τιμη', 'βαθμολογ', 'αξιολογ', 'πλεον συμφερ', 'οικονομικ προσφορ'],
     };
 
+    // Helper: strip Greek accents/diacritics for more reliable matching
+    const stripAccents = (text: string): string =>
+      text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
     const missingInfo: string[] = [];
-    const allClauseText = clauses.map(c => c.clauseText.toLowerCase()).join(' ');
+    const allClauseText = stripAccents(clauses.map(c => c.clauseText).join(' '));
+
+    // Fetch the Brief's awardType so we can consider "Κριτήρια ανάθεσης" as
+    // covered if the brief already identified the award type (e.g. lowest_price).
+    const brief = await db.tenderBrief.findUnique({
+      where: { tenderId },
+      select: { awardType: true },
+    });
+    const briefAwardType = brief?.awardType?.toLowerCase() ?? '';
 
     for (const field of LEGAL_CRITICAL_FIELDS) {
-      const keywords = FIELD_KEYWORDS[field] || [field.toLowerCase()];
-      const isCovered = keywords.some(kw => allClauseText.includes(kw.toLowerCase()));
+      const keywords = FIELD_KEYWORDS[field] || [stripAccents(field)];
+      let isCovered = keywords.some(kw => allClauseText.includes(stripAccents(kw)));
+
+      // Bug 3 fix: If the Brief already identified the award type, treat
+      // "Κριτήρια ανάθεσης" as covered (the information exists in the brief).
+      if (!isCovered && field === 'Κριτήρια ανάθεσης' && briefAwardType) {
+        const knownAwardTypes = ['lowest_price', 'best_value', 'most_economically_advantageous', 'μειοδοτ', 'χαμηλοτερη', 'πλεον συμφερ'];
+        isCovered = knownAwardTypes.some(t => stripAccents(briefAwardType).includes(stripAccents(t)));
+      }
+
       if (!isCovered) {
         missingInfo.push(`${NOT_FOUND}: ${field}`);
       }
