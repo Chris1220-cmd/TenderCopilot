@@ -31,40 +31,50 @@ export async function POST(req: NextRequest) {
   const results = [];
 
   for (const file of files) {
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    try {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
 
-    // Generate unique key
-    const timestamp = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const key = `uploads/${session.user.id}/${timestamp}_${safeName}`;
+      // Generate unique key
+      const timestamp = Date.now();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const key = `uploads/${session.user.id}/${timestamp}_${safeName}`;
 
-    // Upload to S3
-    await uploadFile(key, buffer, file.type);
+      console.log(`[Upload] Uploading ${file.name} (${buffer.length} bytes) to ${key}`);
 
-    let record: { id: string; fileName: string; fileKey: string } | null = null;
+      // Upload to S3/Supabase
+      await uploadFile(key, buffer, file.type);
 
-    if (tenderId && uploadType === 'tender') {
-      // Create AttachedDocument
-      record = await db.attachedDocument.create({
-        data: {
-          tenderId,
-          fileName: file.name,
-          fileKey: key,
-          fileSize: buffer.length,
-          mimeType: file.type,
-          category: category || 'specification',
-        },
+      let record: { id: string; fileName: string; fileKey: string } | null = null;
+
+      if (tenderId && uploadType === 'tender') {
+        record = await db.attachedDocument.create({
+          data: {
+            tenderId,
+            fileName: file.name,
+            fileKey: key,
+            fileSize: buffer.length,
+            mimeType: file.type,
+            category: category || 'specification',
+          },
+        });
+      }
+
+      results.push({
+        id: record?.id,
+        fileName: file.name,
+        fileKey: key,
+        fileSize: buffer.length,
+        mimeType: file.type,
       });
+      console.log(`[Upload] Success: ${file.name}`);
+    } catch (err: any) {
+      console.error(`[Upload] Failed for ${file.name}:`, err.message || err);
+      return NextResponse.json(
+        { error: `Upload failed for ${file.name}: ${err.message || 'Unknown error'}` },
+        { status: 500 }
+      );
     }
-
-    results.push({
-      id: record?.id,
-      fileName: file.name,
-      fileKey: key,
-      fileSize: buffer.length,
-      mimeType: file.type,
-    });
   }
 
   return NextResponse.json({ files: results });
