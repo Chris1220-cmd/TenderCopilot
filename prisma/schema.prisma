@@ -303,6 +303,7 @@ enum TenderPlatform {
   KIMDIS
   OTHER
   PRIVATE
+  GOOGLE
 }
 
 enum TenderStatus {

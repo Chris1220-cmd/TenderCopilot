@@ -19,7 +19,7 @@ export interface DiscoveredTender {
   title: string;
   referenceNumber: string;
   contractingAuthority: string;
-  platform: 'KIMDIS' | 'DIAVGEIA' | 'TED' | 'ESIDIS' | 'PRIVATE';
+  platform: 'KIMDIS' | 'DIAVGEIA' | 'TED' | 'ESIDIS' | 'PRIVATE' | 'GOOGLE';
   budget?: number;
   submissionDeadline?: Date;
   cpvCodes: string[];
@@ -38,7 +38,7 @@ export interface TenderSearchParams {
   keywords?: string[];
   minBudget?: number;
   maxBudget?: number;
-  platforms?: Array<'KIMDIS' | 'DIAVGEIA' | 'TED' | 'ESIDIS' | 'OTHER' | 'PRIVATE'>;
+  platforms?: Array<'KIMDIS' | 'DIAVGEIA' | 'TED' | 'ESIDIS' | 'OTHER' | 'PRIVATE' | 'GOOGLE'>;
   showAll?: boolean;
   country?: 'GR' | 'EU' | 'international' | 'all';
   entityType?: 'public' | 'private' | 'all';
@@ -236,12 +236,13 @@ async function getLatestFromTED(cpvCodes?: string[]): Promise<DiscoveredTender[]
           page: 1,
           fields: ['notice-identifier', 'deadline-receipt-tender-date-lot'],
         }),
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(15000),
       }
     );
 
     if (!res.ok) {
-      console.error(`[TED] API error: ${res.status}`);
+      const body = await res.text().catch(() => '');
+      console.error(`[TED] API error: ${res.status}, body: ${body.slice(0, 200)}`);
       return [];
     }
 
@@ -475,6 +476,100 @@ async function searchPrivateSector(
   return results;
 }
 
+// ─── Google Custom Search ────────────────────────────────────
+
+/**
+ * Searches for Greek procurement tenders via Google Custom Search API.
+ * Requires GOOGLE_CUSTOM_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID env vars.
+ * Returns empty array if env vars are missing (graceful degradation).
+ */
+async function searchGoogleCustomSearch(
+  keywords: string[],
+  cpvCodes?: string[],
+): Promise<DiscoveredTender[]> {
+  const apiKey = process.env.GOOGLE_CUSTOM_SEARCH_API_KEY;
+  const engineId = process.env.GOOGLE_SEARCH_ENGINE_ID;
+
+  if (!apiKey || !engineId) {
+    console.log('[Google] Missing GOOGLE_CUSTOM_SEARCH_API_KEY or GOOGLE_SEARCH_ENGINE_ID, skipping');
+    return [];
+  }
+
+  try {
+    // Build search query: combine keywords with Greek procurement terms
+    const greekTerms = 'διαγωνισμός OR προκήρυξη OR διακήρυξη';
+    const keywordPart = keywords.length > 0 ? keywords.slice(0, 5).join(' ') : '';
+    const cpvPart = cpvCodes && cpvCodes.length > 0
+      ? cpvCodes.slice(0, 3).map(c => `CPV ${c}`).join(' OR ')
+      : '';
+
+    const queryParts = [keywordPart, cpvPart, greekTerms].filter(Boolean);
+    const query = queryParts.join(' ');
+
+    const url = new URL('https://www.googleapis.com/customsearch/v1');
+    url.searchParams.set('key', apiKey);
+    url.searchParams.set('cx', engineId);
+    url.searchParams.set('q', query);
+    url.searchParams.set('num', '10');
+
+    const res = await fetch(url.toString(), {
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!res.ok) {
+      console.error(`[Google] API error: ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    const items = data.items || [];
+
+    return items.slice(0, 10).map((item: any) => {
+      const resultUrl = item.link || '';
+      const platform = detectPlatformFromResultUrl(resultUrl);
+
+      return {
+        title: item.title || 'Google Result',
+        referenceNumber: '',
+        contractingAuthority: item.displayLink || '',
+        platform,
+        cpvCodes: [],
+        sourceUrl: resultUrl,
+        source: 'google',
+        summary: item.snippet || undefined,
+        publishedAt: new Date(),
+        country: 'GR',
+        sourceLabel: 'Google Search',
+        isPrivate: false,
+      };
+    });
+  } catch (err) {
+    console.error('[Google] Search failed:', err);
+    return [];
+  }
+}
+
+/**
+ * Detect the platform from a Google search result URL using known patterns.
+ */
+function detectPlatformFromResultUrl(url: string): DiscoveredTender['platform'] {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    if (hostname.includes('diavgeia.gov.gr')) return 'DIAVGEIA';
+    if (hostname.includes('ted.europa.eu')) return 'TED';
+    if (hostname.includes('promitheus.gov.gr') || hostname.includes('eprocurement.gov.gr')) return 'KIMDIS';
+    if (hostname.includes('esidis.gr')) return 'ESIDIS';
+    if (
+      hostname.includes('b2b.gr') ||
+      hostname.includes('ypodomes.com') ||
+      hostname.includes('eprocurement.gr')
+    ) return 'PRIVATE';
+  } catch {
+    // Invalid URL
+  }
+  return 'GOOGLE';
+}
+
 // ─── Relevance Scoring ──────────────────────────────────────
 
 /**
@@ -661,6 +756,11 @@ class TenderDiscoveryService {
       for (const source of activeSources) {
         fetchers.push(scrapePrivateSource(source));
       }
+    }
+
+    // Google Custom Search
+    if (activePlatforms.includes('GOOGLE')) {
+      fetchers.push(searchGoogleCustomSearch(keywords || [], cpvFilter));
     }
 
     // Custom private sources from DB (tenant-specific)

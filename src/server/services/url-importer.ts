@@ -8,6 +8,7 @@
 import { db } from '@/lib/db';
 import { uploadFile } from '@/lib/s3';
 import { tenderAnalysisQueue } from '@/server/jobs/queues';
+import { fetchDocumentsForTender } from '@/server/services/document-fetcher';
 import type { TenderPlatform } from '@prisma/client';
 import * as cheerio from 'cheerio';
 
@@ -346,6 +347,21 @@ class UrlImporterService {
       } catch (error: any) {
         console.error(`[URLImporter] Failed to download ${docLink.fileName}:`, error.message);
         // Continue with other documents — don't stop the whole import
+      }
+    }
+
+    // ── Fallback: try platform-specific fetching if no docs found ──
+    if (documentCount === 0) {
+      try {
+        const fallback = await fetchDocumentsForTender({
+          tenderId: tender.id,
+          tenantId,
+          sourceUrl: url,
+          platform,
+        });
+        documentCount += fallback.documentCount;
+      } catch (err) {
+        console.warn('[URLImporter] fetchDocumentsForTender fallback failed:', err);
       }
     }
 

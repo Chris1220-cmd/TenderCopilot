@@ -35,6 +35,7 @@ interface DiscoveredTender {
   cpvCodes: string[];
   sourceUrl: string;
   summary?: string;
+  sourceLabel?: string;
 }
 
 interface DiscoveryResultsProps {
@@ -49,6 +50,7 @@ const platformColors: Record<string, string> = {
   TED: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/20',
   KIMDIS: 'bg-teal-500/15 text-teal-700 dark:text-teal-400 border-teal-500/20',
   PRIVATE: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20',
+  GOOGLE: 'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20',
 };
 
 const platformLabels: Record<string, string> = {
@@ -59,6 +61,7 @@ const platformLabels: Record<string, string> = {
   TED: 'TED Europa',
   KIMDIS: 'ΚΗΜΔΗΣ',
   PRIVATE: 'Ιδιωτικός Τομέας',
+  GOOGLE: 'Google',
 };
 
 function getRelevanceColor(score: number) {
@@ -261,14 +264,19 @@ export function DiscoveryResults({ onImport }: DiscoveryResultsProps) {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <Badge
-                    className={cn(
-                      'text-[10px] font-semibold border',
-                      platformColors[tender.platform] || 'bg-gray-500/15 text-gray-600 border-gray-500/20'
+                  <div className="flex items-center gap-1">
+                    <Badge
+                      className={cn(
+                        'text-[10px] font-semibold border',
+                        platformColors[tender.platform] || 'bg-gray-500/15 text-gray-600 border-gray-500/20'
+                      )}
+                    >
+                      {platformLabels[tender.platform] || tender.platform}
+                    </Badge>
+                    {tender.sourceLabel && tender.sourceLabel !== platformLabels[tender.platform] && (
+                      <span className="text-[10px] text-muted-foreground">(via {tender.sourceLabel})</span>
                     )}
-                  >
-                    {platformLabels[tender.platform] || tender.platform}
-                  </Badge>
+                  </div>
                   {tender.relevanceScore > 0 ? (
                     <Badge className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
                       Σχετικός με KAD

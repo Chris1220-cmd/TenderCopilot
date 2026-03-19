@@ -254,9 +254,9 @@ export default function NewTenderPage() {
         notes: tender.summary || null,
       });
 
-      // After creating the tender, fetch documents from the source URL
+      // After creating the tender, fetch documents from the source URL (await before redirect)
       if (tender.sourceUrl) {
-        fetchDocsMutation.mutate({
+        await fetchDocsMutation.mutateAsync({
           tenderId: result.id,
           sourceUrl: tender.sourceUrl,
           platform: tender.platform || 'OTHER',
