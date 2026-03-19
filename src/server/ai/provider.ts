@@ -1,14 +1,31 @@
 import type { AIProvider } from './types';
 import { ClaudeProvider } from './claude-provider';
+import { GeminiProvider } from './gemini-provider';
 import { db } from '@/lib/db';
 
 /**
  * AI Provider factory.
- * REQUIRES AI_API_KEY to be set. No mock fallback — if AI is unavailable, errors are surfaced.
+ * Set AI_PROVIDER=gemini to use Google Gemini, or AI_PROVIDER=claude (default) for Anthropic Claude.
  */
 export function getAIProvider(): AIProvider {
-  const apiKey = process.env.AI_API_KEY;
+  const provider = (process.env.AI_PROVIDER || 'claude').toLowerCase();
 
+  if (provider === 'gemini') {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        'GEMINI_API_KEY is required when AI_PROVIDER=gemini. ' +
+        'Get an API key from https://aistudio.google.com/apikey'
+      );
+    }
+    return new GeminiProvider({
+      apiKey,
+      model: process.env.AI_MODEL || 'gemini-2.0-flash',
+    });
+  }
+
+  // Default: Claude
+  const apiKey = process.env.AI_API_KEY;
   if (!apiKey) {
     throw new Error(
       'AI_API_KEY is required. Set it in your .env file. ' +
