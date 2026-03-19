@@ -636,16 +636,21 @@ class AILegalAnalyzer {
       recommendation: c.recommendation || 'N/A',
     }));
 
-    // Check which LEGAL_CRITICAL_FIELDS are missing from extracted clauses
-    // We look for keyword matches in clauseText or riskReason to detect coverage
+    // Check which LEGAL_CRITICAL_FIELDS are covered by extracted clauses
+    // Use broader keyword matching (synonyms, related terms) to reduce false negatives
+    const FIELD_KEYWORDS: Record<string, string[]> = {
+      'Εγγυητική συμμετοχής': ['εγγυητικ', 'εγγύηση', 'guarantee', 'bank guarantee', 'τραπεζ'],
+      'Δικαιολογητικά συμμετοχής': ['δικαιολογητικ', 'επισυνάπτ', 'προσκομι', 'υπεύθυνη δήλωση', 'πιστοποιητικ', 'βεβαίωση'],
+      'Κριτήρια αποκλεισμού': ['αποκλεισμ', 'αποκλει', 'exclusion', 'ακατάλληλ', 'απόρριψ', 'δεν γίνονται δεκτ'],
+      'Κριτήρια ανάθεσης': ['κριτήρι', 'ανάθεσ', 'award', 'μειοδοτ', 'χαμηλότερη τιμή', 'βαθμολόγ', 'αξιολόγ'],
+    };
+
     const missingInfo: string[] = [];
+    const allClauseText = clauses.map(c => c.clauseText.toLowerCase()).join(' ');
+
     for (const field of LEGAL_CRITICAL_FIELDS) {
-      const fieldLower = field.toLowerCase();
-      const isCovered = clauses.some(
-        c =>
-          c.clauseText.toLowerCase().includes(fieldLower) ||
-          (c.riskReason ?? '').toLowerCase().includes(fieldLower)
-      );
+      const keywords = FIELD_KEYWORDS[field] || [field.toLowerCase()];
+      const isCovered = keywords.some(kw => allClauseText.includes(kw.toLowerCase()));
       if (!isCovered) {
         missingInfo.push(`${NOT_FOUND}: ${field}`);
       }
