@@ -198,26 +198,53 @@ export default function NewTenderPage() {
     setFileSteps([...steps]);
 
     try {
-      // Upload files ONE BY ONE to avoid Vercel 4.5MB body limit
+      // Upload files ONE BY ONE
       const uploadedFiles: Array<{ key: string; name: string; mimeType: string }> = [];
+      const VERCEL_LIMIT = 4 * 1024 * 1024; // 4MB
 
       for (const file of files) {
-        const formData = new FormData();
-        formData.append('files', file);
+        if (file.size > VERCEL_LIMIT) {
+          // Large files: get signed URL from server, then upload directly to Supabase
+          const urlRes = await fetch('/api/upload-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileName: file.name, contentType: file.type }),
+          });
 
-        const uploadRes = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
+          if (!urlRes.ok) throw new Error(`Αποτυχία δημιουργίας URL: ${file.name}`);
+          const { uploadUrl, key } = await urlRes.json();
 
-        if (!uploadRes.ok) {
-          console.error(`Upload failed for ${file.name}: HTTP ${uploadRes.status}`);
-          throw new Error(`Αποτυχία μεταφόρτωσης: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
-        }
+          const directRes = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': file.type || 'application/octet-stream',
+            },
+            body: file,
+          });
 
-        const uploadData = await uploadRes.json();
-        for (const f of uploadData.files || []) {
-          uploadedFiles.push({ key: f.fileKey, name: f.fileName, mimeType: f.mimeType });
+          if (!directRes.ok) {
+            throw new Error(`Αποτυχία μεταφόρτωσης: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+          }
+          uploadedFiles.push({ key, name: file.name, mimeType: file.type });
+        } else {
+          // Small files: via API route
+          const formData = new FormData();
+          formData.append('files', file);
+
+          const uploadRes = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!uploadRes.ok) {
+            console.error(`Upload failed for ${file.name}: HTTP ${uploadRes.status}`);
+            throw new Error(`Αποτυχία μεταφόρτωσης: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+          }
+
+          const uploadData = await uploadRes.json();
+          for (const f of uploadData.files || []) {
+            uploadedFiles.push({ key: f.fileKey, name: f.fileName, mimeType: f.mimeType });
+          }
         }
       }
 
