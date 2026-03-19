@@ -18,6 +18,7 @@ export async function GET() {
   checks.AI_PROVIDER = process.env.AI_PROVIDER || 'not set';
   checks.AI_API_KEY = process.env.AI_API_KEY ? 'SET' : 'MISSING';
   checks.SUPABASE_URL = process.env.SUPABASE_URL ? 'SET' : 'MISSING';
+  checks.SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY) ? 'SET' : 'MISSING';
   checks.NODE_ENV = process.env.NODE_ENV || 'unknown';
   checks.platform = process.platform;
   checks.arch = process.arch;
