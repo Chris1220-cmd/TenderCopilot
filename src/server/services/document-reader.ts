@@ -2,14 +2,59 @@
  * Document Reader Service
  * Reads and extracts text from attached tender documents stored in S3.
  * Used by all AI services to get REAL document content for analysis.
+ *
+ * For scanned/image PDFs where pdf-parse fails, falls back to
+ * Gemini Vision OCR which handles Greek text excellently.
  */
 
 import { db } from '@/lib/db';
 import { getFileBuffer } from '@/lib/s3';
 import { TRPCError } from '@trpc/server';
 
+// ─── Gemini Vision OCR Fallback ────────────────────────────
+
+/**
+ * Uses Gemini 2.0 Flash Vision to OCR a scanned PDF.
+ * Sends the entire PDF as inlineData — Gemini handles multi-page PDFs natively.
+ */
+async function extractTextWithGeminiVision(buffer: Buffer, fileName: string): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.warn('[DocumentReader] No GEMINI_API_KEY — cannot OCR scanned PDF');
+    return '';
+  }
+
+  try {
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+    console.log(`[DocumentReader] Using Gemini Vision OCR for ${fileName} (${(buffer.length / 1024 / 1024).toFixed(1)} MB)...`);
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: 'application/pdf',
+          data: buffer.toString('base64'),
+        },
+      },
+      'Εξήγαγε ΟΛΟ το κείμενο αυτού του PDF εγγράφου. Επέστρεψε μόνο το κείμενο, χωρίς σχόλια. Για πίνακες, μετέτρεψέ τους σε μορφή κειμένου.',
+    ]);
+
+    const text = result.response.text() || '';
+    console.log(`[DocumentReader] Gemini Vision extracted ${text.length} chars from ${fileName}`);
+    return text;
+  } catch (err) {
+    console.error(`[DocumentReader] Gemini Vision OCR failed for ${fileName}:`, err);
+    return '';
+  }
+}
+
+// ─── Text Extraction ───────────────────────────────────────
+
 /**
  * Extract text from a single file buffer based on MIME type.
+ * For PDFs: tries pdf-parse first, falls back to Gemini Vision if result is too short.
  */
 async function extractText(buffer: Buffer, mimeType: string, fileName: string): Promise<string> {
   if (buffer.length === 0) {
@@ -18,14 +63,28 @@ async function extractText(buffer: Buffer, mimeType: string, fileName: string): 
 
   switch (mimeType) {
     case 'application/pdf': {
+      // Step 1: Try fast local pdf-parse
+      let text = '';
       try {
         const pdfParse = (await import('pdf-parse')).default;
         const data = await pdfParse(buffer);
-        return data.text || '';
+        text = data.text || '';
       } catch (err) {
         console.error(`[DocumentReader] PDF parse failed for ${fileName}:`, err);
-        return '';
       }
+
+      // Step 2: If pdf-parse got very little text for a large file, it's likely scanned
+      // Threshold: less than 1 char per KB means the PDF is mostly images
+      const charsPerKB = text.trim().length / (buffer.length / 1024);
+      if (charsPerKB < 1 && buffer.length > 50_000) {
+        console.log(`[DocumentReader] pdf-parse got only ${text.trim().length} chars for ${(buffer.length / 1024).toFixed(0)} KB — falling back to Gemini Vision OCR`);
+        const ocrText = await extractTextWithGeminiVision(buffer, fileName);
+        if (ocrText.length > text.trim().length) {
+          return ocrText;
+        }
+      }
+
+      return text;
     }
 
     case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
@@ -79,6 +138,8 @@ async function extractText(buffer: Buffer, mimeType: string, fileName: string): 
   }
 }
 
+// ─── Document Reading ──────────────────────────────────────
+
 /**
  * Reads ALL attached documents for a tender and returns their combined text.
  * This is the primary method AI services should use to get document content.
@@ -99,8 +160,8 @@ export async function readTenderDocuments(tenderId: string): Promise<string> {
 
   for (const doc of docs) {
     try {
-      // Use cached extracted text if available
-      if (doc.extractedText) {
+      // Use cached extracted text if available AND non-trivial
+      if (doc.extractedText && doc.extractedText.trim().length > 100) {
         parts.push(`--- ${doc.fileName} ---\n${doc.extractedText}`);
         continue;
       }
@@ -121,11 +182,11 @@ export async function readTenderDocuments(tenderId: string): Promise<string> {
           where: { id: doc.id },
           data: {
             parsingStatus: 'failed',
-            parsingError: 'Σκαναρισμένο PDF — δεν εξήχθη κείμενο',
+            parsingError: 'Δεν εξήχθη κείμενο (ούτε με OCR)',
             extractedText: null,
           },
         });
-        parts.push(`--- ${doc.fileName} ---\n[Σκαναρισμένο PDF — δεν εξήχθη κείμενο]`);
+        parts.push(`--- ${doc.fileName} ---\n[Δεν εξήχθη κείμενο]`);
         continue;
       }
 
