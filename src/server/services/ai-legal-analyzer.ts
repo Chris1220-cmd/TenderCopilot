@@ -246,7 +246,7 @@ class AILegalAnalyzer {
               content: `Εντόπισε τις νομικές ρήτρες/όρους από το τμήμα ${i + 1}/${chunks.length}:\n\n${chunks[i]}`,
             },
           ],
-          maxTokens: 4000,
+          maxTokens: 8000,
           temperature: 0.2,
           responseFormat: 'json',
         });
@@ -278,7 +278,7 @@ class AILegalAnalyzer {
             content: `Εντόπισε τις νομικές ρήτρες/όρους από τα ακόλουθα έγγραφα διαγωνισμού:\n\n${contextText}`,
           },
         ],
-        maxTokens: 4000,
+        maxTokens: 8000,
         temperature: 0.2,
         responseFormat: 'json',
       });
@@ -382,7 +382,7 @@ class AILegalAnalyzer {
           content: `Αξιολόγησε τον κίνδυνο κάθε ρήτρας:\n\n${JSON.stringify(clauseList, null, 2)}`,
         },
       ],
-      maxTokens: 4000,
+      maxTokens: 8000,
       temperature: 0.2,
       responseFormat: 'json',
     });
@@ -521,7 +521,7 @@ class AILegalAnalyzer {
           content: `Σύνταξε ερωτήματα διευκρινίσεων για τις παρακάτω επικίνδυνες ρήτρες:\n\n${JSON.stringify(clauseData, null, 2)}`,
         },
       ],
-      maxTokens: 3000,
+      maxTokens: 6000,
       temperature: 0.4,
       responseFormat: 'json',
     });

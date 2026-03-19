@@ -71,17 +71,45 @@ export function chunkText(text: string, maxChars = MAX_CHARS_PER_CALL): string[]
 
 // ─── Response Validation ────────────────────────────────────
 
-/** Parse and validate JSON response from AI */
+/** Parse and validate JSON response from AI, with recovery for malformed output */
 export function parseAIResponse<T>(
   raw: string,
   requiredFields: string[] = [],
   label: string = 'AI response'
 ): T {
   let parsed: any;
+
+  // Attempt 1: Direct JSON parse
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error(`Αποτυχία ανάλυσης AI απάντησης (${label}): μη έγκυρο JSON`);
+    // Attempt 2: Extract JSON from markdown fences
+    const fenceMatch = raw.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+    if (fenceMatch) {
+      try { parsed = JSON.parse(fenceMatch[1].trim()); } catch { /* continue */ }
+    }
+
+    // Attempt 3: Find first { or [ and extract to matching bracket
+    if (!parsed) {
+      const objStart = raw.indexOf('{');
+      const arrStart = raw.indexOf('[');
+      const start = objStart >= 0 && arrStart >= 0
+        ? Math.min(objStart, arrStart)
+        : Math.max(objStart, arrStart);
+      if (start >= 0) {
+        const bracket = raw[start];
+        const closeBracket = bracket === '{' ? '}' : ']';
+        const lastClose = raw.lastIndexOf(closeBracket);
+        if (lastClose > start) {
+          try { parsed = JSON.parse(raw.slice(start, lastClose + 1)); } catch { /* continue */ }
+        }
+      }
+    }
+
+    if (!parsed) {
+      console.error(`[parseAIResponse] Failed to parse (${label}). Raw response (first 500 chars):`, raw.slice(0, 500));
+      throw new Error(`Αποτυχία ανάλυσης AI απάντησης (${label}): μη έγκυρο JSON`);
+    }
   }
 
   // Validate required fields exist

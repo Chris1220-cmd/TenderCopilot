@@ -166,7 +166,7 @@ class AIOpsService {
             }),
           },
         ],
-        maxTokens: 3000,
+        maxTokens: 6000,
         temperature: 0.2,
         responseFormat: 'json',
       });

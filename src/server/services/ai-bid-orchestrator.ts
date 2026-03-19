@@ -510,7 +510,7 @@ class AIBidOrchestrator {
                 content: `Ανάλυσε το παρακάτω τμήμα (${i + 1}/${chunks.length}) του διαγωνισμού:\n\n${chunk}`,
               },
             ],
-            maxTokens: 3000,
+            maxTokens: 6000,
             temperature: 0.2,
             responseFormat: 'json',
           });
@@ -585,7 +585,7 @@ class AIBidOrchestrator {
               content: `Ανάλυσε τον παρακάτω διαγωνισμό και δημιούργησε δομημένη σύνοψη (brief):\n\n${fullText}`,
             },
           ],
-          maxTokens: 3000,
+          maxTokens: 6000,
           temperature: 0.2,
           responseFormat: 'json',
         });
@@ -856,7 +856,7 @@ class AIBidOrchestrator {
           content: `Αξιολόγησε αν η εταιρεία πρέπει να συμμετάσχει στον ακόλουθο διαγωνισμό:\n\n${contextText}${documentText ? `\n\n=== ΚΕΙΜΕΝΟ ΕΓΓΡΑΦΩΝ ===\n${documentText}` : ''}`,
         },
       ],
-      maxTokens: 3000,
+      maxTokens: 6000,
       temperature: 0.3,
       responseFormat: 'json',
     });

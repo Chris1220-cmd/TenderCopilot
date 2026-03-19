@@ -168,7 +168,7 @@ export class DocumentGeneratorService {
           }),
         },
       ],
-      maxTokens: 4000,
+      maxTokens: 8000,
       temperature: 0.4,
       responseFormat: 'json',
     });

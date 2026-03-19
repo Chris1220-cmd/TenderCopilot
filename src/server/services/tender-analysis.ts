@@ -38,7 +38,7 @@ Respond ONLY with valid JSON matching the TenderAnalysisResult schema.`,
           content: `Analyze the following tender specification documents and extract all requirements:\n\n${combinedText}`,
         },
       ],
-      maxTokens: 4000,
+      maxTokens: 8000,
       temperature: 0.1,
       responseFormat: 'json',
     });

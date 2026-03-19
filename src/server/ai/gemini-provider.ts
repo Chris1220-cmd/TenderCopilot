@@ -19,13 +19,20 @@ export class GeminiProvider implements AIProvider {
     const systemMessage = options.messages.find((m) => m.role === 'system');
     const nonSystemMessages = options.messages.filter((m) => m.role !== 'system');
 
+    const generationConfig: Record<string, unknown> = {
+      maxOutputTokens: options.maxTokens || 8192,
+      temperature: options.temperature,
+    };
+
+    // Enforce JSON output when requested — critical for structured extraction
+    if (options.responseFormat === 'json') {
+      generationConfig.responseMimeType = 'application/json';
+    }
+
     const generativeModel = this.client.getGenerativeModel({
       model: this.model,
       systemInstruction: systemMessage?.content || undefined,
-      generationConfig: {
-        maxOutputTokens: options.maxTokens || 4096,
-        temperature: options.temperature,
-      },
+      generationConfig,
     });
 
     // Build Gemini chat history from messages (all except the last user message)
