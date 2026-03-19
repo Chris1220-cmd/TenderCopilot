@@ -438,7 +438,12 @@ class AIBidOrchestrator {
    * @returns The created/updated TenderBrief record
    */
   async summarizeTender(tenderId: string, language: 'el' | 'en' = 'el') {
+    const _t0 = Date.now();
+    const _log = (step: string) => console.log(`[summarizeTender] ${step}: ${Date.now() - _t0}ms`);
+
+    _log('START');
     await requireDocuments(tenderId);
+    _log('requireDocuments done');
     // ── Concurrency guard (auto-reset after 2 min to prevent stuck state) ──
     const tenderCheck = await db.tender.findUniqueOrThrow({ where: { id: tenderId } });
     if (tenderCheck.analysisInProgress) {
@@ -497,7 +502,9 @@ class AIBidOrchestrator {
       const metadataText = textParts.join('\n');
 
       // ── Read actual document content ──────────────────────────
+      _log('reading documents');
       const documentText = await readTenderDocuments(tenderId);
+      _log(`documents read: ${documentText.length} chars`);
       const fullText = documentText
         ? `${metadataText}\n\n=== ΚΕΙΜΕΝΟ ΕΓΓΡΑΦΩΝ ===\n${documentText}`
         : metadataText;
@@ -508,6 +515,7 @@ class AIBidOrchestrator {
         : 'Απάντησε εξ ολοκλήρου στα ελληνικά.';
 
       // ── AI call (with chunking if text is too long) ───────────
+      _log(`AI call starting, fullText=${fullText.length} chars, shouldChunk=${shouldChunk(fullText)}`);
       let briefData: TenderBriefData;
 
       if (shouldChunk(fullText)) {
