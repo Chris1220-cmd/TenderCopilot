@@ -270,30 +270,43 @@ class AILegalAnalyzer {
         }
       }
     } else {
-      // Single call for normal-sized documents
-      const aiResult = await ai().complete({
-        messages: [
-          { role: 'system', content: EXTRACT_CLAUSES_SYSTEM_PROMPT + `\n\n${langInstruction}` },
-          {
-            role: 'user',
-            content: `Εντόπισε τις νομικές ρήτρες/όρους από τα ακόλουθα έγγραφα διαγωνισμού:\n\n${contextText}`,
-          },
-        ],
-        maxTokens: 8000,
-        temperature: 0.2,
-        responseFormat: 'json',
-      });
+      // Single call for normal-sized documents (with retry on parse failure)
+      let lastError: Error | null = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const aiResult = await ai().complete({
+            messages: [
+              { role: 'system', content: EXTRACT_CLAUSES_SYSTEM_PROMPT + `\n\n${langInstruction}` },
+              {
+                role: 'user',
+                content: `Εντόπισε τις νομικές ρήτρες/όρους από τα ακόλουθα έγγραφα διαγωνισμού:\n\n${contextText}`,
+              },
+            ],
+            maxTokens: 16000,
+            temperature: 0.2,
+            responseFormat: 'json',
+          });
 
-      await logTokenUsage(tenderId, 'legal_extract', {
-        input: aiResult.inputTokens || 0,
-        output: aiResult.outputTokens || 0,
-        total: aiResult.totalTokens || 0,
-      });
+          await logTokenUsage(tenderId, 'legal_extract', {
+            input: aiResult.inputTokens || 0,
+            output: aiResult.outputTokens || 0,
+            total: aiResult.totalTokens || 0,
+          });
 
-      const parsed = parseAIResponse<{ clauses: ExtractedClause[]; missingInfo?: string[] }>(
-        aiResult.content, ['clauses'], 'extractClauses'
-      );
-      extractedClauses = Array.isArray(parsed.clauses) ? parsed.clauses : [];
+          const parsed = parseAIResponse<{ clauses: ExtractedClause[]; missingInfo?: string[] }>(
+            aiResult.content, ['clauses'], 'extractClauses'
+          );
+          extractedClauses = Array.isArray(parsed.clauses) ? parsed.clauses : [];
+          lastError = null;
+          break;
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error(String(err));
+          console.warn(`[Legal] extractClauses attempt ${attempt + 1} failed:`, lastError.message);
+        }
+      }
+      if (lastError) {
+        throw lastError;
+      }
     }
     // Empty result is valid — some tenders have no explicit legal clauses
 
