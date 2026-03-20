@@ -308,52 +308,79 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
           )}
         </GlassCardHeader>
         <GlassCardContent className="px-0">
-          {eligibility?.checks && eligibility.checks.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/50">
-                    <th className="text-left px-5 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Κριτήριο
-                    </th>
-                    <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Απαίτηση
-                    </th>
-                    <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Πραγματικό
-                    </th>
-                    <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-16">
-                      Αποτέλεσμα
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {eligibility.checks.map((check, i) => (
-                    <tr key={i} className="border-b border-border/30">
-                      <td className="px-5 py-2.5 text-xs font-medium text-foreground">
-                        {check.criterion}
-                      </td>
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">
-                        {check.required}
-                      </td>
-                      <td className="px-3 py-2.5 text-xs text-foreground font-mono font-semibold">
-                        {check.actual}
-                      </td>
-                      <td className="px-3 py-2.5 text-center">
-                        {check.pass ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-500 mx-auto" />
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {summaryQuery.isLoading ? (
+            <div className="space-y-2 px-5 py-4">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-4/5" />
             </div>
+          ) : !hasExtractedRequirements ? (
+            <p className="text-xs text-muted-foreground text-center py-6 px-5">
+              Εκτελέστε πρώτα <strong>AI Ανάλυση Οικονομικών</strong> για να φορτωθούν τα κριτήρια επιλεξιμότητας.
+            </p>
+          ) : !hasFinancialProfile ? (
+            <div className="px-5 py-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <MinusCircle className="h-5 w-5 text-amber-500 shrink-0" />
+                <span className="text-sm font-bold text-amber-700 dark:text-amber-400">Οριακά</span>
+                <span className="text-xs text-muted-foreground">— Λείπουν οικονομικά στοιχεία εταιρείας</span>
+              </div>
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+                <strong>Συμπληρώστε τα οικονομικά στοιχεία εταιρείας</strong> για πλήρη ανάλυση επιλεξιμότητας.
+                <br />
+                <span className="text-xs opacity-80">Μεταβείτε στις Ρυθμίσεις → Οικονομικό Προφίλ.</span>
+              </div>
+            </div>
+          ) : eligibility && eligibility.checks.length > 0 ? (
+            <>
+              {(() => {
+                const total = eligibility.checks.length;
+                const passed = eligibility.checks.filter((c) => c.pass).length;
+                const failed = total - passed;
+                const color =
+                  failed === 0
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : failed < total / 2
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-red-600 dark:text-red-400';
+                return (
+                  <p className={`text-xs font-semibold px-5 pt-3 pb-1 ${color}`}>
+                    {passed} / {total} κριτήρια πληρούνται
+                  </p>
+                );
+              })()}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/50">
+                      <th className="text-left px-5 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Κριτήριο</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Απαίτηση</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Πραγματικό</th>
+                      <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-16">Αποτέλεσμα</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eligibility.checks.map((check, i) => (
+                      <tr key={i} className="border-b border-border/30">
+                        <td className="px-5 py-2.5 text-xs font-medium text-foreground">{check.criterion}</td>
+                        <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">{check.required}</td>
+                        <td className="px-3 py-2.5 text-xs text-foreground font-mono font-semibold">{check.actual}</td>
+                        <td className="px-3 py-2.5 text-center">
+                          {check.pass ? (
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-500 mx-auto" />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : (
             <p className="text-xs text-muted-foreground text-center py-6 px-5">
-              Δεν υπάρχουν δεδομένα ακόμα. Εκτελέστε ανάλυση AI.
+              Δεν βρέθηκαν κριτήρια επιλεξιμότητας. Εκτελέστε εκ νέου ανάλυση.
             </p>
           )}
         </GlassCardContent>
