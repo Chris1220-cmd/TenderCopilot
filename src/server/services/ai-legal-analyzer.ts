@@ -10,6 +10,7 @@
  */
 
 import { db } from '@/lib/db';
+import { stripAccents } from '@/lib/utils';
 import { ai, checkTokenBudget, logTokenUsage } from '@/server/ai';
 import { readTenderDocuments, requireDocuments } from '@/server/services/document-reader';
 import type { LegalClauseCategory, RiskLevel } from '@prisma/client';
@@ -650,10 +651,6 @@ class AILegalAnalyzer {
       'Κριτήρια αποκλεισμού': ['αποκλεισμ', 'αποκλει', 'exclusion', 'ακαταλληλ', 'απορριψ', 'δεν γινονται δεκτ', 'λογοι αποκλεισμ'],
       'Κριτήρια ανάθεσης': ['κριτηρι', 'αναθεσ', 'award', 'μειοδοτ', 'χαμηλοτερη τιμη', 'βαθμολογ', 'αξιολογ', 'πλεον συμφερ', 'οικονομικ προσφορ'],
     };
-
-    // Helper: strip Greek accents/diacritics for more reliable matching
-    const stripAccents = (text: string): string =>
-      text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
     const missingInfo: string[] = [];
     const allClauseText = stripAccents(clauses.map(c => c.clauseText).join(' '));

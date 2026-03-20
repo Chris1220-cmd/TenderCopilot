@@ -57,3 +57,11 @@ export function fileSize(bytes: number): string {
   }
   return `${size.toFixed(1)} ${units[unitIndex]}`;
 }
+
+/**
+ * Strip Greek accents/diacritics for reliable text matching.
+ * E.g. "ΔΙΑΚΉΡΥΞΗ" → "διακηρυξη"
+ */
+export function stripAccents(text: string): string {
+  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
