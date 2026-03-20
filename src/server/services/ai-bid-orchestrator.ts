@@ -698,6 +698,20 @@ class AIBidOrchestrator {
       // the tender record, write them back so the overview cards are populated.
       const tenderUpdate: Record<string, unknown> = { analysisLanguage: language };
 
+      // Title — update from keyPoints or summary if still "Untitled Tender"
+      if (tender.title === 'Untitled Tender') {
+        const kp = briefData.keyPoints as any;
+        const extractedTitle = kp?.tenderTitle || kp?.title;
+        if (extractedTitle && typeof extractedTitle === 'string' && extractedTitle.length > 5) {
+          tenderUpdate.title = extractedTitle.slice(0, 200);
+        } else if (briefData.summaryText) {
+          const firstSentence = briefData.summaryText.match(/^[^.!;]+[.!;]/);
+          if (firstSentence) {
+            tenderUpdate.title = firstSentence[0].trim().slice(0, 200);
+          }
+        }
+      }
+
       // Budget
       if (!tender.budget && briefData.keyPoints?.estimatedBudget != null) {
         tenderUpdate.budget = Number(briefData.keyPoints.estimatedBudget);

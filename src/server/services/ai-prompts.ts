@@ -106,6 +106,67 @@ export function parseAIResponse<T>(
       }
     }
 
+    // Attempt 4: Fix common Gemini JSON issues (trailing commas, control chars, unescaped newlines)
+    if (!parsed) {
+      try {
+        let cleaned = raw;
+        // Extract JSON portion
+        const jsonStart = cleaned.indexOf('{');
+        const jsonEnd = cleaned.lastIndexOf('}');
+        if (jsonStart >= 0 && jsonEnd > jsonStart) {
+          cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
+        }
+        // Remove trailing commas before } or ]
+        cleaned = cleaned.replace(/,\s*([\]}])/g, '$1');
+        // Remove control characters (except \n, \r, \t)
+        cleaned = cleaned.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+        // Fix unescaped newlines inside strings — replace with \\n
+        cleaned = cleaned.replace(/(?<=:\s*"[^"]*)\n(?=[^"]*")/g, '\\n');
+        parsed = JSON.parse(cleaned);
+      } catch { /* continue */ }
+    }
+
+    // Attempt 5: Truncated JSON — try to close open brackets/braces
+    if (!parsed) {
+      try {
+        let truncated = raw;
+        const jsonStart = truncated.indexOf('{');
+        if (jsonStart >= 0) {
+          truncated = truncated.slice(jsonStart);
+          // Remove trailing commas
+          truncated = truncated.replace(/,\s*([\]}])/g, '$1');
+          // Count open vs close braces/brackets
+          let openBraces = 0, openBrackets = 0;
+          let inString = false, escape = false;
+          for (const ch of truncated) {
+            if (escape) { escape = false; continue; }
+            if (ch === '\\') { escape = true; continue; }
+            if (ch === '"') { inString = !inString; continue; }
+            if (inString) continue;
+            if (ch === '{') openBraces++;
+            if (ch === '}') openBraces--;
+            if (ch === '[') openBrackets++;
+            if (ch === ']') openBrackets--;
+          }
+          // Close any open structures
+          // First, try to find a reasonable truncation point (last complete value)
+          const lastComma = truncated.lastIndexOf(',');
+          const lastBrace = truncated.lastIndexOf('}');
+          const lastBracket = truncated.lastIndexOf(']');
+          const cutPoint = Math.max(lastComma, lastBrace, lastBracket);
+          if (cutPoint > 0 && (openBraces > 0 || openBrackets > 0)) {
+            let repaired = truncated.slice(0, cutPoint + 1);
+            // Remove trailing comma if we cut at a comma
+            repaired = repaired.replace(/,\s*$/, '');
+            // Close remaining open structures
+            for (let i = 0; i < openBrackets; i++) repaired += ']';
+            for (let i = 0; i < openBraces; i++) repaired += '}';
+            try { parsed = JSON.parse(repaired); } catch { /* give up */ }
+          }
+        }
+      } catch { /* final fallback */ }
+    }
+
     if (!parsed) {
       console.error(`[parseAIResponse] Failed to parse (${label}). Raw response (first 500 chars):`, raw.slice(0, 500));
       throw new Error(`Αποτυχία ανάλυσης AI απάντησης (${label}): μη έγκυρο JSON`);
