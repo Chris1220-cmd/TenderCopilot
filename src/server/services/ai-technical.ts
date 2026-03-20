@@ -249,11 +249,12 @@ ${langInstruction}`,
       throw new Error('Η AI ανάλυση τεχνικών απαιτήσεων απέτυχε. Δοκιμάστε ξανά.');
     }
 
-    // Update DB with criticality
-    for (const item of classified) {
-      const reqExists = requirements.find((r) => r.id === item.requirementId);
-      if (reqExists) {
-        await db.tenderRequirement.update({
+    // Update DB with criticality (parallel)
+    await Promise.all(
+      classified.map((item) => {
+        const reqExists = requirements.find((r) => r.id === item.requirementId);
+        if (!reqExists) return Promise.resolve();
+        return db.tenderRequirement.update({
           where: { id: item.requirementId },
           data: {
             criticality: Math.max(1, Math.min(5, item.criticality)),
@@ -265,8 +266,8 @@ ${langInstruction}`,
             } as any,
           },
         });
-      }
-    }
+      })
+    );
 
     // Log activity
     await db.activity.create({
@@ -603,19 +604,21 @@ ${langInstruction}`,
 
     const sections: ProposalSectionData[] = sectionResults;
 
-    // Persist all sections to DB
-    for (const section of sections) {
-      await db.technicalProposalSection.create({
-        data: {
-          tenderId,
-          title: section.title,
-          ordering: section.ordering,
-          content: section.content,
-          status: 'AI_DRAFT',
-          aiNotes: section.aiNotes,
-        },
-      });
-    }
+    // Persist all sections to DB (parallel)
+    await Promise.all(
+      sections.map((section) =>
+        db.technicalProposalSection.create({
+          data: {
+            tenderId,
+            title: section.title,
+            ordering: section.ordering,
+            content: section.content,
+            status: 'AI_DRAFT',
+            aiNotes: section.aiNotes,
+          },
+        })
+      )
+    );
 
     // Log activity
     await db.activity.create({
@@ -744,23 +747,24 @@ ${langInstruction}`,
     }
 
     // Persist risks to DB
-    for (const risk of risks) {
-      // Validate that relatedRequirementId actually exists
-      const relatedReqValid = risk.relatedRequirementId
-        ? requirements.some((r) => r.id === risk.relatedRequirementId)
-        : false;
-
-      await db.technicalRisk.create({
-        data: {
-          tenderId,
-          title: risk.title,
-          description: risk.description,
-          riskLevel: risk.riskLevel as any,
-          mitigation: risk.mitigation,
-          relatedRequirementId: relatedReqValid ? risk.relatedRequirementId : null,
-        },
-      });
-    }
+    // Persist risks to DB (parallel)
+    await Promise.all(
+      risks.map((risk) => {
+        const relatedReqValid = risk.relatedRequirementId
+          ? requirements.some((r) => r.id === risk.relatedRequirementId)
+          : false;
+        return db.technicalRisk.create({
+          data: {
+            tenderId,
+            title: risk.title,
+            description: risk.description,
+            riskLevel: risk.riskLevel as any,
+            mitigation: risk.mitigation,
+            relatedRequirementId: relatedReqValid ? risk.relatedRequirementId : null,
+          },
+        });
+      })
+    );
 
     // Log activity
     const criticalCount = risks.filter((r) => r.riskLevel === 'CRITICAL' || r.riskLevel === 'HIGH').length;

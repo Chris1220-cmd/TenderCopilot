@@ -135,6 +135,7 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
   const [editContent, setEditContent] = useState('');
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [noDocs, setNoDocs] = useState(false);
   const [langModalOpen, setLangModalOpen] = useState(false);
 
@@ -183,8 +184,11 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
   // tRPC mutations
   const analyzeMutation = trpc.aiRoles.analyzeTechRequirements.useMutation({
     onSuccess: (data: any) => {
-      if (data?.risks) setRisks(data.risks);
-      if (data?.team) setTeam(data.team);
+      const count = Array.isArray(data) ? data.length : 0;
+      setSuccessMsg(count > 0
+        ? `Ανάλυση ολοκληρώθηκε: ${count} τεχνικές απαιτήσεις ταξινομήθηκαν.`
+        : 'Ανάλυση ολοκληρώθηκε. Δεν βρέθηκαν τεχνικές απαιτήσεις — εξαγάγετε πρώτα το brief.'
+      );
       setLoadingAction(null);
       setError(null);
     },
@@ -226,6 +230,7 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
     setLangModalOpen(false);
     setLoadingAction('analyze');
     setError(null);
+    setSuccessMsg(null);
     analyzeMutation.mutate({ tenderId, language: lang });
   };
 
@@ -295,6 +300,12 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
         <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
           <strong>Σφάλμα:</strong> {error}
           <button onClick={() => setError(null)} className="ml-2 underline cursor-pointer">Κλείσιμο</button>
+        </div>
+      )}
+      {successMsg && (
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
+          {successMsg}
+          <button onClick={() => setSuccessMsg(null)} className="ml-2 underline cursor-pointer">Κλείσιμο</button>
         </div>
       )}
       {/* Action Buttons */}

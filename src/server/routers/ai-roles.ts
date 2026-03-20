@@ -234,6 +234,17 @@ export const aiRolesRouter = router({
   // AI Financial Modeller (Finance Director)
   // ═══════════════════════════════════════════════════════════
 
+  getFinancialData: protectedProcedure
+    .input(z.object({ tenderId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      const scenarios = await db.pricingScenario.findMany({
+        where: { tenderId: input.tenderId },
+        orderBy: { createdAt: 'asc' },
+      });
+      return { scenarios };
+    }),
+
   extractFinancials: protectedProcedure
     .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
     .mutation(async ({ ctx, input }) => {
