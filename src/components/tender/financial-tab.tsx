@@ -163,9 +163,19 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
   });
 
   const extractMutation = trpc.aiRoles.extractFinancials.useMutation({
-    onSuccess: (result: any) => {
-      if (result) setData((prev) => prev ? { ...prev, ...result } : result);
-      setLoadingAction(null);
+    onSuccess: () => {
+      // extractFinancials saves requirements to DB but doesn't return UI-ready data.
+      // Trigger eligibility check automatically to populate the cards.
+      setLoadingAction('eligibility');
+      eligibilityQuery.refetch().then((res) => {
+        if (res.data) {
+          setData((prev) => {
+            const base = prev || { eligibility: res.data as any, scenarios: [], riskScore: 0, riskFactors: [] };
+            return { ...base, eligibility: res.data as any };
+          });
+        }
+        setLoadingAction(null);
+      }).catch(() => { setLoadingAction(null); });
       setError(null);
     },
     onError: (err: any) => {

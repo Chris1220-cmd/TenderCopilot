@@ -465,7 +465,7 @@ ${langInstruction}`,
   async generateTechnicalProposal(
     tenderId: string,
     tenantId: string
-  ): Promise<ProposalSectionData[]> {
+  ): Promise<{ sections: ProposalSectionData[] }> {
     await requireDocuments(tenderId);
     const [tender, requirements, contentItems, projects, certificates, company, teamReqs] =
       await Promise.all([
@@ -626,7 +626,9 @@ ${langInstruction}`,
       },
     });
 
-    return sections;
+    // Return in the shape the UI expects: { sections: [...] }
+    // UI does: data.sections to populate state
+    return { sections };
   }
 
   // ── flagTechnicalRisks ────────────────────────────────────
