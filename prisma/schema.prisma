@@ -413,6 +413,12 @@ model AttachedDocument {
   parsingStatus String? // 'success' | 'partial' | 'failed'
   parsingError  String?
 
+  // Extraction pipeline metadata
+  extractionMethod     String?  // 'pdf_parse' | 'document_ai' | 'gemini_vision'
+  extractionConfidence Float?   // 0.0 - 1.0
+  docAiRecommended     Boolean  @default(false)
+  qualityGateResult    String?  @db.Text // JSON: { charsPerKB, keywordHits, charsPerPage, passed, reasons }
+
   tenderId String
   tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
 
