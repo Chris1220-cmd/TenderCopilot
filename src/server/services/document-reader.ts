@@ -1,22 +1,32 @@
 /**
- * Document Reader Service
- * Reads and extracts text from attached tender documents stored in S3.
- * Used by all AI services to get REAL document content for analysis.
+ * Document Reader Service — Tiered Extraction Pipeline
  *
- * For scanned/image PDFs where pdf-parse fails, falls back to
- * Gemini Vision OCR which handles Greek text excellently.
+ * Tier 1: pdf-parse (local, free, instant)
+ * Quality Gate: 3 criteria decide if Tier 2 is needed
+ * Tier 2: Document AI (main) + Gemini Vision (parallel backup)
+ *
+ * For non-PDF files: mammoth (DOCX), xlsx (Excel), direct (text)
  */
 
 import { db } from '@/lib/db';
 import { getFileBuffer } from '@/lib/s3';
 import { TRPCError } from '@trpc/server';
+import { evaluateQualityGate, type QualityGateResult } from './quality-gate';
+import { extractWithDocumentAI, isDocumentAIAvailable } from './document-ai';
 
-// ─── Gemini Vision OCR Fallback ────────────────────────────
+// ─── Types ──────────────────────────────────────────────────
 
-/**
- * Uses Gemini 2.0 Flash Vision to OCR a scanned PDF.
- * Sends the entire PDF as inlineData — Gemini handles multi-page PDFs natively.
- */
+interface ExtractionResult {
+  text: string;
+  method: 'pdf_parse' | 'document_ai' | 'gemini_vision';
+  confidence: number | null;
+  docAiRecommended: boolean;
+  qualityGateResult: QualityGateResult | null;
+  pageCount: number | null;
+}
+
+// ─── Gemini Vision OCR (Tier 2 Backup) ──────────────────────
+
 async function extractTextWithGeminiVision(buffer: Buffer, fileName: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -50,43 +60,91 @@ async function extractTextWithGeminiVision(buffer: Buffer, fileName: string): Pr
   }
 }
 
-// ─── Text Extraction ───────────────────────────────────────
+// ─── PDF Extraction Pipeline ────────────────────────────────
 
-/**
- * Extract text from a single file buffer based on MIME type.
- * For PDFs: tries pdf-parse first, falls back to Gemini Vision if result is too short.
- */
-async function extractText(buffer: Buffer, mimeType: string, fileName: string): Promise<string> {
-  if (buffer.length === 0) {
-    return '';
+async function extractPdf(buffer: Buffer, fileName: string): Promise<ExtractionResult> {
+  // ── Tier 1: pdf-parse ──────────────────────────────────
+  let pdfText = '';
+  let pageCount = 0;
+  try {
+    const pdfParse = (await import('pdf-parse')).default;
+    const data = await pdfParse(buffer);
+    pdfText = data.text || '';
+    pageCount = data.numpages || 0;
+  } catch (err) {
+    console.error(`[DocumentReader] pdf-parse failed for ${fileName}:`, err);
   }
 
+  // ── Quality Gate ───────────────────────────────────────
+  const gateResult = evaluateQualityGate({
+    text: pdfText,
+    fileSizeBytes: buffer.length,
+    pageCount,
+  });
+
+  console.log(`[DocumentReader] Quality Gate for ${fileName}: ${gateResult.passed ? 'PASS' : 'FAIL'} (charsPerKB=${gateResult.charsPerKB}, keywords=${gateResult.keywordHits}, charsPerPage=${gateResult.charsPerPage}${gateResult.docAiRecommended ? ', docAI recommended' : ''})`);
+
+  // ── Gate PASSED → use pdf-parse text ───────────────────
+  if (gateResult.passed) {
+    return {
+      text: pdfText,
+      method: 'pdf_parse',
+      confidence: null,
+      docAiRecommended: gateResult.docAiRecommended,
+      qualityGateResult: gateResult,
+      pageCount,
+    };
+  }
+
+  // ── Gate FAILED → Tier 2: Document AI + Gemini Vision ──
+  console.log(`[DocumentReader] Quality Gate failed for ${fileName} (reasons: ${gateResult.reasons.join(', ')}). Running Tier 2...`);
+
+  const [docAiResult, geminiText] = await Promise.all([
+    isDocumentAIAvailable()
+      ? extractWithDocumentAI(buffer, 'application/pdf', fileName)
+      : Promise.resolve(null),
+    extractTextWithGeminiVision(buffer, fileName),
+  ]);
+
+  if (docAiResult && docAiResult.text.length > 0) {
+    console.log(`[DocumentReader] Using Document AI result for ${fileName} (${docAiResult.text.length} chars, confidence: ${(docAiResult.confidence * 100).toFixed(1)}%)`);
+    return {
+      text: docAiResult.text,
+      method: 'document_ai',
+      confidence: docAiResult.confidence,
+      docAiRecommended: false,
+      qualityGateResult: gateResult,
+      pageCount: docAiResult.pageCount || pageCount,
+    };
+  }
+
+  if (geminiText.length > 0) {
+    console.log(`[DocumentReader] Document AI unavailable/failed, using Gemini Vision for ${fileName}`);
+    return {
+      text: geminiText,
+      method: 'gemini_vision',
+      confidence: null,
+      docAiRecommended: false,
+      qualityGateResult: gateResult,
+      pageCount,
+    };
+  }
+
+  console.warn(`[DocumentReader] All Tier 2 extractors failed for ${fileName}. Using pdf-parse text (${pdfText.length} chars).`);
+  return {
+    text: pdfText,
+    method: 'pdf_parse',
+    confidence: null,
+    docAiRecommended: true,
+    qualityGateResult: gateResult,
+    pageCount,
+  };
+}
+
+// ─── Non-PDF Extraction (unchanged) ─────────────────────────
+
+async function extractNonPdf(buffer: Buffer, mimeType: string, fileName: string): Promise<string> {
   switch (mimeType) {
-    case 'application/pdf': {
-      // Step 1: Try fast local pdf-parse
-      let text = '';
-      try {
-        const pdfParse = (await import('pdf-parse')).default;
-        const data = await pdfParse(buffer);
-        text = data.text || '';
-      } catch (err) {
-        console.error(`[DocumentReader] PDF parse failed for ${fileName}:`, err);
-      }
-
-      // Step 2: If pdf-parse got very little text for a large file, it's likely scanned
-      // Threshold: less than 1 char per KB means the PDF is mostly images
-      const charsPerKB = text.trim().length / (buffer.length / 1024);
-      if (charsPerKB < 1 && buffer.length > 50_000) {
-        console.log(`[DocumentReader] pdf-parse got only ${text.trim().length} chars for ${(buffer.length / 1024).toFixed(0)} KB — falling back to Gemini Vision OCR`);
-        const ocrText = await extractTextWithGeminiVision(buffer, fileName);
-        if (ocrText.length > text.trim().length) {
-          return ocrText;
-        }
-      }
-
-      return text;
-    }
-
     case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
     case 'application/msword': {
       try {
@@ -120,9 +178,8 @@ async function extractText(buffer: Buffer, mimeType: string, fileName: string): 
     }
 
     case 'text/plain':
-    case 'text/rtf': {
+    case 'text/rtf':
       return buffer.toString('utf-8');
-    }
 
     default: {
       try {
@@ -138,16 +195,8 @@ async function extractText(buffer: Buffer, mimeType: string, fileName: string): 
   }
 }
 
-// ─── Document Reading ──────────────────────────────────────
+// ─── Document Reading (Main Export) ─────────────────────────
 
-/**
- * Reads ALL attached documents for a tender and returns their combined text.
- * This is the primary method AI services should use to get document content.
- * Caches extracted text in the DB so parsing only happens once per document.
- *
- * @param tenderId - The tender ID
- * @returns Combined document text with file headers
- */
 export async function readTenderDocuments(tenderId: string): Promise<string> {
   const docs = await db.attachedDocument.findMany({
     where: { tenderId },
@@ -160,7 +209,6 @@ export async function readTenderDocuments(tenderId: string): Promise<string> {
 
   for (const doc of docs) {
     try {
-      // Use cached extracted text if available AND non-trivial
       if (doc.extractedText && doc.extractedText.trim().length > 100) {
         parts.push(`--- ${doc.fileName} ---\n${doc.extractedText}`);
         continue;
@@ -175,43 +223,74 @@ export async function readTenderDocuments(tenderId: string): Promise<string> {
         continue;
       }
 
-      const text = await extractText(buffer, doc.mimeType || 'application/pdf', doc.fileName);
+      const isPdf = (doc.mimeType || '').includes('pdf');
 
-      if (!text || text.trim().length < 10) {
+      if (isPdf) {
+        const result = await extractPdf(buffer, doc.fileName);
+
+        if (!result.text || result.text.trim().length < 10) {
+          await db.attachedDocument.update({
+            where: { id: doc.id },
+            data: {
+              parsingStatus: 'failed',
+              parsingError: 'Δεν εξήχθη κείμενο (ούτε με OCR)',
+              extractedText: null,
+              extractionMethod: result.method,
+              qualityGateResult: result.qualityGateResult
+                ? JSON.stringify(result.qualityGateResult)
+                : null,
+            },
+          });
+          parts.push(`--- ${doc.fileName} ---\n[Δεν εξήχθη κείμενο]`);
+          continue;
+        }
+
         await db.attachedDocument.update({
           where: { id: doc.id },
           data: {
-            parsingStatus: 'failed',
-            parsingError: 'Δεν εξήχθη κείμενο (ούτε με OCR)',
-            extractedText: null,
+            extractedText: result.text,
+            pageCount: result.pageCount,
+            parsingStatus: 'success',
+            parsingError: null,
+            extractionMethod: result.method,
+            extractionConfidence: result.confidence,
+            docAiRecommended: result.docAiRecommended,
+            qualityGateResult: result.qualityGateResult
+              ? JSON.stringify(result.qualityGateResult)
+              : null,
           },
         });
-        parts.push(`--- ${doc.fileName} ---\n[Δεν εξήχθη κείμενο]`);
-        continue;
+
+        parts.push(`--- ${doc.fileName} ---\n${result.text}`);
+      } else {
+        const text = await extractNonPdf(buffer, doc.mimeType || '', doc.fileName);
+
+        if (!text || text.trim().length < 10) {
+          await db.attachedDocument.update({
+            where: { id: doc.id },
+            data: {
+              parsingStatus: 'failed',
+              parsingError: 'Δεν εξήχθη κείμενο',
+              extractedText: null,
+              extractionMethod: 'pdf_parse',
+            },
+          });
+          parts.push(`--- ${doc.fileName} ---\n[Δεν εξήχθη κείμενο]`);
+          continue;
+        }
+
+        await db.attachedDocument.update({
+          where: { id: doc.id },
+          data: {
+            extractedText: text,
+            parsingStatus: 'success',
+            parsingError: null,
+            extractionMethod: 'pdf_parse',
+          },
+        });
+
+        parts.push(`--- ${doc.fileName} ---\n${text}`);
       }
-
-      // Count pages for PDFs
-      let pageCount: number | null = null;
-      if (doc.mimeType === 'application/pdf') {
-        try {
-          const pdfParse = (await import('pdf-parse')).default;
-          const pdfData = await pdfParse(buffer);
-          pageCount = pdfData.numpages;
-        } catch { /* ignore page count errors */ }
-      }
-
-      // Store extracted text in DB for caching
-      await db.attachedDocument.update({
-        where: { id: doc.id },
-        data: {
-          extractedText: text,
-          pageCount,
-          parsingStatus: 'success',
-          parsingError: null,
-        },
-      });
-
-      parts.push(`--- ${doc.fileName} ---\n${text}`);
     } catch (err) {
       console.error(`[DocumentReader] Failed to process ${doc.fileName}:`, err);
       await db.attachedDocument.update({
@@ -228,28 +307,70 @@ export async function readTenderDocuments(tenderId: string): Promise<string> {
   return parts.join('\n\n');
 }
 
-/**
- * Reads a specific attached document and returns its text.
- */
+// ─── Deep Parse (triggered by user) ─────────────────────────
+
+export async function deepParseDocument(documentId: string): Promise<{ success: boolean; method: string }> {
+  const doc = await db.attachedDocument.findUnique({ where: { id: documentId } });
+  if (!doc) throw new Error('Document not found');
+
+  const buffer = await getFileBuffer(doc.fileKey);
+  if (buffer.length === 0) throw new Error('Empty file');
+
+  const docAiResult = await extractWithDocumentAI(buffer, doc.mimeType || 'application/pdf', doc.fileName);
+
+  if (docAiResult && docAiResult.text.length > 0) {
+    await db.attachedDocument.update({
+      where: { id: documentId },
+      data: {
+        extractedText: docAiResult.text,
+        pageCount: docAiResult.pageCount,
+        parsingStatus: 'success',
+        parsingError: null,
+        extractionMethod: 'document_ai',
+        extractionConfidence: docAiResult.confidence,
+        docAiRecommended: false,
+      },
+    });
+    return { success: true, method: 'document_ai' };
+  }
+
+  const geminiText = await extractTextWithGeminiVision(buffer, doc.fileName);
+  if (geminiText.length > 0) {
+    await db.attachedDocument.update({
+      where: { id: documentId },
+      data: {
+        extractedText: geminiText,
+        parsingStatus: 'success',
+        parsingError: null,
+        extractionMethod: 'gemini_vision',
+        docAiRecommended: false,
+      },
+    });
+    return { success: true, method: 'gemini_vision' };
+  }
+
+  throw new Error('Document AI and Gemini Vision both failed');
+}
+
+// ─── Other Exports (unchanged) ──────────────────────────────
+
 export async function readSingleDocument(fileKey: string, mimeType: string, fileName: string): Promise<string> {
   try {
     const buffer = await getFileBuffer(fileKey);
-    return await extractText(buffer, mimeType, fileName);
+    const isPdf = mimeType.includes('pdf');
+    if (isPdf) {
+      const result = await extractPdf(buffer, fileName);
+      return result.text;
+    }
+    return await extractNonPdf(buffer, mimeType, fileName);
   } catch (err) {
     console.error(`[DocumentReader] Failed to read ${fileName}:`, err);
     return '';
   }
 }
 
-/**
- * Guard: ensures documents exist AND are parsed before AI analysis.
- * If documents exist but haven't been parsed yet, triggers parsing first.
- * Throws PRECONDITION_FAILED only if no documents exist at all.
- */
 export async function requireDocuments(tenderId: string): Promise<void> {
-  const totalDocs = await db.attachedDocument.count({
-    where: { tenderId },
-  });
+  const totalDocs = await db.attachedDocument.count({ where: { tenderId } });
 
   if (totalDocs === 0) {
     throw new TRPCError({
@@ -258,18 +379,15 @@ export async function requireDocuments(tenderId: string): Promise<void> {
     });
   }
 
-  // Check if any docs are unparsed (parsingStatus is null)
   const unparsedCount = await db.attachedDocument.count({
     where: { tenderId, parsingStatus: null },
   });
 
   if (unparsedCount > 0) {
-    // Trigger parsing by reading all documents (this will cache extracted text)
     console.log(`[requireDocuments] ${unparsedCount} unparsed docs found, triggering parsing...`);
     await readTenderDocuments(tenderId);
   }
 
-  // Now check for successfully parsed docs
   const parsedCount = await db.attachedDocument.count({
     where: { tenderId, parsingStatus: 'success' },
   });
@@ -277,7 +395,7 @@ export async function requireDocuments(tenderId: string): Promise<void> {
   if (parsedCount === 0) {
     throw new TRPCError({
       code: 'PRECONDITION_FAILED',
-      message: 'Τα έγγραφα δεν περιέχουν αναγνώσιμο κείμενο (σκαναρισμένα PDF;). Δοκιμάστε με searchable PDF.',
+      message: 'Τα έγγραφα δεν περιέχουν αναγνώσιμο κείμενο. Δοκιμάστε "Deep Parse" ή ανεβάστε searchable PDF.',
     });
   }
 }
