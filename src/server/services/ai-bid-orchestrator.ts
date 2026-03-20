@@ -637,7 +637,7 @@ class AIBidOrchestrator {
         'Προθεσμία υποβολής': tender.submissionDeadline
           ? tender.submissionDeadline.toISOString()
           : briefData.keyPoints?.deadlines?.[0]?.date || null,
-        'Αναθέτουσα αρχή': tender.contractingAuthority || null,
+        'Αναθέτουσα αρχή': tender.contractingAuthority || (briefData.keyPoints as any)?.contractingAuthority || null,
         'CPV κωδικοί': tender.cpvCodes.length > 0
           ? tender.cpvCodes.join(', ')
           : briefData.keyPoints?.cpvCodes?.length
@@ -802,6 +802,14 @@ class AIBidOrchestrator {
       // CPV codes
       if (tender.cpvCodes.length === 0 && briefData.keyPoints?.cpvCodes?.length) {
         tenderUpdate.cpvCodes = briefData.keyPoints.cpvCodes;
+      }
+
+      // Award criteria
+      if (!tender.awardCriteria) {
+        const awardType = briefData.awardType || briefData.keyPoints?.awardType;
+        if (awardType && awardType !== NOT_FOUND && !awardType.includes('ΔΕΝ')) {
+          tenderUpdate.awardCriteria = awardType;
+        }
       }
 
       await db.tender.update({ where: { id: tenderId }, data: tenderUpdate });
