@@ -517,15 +517,41 @@ ${langInstruction}`,
       where: { tenderId, status: 'AI_DRAFT' },
     });
 
-    const sections: ProposalSectionData[] = [];
+    // Generate ALL sections in parallel to fit within Vercel 60s timeout
+    const userContent = JSON.stringify({
+      tenderTitle: tender.title,
+      referenceNumber: tender.referenceNumber,
+      contractingAuthority: tender.contractingAuthority,
+      budget: tender.budget,
+      awardCriteria: tender.awardCriteria,
+      documentText,
+      technicalRequirements: technicalReqs.map((r) => ({
+        text: r.text,
+        subtype: (r.evidenceRefs as any)?.subtype ?? null,
+        criticality: r.criticality,
+        mandatory: r.mandatory,
+        mappedContent: r.mappings
+          .filter((m) => m.contentLibraryItem)
+          .map((m) => m.contentLibraryItem!.content.substring(0, 300))
+          .join('\n'),
+      })),
+      teamRequirements: teamReqs.map((t) => ({
+        role: t.role,
+        qualifications: t.qualifications,
+        minExperience: t.minExperience,
+        isMandatory: t.isMandatory,
+      })),
+      company: companyContext,
+    });
 
-    // Generate each section individually for better quality
-    for (const sectionConfig of PROPOSAL_SECTIONS) {
-      const result = await ai().complete({
-        messages: [
-          {
-            role: 'system',
-            content: `Είσαι Τεχνικός Σύμβουλος (CTO) που γράφει τεχνικές προσφορές για ελληνικούς δημόσιους διαγωνισμούς.
+    const sectionResults = await Promise.all(
+      PROPOSAL_SECTIONS.map(async (sectionConfig) => {
+        try {
+          const result = await ai().complete({
+            messages: [
+              {
+                role: 'system',
+                content: `Είσαι Τεχνικός Σύμβουλος (CTO) που γράφει τεχνικές προσφορές για ελληνικούς δημόσιους διαγωνισμούς.
 
 ΡΟΛΟΣ: Συγγραφή ενότητας τεχνικής πρότασης.
 
@@ -545,58 +571,40 @@ ${langInstruction}`,
   "content": "markdown string",
   "aiNotes": "notes about assumptions, areas needing human review"
 }`,
-          },
-          {
-            role: 'user',
-            content: JSON.stringify({
-              tenderTitle: tender.title,
-              referenceNumber: tender.referenceNumber,
-              contractingAuthority: tender.contractingAuthority,
-              budget: tender.budget,
-              awardCriteria: tender.awardCriteria,
-              documentText,
-              technicalRequirements: technicalReqs.map((r) => ({
-                text: r.text,
-                subtype: (r.evidenceRefs as any)?.subtype ?? null,
-                criticality: r.criticality,
-                mandatory: r.mandatory,
-                mappedContent: r.mappings
-                  .filter((m) => m.contentLibraryItem)
-                  .map((m) => m.contentLibraryItem!.content.substring(0, 300))
-                  .join('\n'),
-              })),
-              teamRequirements: teamReqs.map((t) => ({
-                role: t.role,
-                qualifications: t.qualifications,
-                minExperience: t.minExperience,
-                isMandatory: t.isMandatory,
-              })),
-              company: companyContext,
-            }),
-          },
-        ],
-        maxTokens: 8000,
-        temperature: 0.5,
-        responseFormat: 'json',
-      });
+              },
+              { role: 'user', content: userContent },
+            ],
+            maxTokens: 8000,
+            temperature: 0.5,
+            responseFormat: 'json',
+          });
 
-      let sectionData: { content: string; aiNotes: string };
-      try {
-        sectionData = parseAIResponse<{ content: string; aiNotes: string }>(result.content, [], 'generateTechnicalProposal');
-      } catch {
-        throw new Error('Η AI ανάλυση τεχνικών απαιτήσεων απέτυχε. Δοκιμάστε ξανά.');
-      }
+          const sectionData = parseAIResponse<{ content: string; aiNotes: string }>(
+            result.content, [], `generateProposal:${sectionConfig.title}`
+          );
 
-      const section: ProposalSectionData = {
-        title: sectionConfig.title,
-        ordering: sectionConfig.ordering,
-        content: sectionData.content || `## ${sectionConfig.title}\n\n_Αυτή η ενότητα χρειάζεται ανθρώπινη επεξεργασία._`,
-        aiNotes: sectionData.aiNotes || 'Απαιτείται ανασκόπηση.',
-      };
+          return {
+            title: sectionConfig.title,
+            ordering: sectionConfig.ordering,
+            content: sectionData.content || `## ${sectionConfig.title}\n\n_Αυτή η ενότητα χρειάζεται ανθρώπινη επεξεργασία._`,
+            aiNotes: sectionData.aiNotes || 'Απαιτείται ανασκόπηση.',
+          };
+        } catch (err) {
+          console.error(`[Technical] Failed to generate section "${sectionConfig.title}":`, err);
+          return {
+            title: sectionConfig.title,
+            ordering: sectionConfig.ordering,
+            content: `## ${sectionConfig.title}\n\n_Η AI δημιουργία απέτυχε. Παρακαλώ συμπληρώστε χειροκίνητα._`,
+            aiNotes: `Σφάλμα: ${err instanceof Error ? err.message : 'Άγνωστο'}`,
+          };
+        }
+      })
+    );
 
-      sections.push(section);
+    const sections: ProposalSectionData[] = sectionResults;
 
-      // Persist to DB
+    // Persist all sections to DB
+    for (const section of sections) {
       await db.technicalProposalSection.create({
         data: {
           tenderId,

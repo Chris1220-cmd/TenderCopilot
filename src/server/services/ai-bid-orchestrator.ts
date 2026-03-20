@@ -736,11 +736,21 @@ class AIBidOrchestrator {
 
         // If not found in keyPoints, try to regex-match from the summary text
         if (!authority && briefData.summaryText) {
+          // Try explicit "αναθέτουσα αρχή:" pattern first
           const authorityMatch = briefData.summaryText.match(
             /(?:αναθέτουσα\s*αρχή|φορέας)[:\s]*([^\n,.;]{3,80})/i
           );
           if (authorityMatch?.[1]) {
             authority = authorityMatch[1].trim();
+          }
+          // Also try "Η <Name> προκηρύσσει/διακηρύσσει" pattern (common in Greek summaries)
+          if (!authority) {
+            const subjectMatch = briefData.summaryText.match(
+              /(?:^|[.]\s+)(?:Η|Ο|Το)\s+((?:Κτηματικ[ήη]\s+Υπηρεσ[ίι]α|Δ[ήη]μος|Υπουργε[ίι]ο|Περιφ[έε]ρεια|Πανεπιστ[ήη]μιο|Νοσοκομε[ίι]ο|ΑΑΔΕ|ΔΕΥΑ|ΔΕΗ|ΕΦΚΑ)\s+[^\n,.;]{1,60}?)(?:\s+(?:προκηρ[υύ]σσει|διακηρ[υύ]σσει|αναθ[έε]τει|διενεργε[ίι]|προβα[ίι]νει))/i
+            );
+            if (subjectMatch?.[1]) {
+              authority = subjectMatch[1].trim();
+            }
           }
         }
 

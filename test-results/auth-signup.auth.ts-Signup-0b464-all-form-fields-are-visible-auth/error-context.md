@@ -1,0 +1,42 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e9]:
+  - generic [ref=e10]:
+    - img [ref=e12]
+    - generic [ref=e14]:
+      - heading "Δημιουργία λογαριασμού" [level=1] [ref=e15]
+      - paragraph [ref=e16]: Ξεκινήστε δωρεάν με το TenderCopilot
+  - generic [ref=e17]:
+    - generic [ref=e18]:
+      - text: Ονοματεπώνυμο
+      - generic [ref=e19]:
+        - img [ref=e20]
+        - textbox "Ονοματεπώνυμο" [ref=e23]:
+          - /placeholder: Γιάννης Παπαδόπουλος
+    - generic [ref=e24]:
+      - text: Email
+      - generic [ref=e25]:
+        - img [ref=e26]
+        - textbox "Email" [ref=e29]:
+          - /placeholder: you@company.gr
+    - generic [ref=e30]:
+      - text: Κωδικός πρόσβασης
+      - generic [ref=e31]:
+        - img [ref=e32]
+        - textbox "Κωδικός πρόσβασης" [ref=e35]:
+          - /placeholder: "********"
+    - generic [ref=e36]:
+      - text: Επωνυμία εταιρείας
+      - generic [ref=e37]:
+        - img [ref=e38]
+        - textbox "Επωνυμία εταιρείας" [ref=e42]:
+          - /placeholder: Η εταιρεία σας
+    - button "Εγγραφή" [ref=e43]:
+      - text: Εγγραφή
+      - img [ref=e44]
+  - paragraph [ref=e46]:
+    - text: Έχετε ήδη λογαριασμό;
+    - link "Σύνδεση" [ref=e47] [cursor=pointer]:
+      - /url: /login
+```
