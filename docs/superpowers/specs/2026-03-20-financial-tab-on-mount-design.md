@@ -27,25 +27,36 @@ The Financial tab currently has two gaps on mount:
 
 ### 1. Backend — New `getFinancialSummary` query
 
-Replace the existing `getFinancialData` query (returns only scenarios) with a new `getFinancialSummary` query that returns in a single call:
+**Add** a new `getFinancialSummary` query alongside the existing `getFinancialData` (keep `getFinancialData` — do not remove it). The financial tab component switches to `getFinancialSummary`; `getFinancialData` stays for any other consumers.
+
+Return shape:
 
 ```ts
 {
   scenarios: PricingScenario[]        // from DB
-  eligibility: EligibilityResult      // computed from DB (no AI)
-  hasFinancialProfile: boolean        // whether tenant has FinancialProfile records
-  hasExtractedRequirements: boolean   // whether FINANCIAL_REQUIREMENTS TenderRequirements exist
+  eligibility: EligibilityResult | null  // null if no requirements extracted yet
+  hasFinancialProfile: boolean        // db.financialProfile.count({ where: { tenantId } }) > 0
+  hasExtractedRequirements: boolean   // db.tenderRequirement.count({ where: { tenderId, category: 'FINANCIAL_REQUIREMENTS' } }) > 0
 }
 ```
 
-**Key fact:** `checkEligibility` is a pure DB computation — it reads `FinancialProfile` and `TenderRequirement` records and compares them. No AI call. Safe to run on every mount.
+**`hasFinancialProfile`:** `db.financialProfile.count({ where: { tenantId } }) > 0` — any row for this tenant, regardless of year.
+
+**`hasExtractedRequirements`:** `db.tenderRequirement.count({ where: { tenderId, category: 'FINANCIAL_REQUIREMENTS' } }) > 0`.
+
+**Eligibility computation:**
+
+- If `hasExtractedRequirements` is false → return `eligibility: null` (nothing to check against).
+- If `hasFinancialProfile` is false → return `eligibility: null` (same as "no requirements" — the frontend uses `hasFinancialProfile` flag, not the eligibility shape, to decide which UI state to show). Do NOT call `checkEligibility`.
+- Otherwise → call `aiFinancial.checkEligibility(tenderId, tenantId)` normally.
+
+**Error handling:** Wrap the `checkEligibility` call in try/catch. If it throws, return `eligibility: null` and log a server-side warning. Scenarios and flags are still returned.
 
 **Router:** `src/server/routers/ai-roles.ts`
-- Add `getFinancialSummary` procedure
-- Keep `getFinancialData` for backward compatibility (or remove if no other consumers)
+- Add `getFinancialSummary` procedure; `getFinancialData` remains unchanged.
 
 **Service:** `src/server/services/ai-financial.ts`
-- `checkEligibility` already exists and returns the full result — reuse as-is
+- `checkEligibility` reused as-is — no changes.
 
 ### 2. Frontend — Single query on mount
 
@@ -68,12 +79,15 @@ After mutations that change financial data (`extractMutation`, `pricingMutation`
 
 ### 3. UI States
 
-| State | What the user sees |
-|---|---|
-| Loading on mount | Skeleton loaders in eligibility + scenarios sections |
-| No financial requirements extracted yet | Eligibility section: prompt "Run AI Financial Analysis first" |
-| Requirements extracted, no FinancialProfile | Eligibility: BORDERLINE + CTA banner "Add company financial data for full analysis" (links to settings) |
-| Full data available | Eligibility checks table with pass/fail + scenarios cards — no click required |
+The component uses `summaryQuery.data.hasFinancialProfile` and `summaryQuery.data.hasExtractedRequirements` to disambiguate states that `EligibilityResult` alone cannot distinguish.
+
+| State | Condition | What the user sees |
+|---|---|---|
+| Loading on mount | `summaryQuery.isLoading` | Skeleton loaders in eligibility + scenarios sections |
+| No extraction yet | `hasExtractedRequirements === false` | Eligibility section: "Εκτελέστε πρώτα AI Ανάλυση Οικονομικών" |
+| Extracted, no FinancialProfile | `hasExtractedRequirements && !hasFinancialProfile` | BORDERLINE badge + CTA banner: "Συμπληρώστε τα οικονομικά στοιχεία εταιρείας για πλήρη ανάλυση" (link to settings) |
+| Full data | `hasExtractedRequirements && hasFinancialProfile` | Eligibility checks table + summary line + scenarios cards |
+| Error loading | `summaryQuery.isError` | Error banner — retry button |
 
 ### 4. Risk Score Section — Removed
 
@@ -103,9 +117,18 @@ When `extractFinancials` mutation succeeds, call `summaryQuery.refetch()` instea
 
 ## What Does NOT Change
 
-- `checkFinancialEligibility` as a standalone router procedure stays (used for the manual "Έλεγχος Επιλεξιμότητας" button — kept for user-triggered re-check)
-- `suggestPricing`, `extractFinancials`, `selectPricingScenario` mutations — unchanged logic, only `onSuccess` refetch call changes
-- `normalizeEligibility()` helper — kept as-is
+- `checkFinancialEligibility` standalone router procedure stays. The manual "Έλεγχος Επιλεξιμότητας" button calls it via refetch, then on success calls `summaryQuery.refetch()` so the display stays in sync with `summaryQuery` data.
+- `suggestPricing`, `extractFinancials`, `selectPricingScenario` mutations — unchanged logic, only `onSuccess` refetch call changes (call `summaryQuery.refetch()`)
+- `normalizeEligibility()` helper — kept and applied to `summaryQuery.data.eligibility` on the frontend (same normalization: `passed` → `pass` field mapping)
+- `eligibilityQuery` (the old `useQuery` with `enabled: false`) — removed from the component
+
+## Summary Line Color Thresholds
+
+Derived from `eligibility.checks`:
+
+- Green: all checks pass (`failedCount === 0`)
+- Amber: 1 or more checks fail but fewer than half (`failedCount < checks.length / 2`)
+- Red: half or more checks fail (`failedCount >= checks.length / 2`)
 
 ---
 
