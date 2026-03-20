@@ -174,7 +174,7 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
       const selected = summaryData.scenarios.find((s: any) => s.isSelected);
       if (selected) setSelectedScenario(nameToType(selected.name));
     }
-  }, [summaryQuery.isSuccess, summaryData?.scenarios]);
+  }, [summaryQuery.isSuccess, summaryData]);
 
   // tRPC mutations
   const selectScenarioMutation = trpc.aiRoles.selectPricingScenario.useMutation({
