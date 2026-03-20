@@ -274,6 +274,11 @@ class AILegalAnalyzer {
       let lastError: Error | null = null;
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
+          // Add small delay on retry to avoid rate limits
+          if (attempt > 0) {
+            await new Promise(r => setTimeout(r, 2000));
+          }
+
           const aiResult = await ai().complete({
             messages: [
               { role: 'system', content: EXTRACT_CLAUSES_SYSTEM_PROMPT + `\n\n${langInstruction}` },
@@ -282,7 +287,7 @@ class AILegalAnalyzer {
                 content: `Εντόπισε τις νομικές ρήτρες/όρους από τα ακόλουθα έγγραφα διαγωνισμού:\n\n${contextText}`,
               },
             ],
-            maxTokens: 16000,
+            maxTokens: 12000,
             temperature: 0.2,
             responseFormat: 'json',
           });

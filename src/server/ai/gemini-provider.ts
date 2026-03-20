@@ -47,8 +47,22 @@ export class GeminiProvider implements AIProvider {
     }
 
     const chat = generativeModel.startChat({ history });
-    const result = await chat.sendMessage(lastMessage.content);
+    let result;
+    try {
+      result = await chat.sendMessage(lastMessage.content);
+    } catch (err: any) {
+      // Gemini API errors (rate limit, safety, etc.) — throw with details
+      const msg = err?.message || String(err);
+      console.error('[Gemini] API error:', msg);
+      throw new Error(`Gemini API error: ${msg.slice(0, 200)}`);
+    }
     const response = result.response;
+
+    // Check for blocked/empty responses
+    const candidates = response.candidates || [];
+    if (candidates.length === 0 || candidates[0]?.finishReason === 'SAFETY') {
+      throw new Error('Gemini blocked the response (safety filter). Try again or rephrase.');
+    }
 
     const rawText = response.text() || '';
     const usageMetadata = response.usageMetadata;
