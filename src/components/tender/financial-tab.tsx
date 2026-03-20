@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -169,12 +169,17 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
   const hasExtractedRequirements = summaryData?.hasExtractedRequirements ?? false;
 
   // Initialize selectedScenario from DB — MUST be in useEffect to avoid React 18 render warnings
+  const hasInitializedScenario = useRef(false);
+
   useEffect(() => {
-    if (summaryQuery.isSuccess && selectedScenario === null && summaryData?.scenarios) {
+    if (summaryQuery.isSuccess && !hasInitializedScenario.current && summaryData?.scenarios) {
       const selected = summaryData.scenarios.find((s: any) => s.isSelected);
-      if (selected) setSelectedScenario(nameToType(selected.name));
+      if (selected) {
+        setSelectedScenario(nameToType(selected.name));
+        hasInitializedScenario.current = true;
+      }
     }
-  }, [summaryQuery.isSuccess, summaryData]);
+  }, [summaryQuery.isSuccess, summaryData?.scenarios]);
 
   // tRPC mutations
   const selectScenarioMutation = trpc.aiRoles.selectPricingScenario.useMutation({
@@ -222,10 +227,9 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
   const handleEligibility = async () => {
     setLoadingAction('eligibility');
     setError(null);
-    try {
-      await summaryQuery.refetch();
-    } catch (err: any) {
-      setError(err?.message || 'Σφάλμα ελέγχου επιλεξιμότητας');
+    const result = await summaryQuery.refetch();
+    if (result.status === 'error') {
+      setError((result.error as any)?.message || 'Σφάλμα ελέγχου επιλεξιμότητας');
     }
     setLoadingAction(null);
   };
@@ -308,7 +312,14 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
           )}
         </GlassCardHeader>
         <GlassCardContent className="px-0">
-          {summaryQuery.isLoading ? (
+          {summaryQuery.isError ? (
+            <div className="px-5 py-4 text-sm text-red-600 dark:text-red-400">
+              Σφάλμα φόρτωσης δεδομένων.{' '}
+              <button onClick={() => summaryQuery.refetch()} className="underline cursor-pointer">
+                Επανάληψη
+              </button>
+            </div>
+          ) : summaryQuery.isLoading ? (
             <div className="space-y-2 px-5 py-4">
               <Skeleton className="h-8 w-full" />
               <Skeleton className="h-8 w-full" />
