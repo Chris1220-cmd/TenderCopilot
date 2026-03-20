@@ -14,11 +14,18 @@
     "db:seed": "prisma db seed",
     "test": "vitest",
     "test:run": "vitest run",
+    "e2e": "npx playwright test",
+    "e2e:smoke": "npx playwright test --project=smoke",
+    "e2e:auth": "npx playwright test --project=auth",
+    "e2e:regression": "npx playwright test --project=regression-chromium --project=regression-firefox --project=regression-webkit",
+    "e2e:ui": "npx playwright test --ui",
+    "e2e:report": "npx playwright show-report",
     "worker": "tsx src/server/jobs/worker.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
+    "@google-cloud/documentai": "^9.6.0",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.9.1",
     "@prisma/adapter-pg": "^7.5.0",
