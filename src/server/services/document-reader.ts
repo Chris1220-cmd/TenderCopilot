@@ -316,7 +316,12 @@ export async function deepParseDocument(documentId: string): Promise<{ success: 
   const buffer = await getFileBuffer(doc.fileKey);
   if (buffer.length === 0) throw new Error('Empty file');
 
-  const docAiResult = await extractWithDocumentAI(buffer, doc.mimeType || 'application/pdf', doc.fileName);
+  const mimeType = doc.mimeType || '';
+  if (!mimeType.includes('pdf')) {
+    throw new Error('Deep Parse is only available for PDF files');
+  }
+
+  const docAiResult = await extractWithDocumentAI(buffer, mimeType, doc.fileName);
 
   if (docAiResult && docAiResult.text.length > 0) {
     await db.attachedDocument.update({

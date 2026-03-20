@@ -113,11 +113,17 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
     onSuccess: () => utils.document.listGenerated.invalidate({ tenderId }),
     onError: (err: any) => alert(`Σφάλμα δημιουργίας εγγράφου: ${err?.message || 'Άγνωστο σφάλμα'}`),
   });
+  const [parsingDocId, setParsingDocId] = useState<string | null>(null);
+
   const deepParseMutation = trpc.document.deepParse.useMutation({
     onSuccess: () => {
       utils.document.listAttached.invalidate({ tenderId });
+      setParsingDocId(null);
     },
-    onError: (err: any) => alert(`Deep Parse απέτυχε: ${err?.message || 'Άγνωστο σφάλμα'}`),
+    onError: (err: any) => {
+      alert(`Deep Parse απέτυχε: ${err?.message || 'Άγνωστο σφάλμα'}`);
+      setParsingDocId(null);
+    },
   });
 
   const attached = (attachedQuery.data ?? []) as any[];
@@ -320,11 +326,14 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                       variant="ghost"
                       size="sm"
                       className="h-7 gap-1 text-xs text-amber-400 hover:text-amber-300 cursor-pointer"
-                      onClick={() => deepParseMutation.mutate({ documentId: doc.id })}
-                      disabled={deepParseMutation.isPending}
+                      onClick={() => {
+                        setParsingDocId(doc.id);
+                        deepParseMutation.mutate({ documentId: doc.id });
+                      }}
+                      disabled={parsingDocId === doc.id}
                     >
                       <Brain className="h-3 w-3" />
-                      {deepParseMutation.isPending ? 'Ανάλυση...' : 'Deep Parse'}
+                      {parsingDocId === doc.id ? 'Ανάλυση...' : 'Deep Parse'}
                     </Button>
                   )}
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
