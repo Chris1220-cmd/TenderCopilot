@@ -35,6 +35,8 @@ import {
   FileCode,
   FolderOpen,
   CloudUpload,
+  Brain,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface DocumentsTabProps {
@@ -47,6 +49,34 @@ const generatedDocTypes = [
   { type: 'TECHNICAL_COMPLIANCE' as const, label: 'Πίνακας Τεχνικής Συμμόρφωσης', icon: Table2 },
   { type: 'TECHNICAL_PROPOSAL' as const, label: 'Τεχνική Προσφορά', icon: FileCode },
 ];
+
+function ExtractionBadge({ doc }: { doc: any }) {
+  const method = doc.extractionMethod;
+  const confidence = doc.extractionConfidence;
+
+  if (!method) return null;
+
+  const config: Record<string, { label: string; icon: any; color: string }> = {
+    pdf_parse: { label: 'PDF Parse', icon: FileText, color: 'text-blue-400' },
+    document_ai: { label: 'Document AI', icon: Brain, color: 'text-emerald-400' },
+    gemini_vision: { label: 'Gemini OCR', icon: Sparkles, color: 'text-purple-400' },
+  };
+
+  const c = config[method] || { label: method, icon: FileText, color: 'text-gray-400' };
+  const Icon = c.icon;
+
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs ${c.color}`}>
+      <Icon className="h-3 w-3" />
+      {c.label}
+      {confidence != null && (
+        <span className="text-[10px] opacity-70">
+          ({(confidence * 100).toFixed(0)}%)
+        </span>
+      )}
+    </span>
+  );
+}
 
 export function DocumentsTab({ tenderId }: DocumentsTabProps) {
   const [isDragActive, setIsDragActive] = useState(false);
@@ -82,6 +112,12 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
   const generateMutation = trpc.document.createGenerated.useMutation({
     onSuccess: () => utils.document.listGenerated.invalidate({ tenderId }),
     onError: (err: any) => alert(`Σφάλμα δημιουργίας εγγράφου: ${err?.message || 'Άγνωστο σφάλμα'}`),
+  });
+  const deepParseMutation = trpc.document.deepParse.useMutation({
+    onSuccess: () => {
+      utils.document.listAttached.invalidate({ tenderId });
+    },
+    onError: (err: any) => alert(`Deep Parse απέτυχε: ${err?.message || 'Άγνωστο σφάλμα'}`),
   });
 
   const attached = (attachedQuery.data ?? []) as any[];
@@ -270,8 +306,27 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                       <span>{doc?.fileSize ? fileSize(doc.fileSize) : '--'}</span>
                       <span>{doc?.createdAt ? formatDate(doc.createdAt) : '--'}</span>
                       <span className="capitalize">{getCategoryLabel(doc?.category ?? null)}</span>
+                      <ExtractionBadge doc={doc} />
+                      {doc.parsingStatus === 'failed' && (
+                        <span className="inline-flex items-center gap-1 text-xs text-red-400">
+                          <AlertTriangle className="h-3 w-3" />
+                          Αποτυχία
+                        </span>
+                      )}
                     </div>
                   </div>
+                  {doc.docAiRecommended && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1 text-xs text-amber-400 hover:text-amber-300 cursor-pointer"
+                      onClick={() => deepParseMutation.mutate({ documentId: doc.id })}
+                      disabled={deepParseMutation.isPending}
+                    >
+                      <Brain className="h-3 w-3" />
+                      {deepParseMutation.isPending ? 'Ανάλυση...' : 'Deep Parse'}
+                    </Button>
+                  )}
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <Button
                       size="icon"
