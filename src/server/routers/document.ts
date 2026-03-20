@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '@/server/trpc';
 import { deleteFile } from '@/lib/s3';
-import { readTenderDocuments } from '@/server/services/document-reader';
+import { readTenderDocuments, deepParseDocument } from '@/server/services/document-reader';
 
 const generatedDocTypeEnum = z.enum([
   'SOLEMN_DECLARATION',
@@ -96,6 +96,33 @@ export const documentRouter = router({
       }
 
       return ctx.db.attachedDocument.delete({ where: { id: input.id } });
+    }),
+
+  deepParse: protectedProcedure
+    .input(z.object({ documentId: z.string().cuid() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.tenantId) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
+      }
+
+      const doc = await ctx.db.attachedDocument.findUnique({
+        where: { id: input.documentId },
+        include: { tender: { select: { tenantId: true, id: true } } },
+      });
+
+      if (!doc || doc.tender.tenantId !== ctx.tenantId) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Document not found.' });
+      }
+
+      try {
+        const result = await deepParseDocument(input.documentId);
+        return { success: true, method: result.method };
+      } catch (err) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: err instanceof Error ? err.message : 'Deep parse failed',
+        });
+      }
     }),
 
   // ─── Generated Documents ────────────────────────────────────
