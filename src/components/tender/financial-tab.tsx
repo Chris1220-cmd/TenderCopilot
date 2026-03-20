@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,6 @@ import {
 import {
   Banknote,
   TrendingUp,
-  TrendingDown,
   Calculator,
   CheckCircle2,
   XCircle,
@@ -30,8 +29,6 @@ import {
   Target,
   Percent,
   DollarSign,
-  BarChart3,
-  AlertTriangle,
   Zap,
   Scale,
 } from 'lucide-react';
@@ -59,20 +56,34 @@ interface PricingScenario {
   breakdown?: { item: string; amount: number }[];
 }
 
-interface FinancialRiskFactor {
-  name: string;
-  score: number;
-  description: string;
-}
-
-interface FinancialData {
-  eligibility: EligibilityResult;
-  scenarios: PricingScenario[];
-  riskScore: number;
-  riskFactors: FinancialRiskFactor[];
-}
-
 // ─── Helpers ──────────────────────────────────────────────────
+
+/** Maps Greek scenario name (as stored in DB) to the type enum */
+function nameToType(name: string): 'CONSERVATIVE' | 'BALANCED' | 'AGGRESSIVE' {
+  if (name === 'Συντηρητικό') return 'CONSERVATIVE';
+  if (name === 'Ισορροπημένο') return 'BALANCED';
+  if (name === 'Επιθετικό') return 'AGGRESSIVE';
+  // Fallback: try English names too
+  const upper = name.toUpperCase();
+  if (upper.includes('CONSERV')) return 'CONSERVATIVE';
+  if (upper.includes('AGGRESS')) return 'AGGRESSIVE';
+  return 'BALANCED';
+}
+
+/** Normalises server-side EligibilityResult (uses `passed`) to client shape (uses `pass`) */
+function normalizeEligibility(raw: any): EligibilityResult | null {
+  if (!raw?.status) return null;
+  return {
+    status: raw.status,
+    checks: (raw.checks ?? []).map((c: any) => ({
+      criterion: c.criterion,
+      required: c.required,
+      actual: c.actual,
+      pass: c.pass ?? c.passed ?? false,
+    })),
+  };
+}
+
 const eligibilityConfig = {
   ELIGIBLE: {
     label: 'Επιλέξιμοι',
@@ -121,24 +132,6 @@ const scenarioConfig = {
   },
 };
 
-function getScoreColor(score: number) {
-  if (score <= 30) return 'text-emerald-600 dark:text-emerald-400';
-  if (score <= 60) return 'text-amber-600 dark:text-amber-400';
-  return 'text-red-600 dark:text-red-400';
-}
-
-function getBarColor(score: number) {
-  if (score <= 30) return 'bg-emerald-500';
-  if (score <= 60) return 'bg-amber-500';
-  return 'bg-red-500';
-}
-
-function getBarBg(score: number) {
-  if (score <= 30) return 'bg-emerald-500/10';
-  if (score <= 60) return 'bg-amber-500/10';
-  return 'bg-red-500/10';
-}
-
 // ─── Component ────────────────────────────────────────────────
 interface FinancialTabProps {
   tenderId: string;
@@ -147,12 +140,46 @@ interface FinancialTabProps {
 }
 
 export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProps) {
-  const [data, setData] = useState<FinancialData | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [noDocs, setNoDocs] = useState(false);
   const [langModalOpen, setLangModalOpen] = useState(false);
+
+  // Single query — loads scenarios + eligibility + flags on mount
+  const summaryQuery = trpc.aiRoles.getFinancialSummary.useQuery(
+    { tenderId },
+    { retry: false, refetchOnWindowFocus: false }
+  );
+
+  // Derive display data from query result
+  const summaryData = summaryQuery.data;
+  const dbScenarios = (summaryData?.scenarios ?? []).map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    type: nameToType(s.name),
+    totalPrice: s.totalPrice,
+    margin: s.margin,
+    winProbability: s.winProbability ?? 0,
+  }));
+  const eligibility = summaryData?.eligibility
+    ? normalizeEligibility(summaryData.eligibility)
+    : null;
+  const hasFinancialProfile = summaryData?.hasFinancialProfile ?? false;
+  const hasExtractedRequirements = summaryData?.hasExtractedRequirements ?? false;
+
+  // Initialize selectedScenario from DB — MUST be in useEffect to avoid React 18 render warnings
+  const hasInitializedScenario = useRef(false);
+
+  useEffect(() => {
+    if (summaryQuery.isSuccess && !hasInitializedScenario.current && summaryData?.scenarios) {
+      const selected = summaryData.scenarios.find((s: any) => s.isSelected);
+      if (selected) {
+        setSelectedScenario(nameToType(selected.name));
+        hasInitializedScenario.current = true;
+      }
+    }
+  }, [summaryQuery.isSuccess, summaryData?.scenarios]);
 
   // tRPC mutations
   const selectScenarioMutation = trpc.aiRoles.selectPricingScenario.useMutation({
@@ -164,18 +191,8 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
 
   const extractMutation = trpc.aiRoles.extractFinancials.useMutation({
     onSuccess: () => {
-      // extractFinancials saves requirements to DB but doesn't return UI-ready data.
-      // Trigger eligibility check automatically to populate the cards.
-      setLoadingAction('eligibility');
-      eligibilityQuery.refetch().then((res) => {
-        if (res.data) {
-          setData((prev) => {
-            const base = prev || { eligibility: res.data as any, scenarios: [], riskScore: 0, riskFactors: [] };
-            return { ...base, eligibility: res.data as any };
-          });
-        }
-        setLoadingAction(null);
-      }).catch(() => { setLoadingAction(null); });
+      summaryQuery.refetch();
+      setLoadingAction(null);
       setError(null);
     },
     onError: (err: any) => {
@@ -184,18 +201,9 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
     },
   });
 
-  // checkFinancialEligibility is a query, so we use useQuery with enabled flag
-  const eligibilityQuery = trpc.aiRoles.checkFinancialEligibility.useQuery(
-    { tenderId },
-    {
-      enabled: false, // manually triggered via refetch
-      retry: false,
-    }
-  );
-
   const pricingMutation = trpc.aiRoles.suggestPricing.useMutation({
-    onSuccess: (result: any) => {
-      if (result?.scenarios) setData((prev) => prev ? { ...prev, scenarios: result.scenarios } : null);
+    onSuccess: () => {
+      summaryQuery.refetch();
       setLoadingAction(null);
       setError(null);
     },
@@ -219,17 +227,9 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
   const handleEligibility = async () => {
     setLoadingAction('eligibility');
     setError(null);
-    try {
-      const res = await eligibilityQuery.refetch();
-      if (res.data) {
-        setData((prev) => {
-          const base = prev || { eligibility: res.data as any, scenarios: [], riskScore: 0, riskFactors: [] };
-          return { ...base, eligibility: res.data as any };
-        });
-      }
-    } catch (err: any) {
-      if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
-      setError(err?.message || 'Σφάλμα ελέγχου επιλεξιμότητας');
+    const result = await summaryQuery.refetch();
+    if (result.status === 'error') {
+      setError((result.error as any)?.message || 'Σφάλμα ελέγχου επιλεξιμότητας');
     }
     setLoadingAction(null);
   };
@@ -240,7 +240,7 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
     pricingMutation.mutate({ tenderId });
   };
 
-  const eligCfg = data?.eligibility?.status ? eligibilityConfig[data.eligibility.status] : null;
+  const eligCfg = eligibility?.status ? eligibilityConfig[eligibility.status] : null;
   const EligIcon = eligCfg?.icon ?? null;
 
   return (
@@ -312,52 +312,86 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
           )}
         </GlassCardHeader>
         <GlassCardContent className="px-0">
-          {data?.eligibility?.checks && data.eligibility.checks.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/50">
-                    <th className="text-left px-5 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Κριτήριο
-                    </th>
-                    <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Απαίτηση
-                    </th>
-                    <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Πραγματικό
-                    </th>
-                    <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-16">
-                      Αποτέλεσμα
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.eligibility.checks.map((check, i) => (
-                    <tr key={i} className="border-b border-border/30">
-                      <td className="px-5 py-2.5 text-xs font-medium text-foreground">
-                        {check.criterion}
-                      </td>
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">
-                        {check.required}
-                      </td>
-                      <td className="px-3 py-2.5 text-xs text-foreground font-mono font-semibold">
-                        {check.actual}
-                      </td>
-                      <td className="px-3 py-2.5 text-center">
-                        {check.pass ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-500 mx-auto" />
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {summaryQuery.isError ? (
+            <div className="px-5 py-4 text-sm text-red-600 dark:text-red-400">
+              Σφάλμα φόρτωσης δεδομένων.{' '}
+              <button onClick={() => summaryQuery.refetch()} className="underline cursor-pointer">
+                Επανάληψη
+              </button>
             </div>
+          ) : summaryQuery.isLoading ? (
+            <div className="space-y-2 px-5 py-4">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-4/5" />
+            </div>
+          ) : !hasExtractedRequirements ? (
+            <p className="text-xs text-muted-foreground text-center py-6 px-5">
+              Εκτελέστε πρώτα <strong>AI Ανάλυση Οικονομικών</strong> για να φορτωθούν τα κριτήρια επιλεξιμότητας.
+            </p>
+          ) : !hasFinancialProfile ? (
+            <div className="px-5 py-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <MinusCircle className="h-5 w-5 text-amber-500 shrink-0" />
+                <span className="text-sm font-bold text-amber-700 dark:text-amber-400">Οριακά</span>
+                <span className="text-xs text-muted-foreground">— Λείπουν οικονομικά στοιχεία εταιρείας</span>
+              </div>
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+                <strong>Συμπληρώστε τα οικονομικά στοιχεία εταιρείας</strong> για πλήρη ανάλυση επιλεξιμότητας.
+                <br />
+                <span className="text-xs opacity-80">Μεταβείτε στις Ρυθμίσεις → Οικονομικό Προφίλ.</span>
+              </div>
+            </div>
+          ) : eligibility && eligibility.checks.length > 0 ? (
+            <>
+              {(() => {
+                const total = eligibility.checks.length;
+                const passed = eligibility.checks.filter((c) => c.pass).length;
+                const failed = total - passed;
+                const color =
+                  failed === 0
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : failed < total / 2
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-red-600 dark:text-red-400';
+                return (
+                  <p className={`text-xs font-semibold px-5 pt-3 pb-1 ${color}`}>
+                    {passed} / {total} κριτήρια πληρούνται
+                  </p>
+                );
+              })()}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/50">
+                      <th className="text-left px-5 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Κριτήριο</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Απαίτηση</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Πραγματικό</th>
+                      <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-16">Αποτέλεσμα</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eligibility.checks.map((check, i) => (
+                      <tr key={i} className="border-b border-border/30">
+                        <td className="px-5 py-2.5 text-xs font-medium text-foreground">{check.criterion}</td>
+                        <td className="px-3 py-2.5 text-xs text-muted-foreground font-mono">{check.required}</td>
+                        <td className="px-3 py-2.5 text-xs text-foreground font-mono font-semibold">{check.actual}</td>
+                        <td className="px-3 py-2.5 text-center">
+                          {check.pass ? (
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-500 mx-auto" />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : (
             <p className="text-xs text-muted-foreground text-center py-6 px-5">
-              Δεν υπάρχουν δεδομένα ακόμα. Εκτελέστε ανάλυση AI.
+              Δεν βρέθηκαν κριτήρια επιλεξιμότητας. Εκτελέστε εκ νέου ανάλυση.
             </p>
           )}
         </GlassCardContent>
@@ -369,9 +403,9 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
           <TrendingUp className="h-4 w-4 text-blue-500" />
           Σενάρια Τιμολόγησης
         </h3>
-        {data?.scenarios && data.scenarios.length > 0 ? (
+        {dbScenarios && dbScenarios.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-3">
-            {data.scenarios.map((scenario) => {
+            {dbScenarios.map((scenario) => {
               const cfg = scenarioConfig[scenario.type];
               const ScenarioIcon = cfg.icon;
               const isSelected = selectedScenario === scenario.type;
@@ -470,70 +504,6 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
           </GlassCard>
         )}
       </div>
-
-      {/* Financial Risk Score */}
-      <GlassCard>
-        <GlassCardHeader>
-          <GlassCardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-blue-500" />
-            Οικονομικός Κίνδυνος
-          </GlassCardTitle>
-          {data && (
-            <GlassCardAction>
-              <div className="flex items-baseline gap-1.5">
-                <span className={cn('text-3xl font-bold tabular-nums', getScoreColor(data.riskScore))}>
-                  {data.riskScore}
-                </span>
-                <span className="text-xs text-muted-foreground">/ 100</span>
-              </div>
-            </GlassCardAction>
-          )}
-        </GlassCardHeader>
-        <GlassCardContent>
-          {data?.riskFactors && data.riskFactors.length > 0 ? (
-            <div className="space-y-3">
-              {/* Overall Risk Bar */}
-              <div className={cn('h-2.5 w-full rounded-full overflow-hidden', getBarBg(data.riskScore))}>
-                <div
-                  className={cn('h-full rounded-full transition-all duration-700 ease-out', getBarColor(data.riskScore))}
-                  style={{ width: `${data.riskScore}%` }}
-                />
-              </div>
-
-              {/* Factor Breakdown */}
-              <div className="space-y-2.5 mt-4">
-                {data.riskFactors.map((factor, i) => (
-                  <div key={i} className="group">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-medium text-foreground w-44 shrink-0 truncate">
-                        {factor.name}
-                      </span>
-                      <div className="flex-1">
-                        <div className={cn('h-2 w-full rounded-full overflow-hidden', getBarBg(factor.score))}>
-                          <div
-                            className={cn('h-full rounded-full transition-all duration-500 ease-out', getBarColor(factor.score))}
-                            style={{ width: `${factor.score}%` }}
-                          />
-                        </div>
-                      </div>
-                      <span className={cn('text-xs font-bold tabular-nums w-8 text-right', getScoreColor(factor.score))}>
-                        {factor.score}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground/70 mt-0.5 pl-44 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      {factor.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground text-center py-6">
-              Δεν υπάρχουν δεδομένα ακόμα. Εκτελέστε ανάλυση AI.
-            </p>
-          )}
-        </GlassCardContent>
-      </GlassCard>
 
       <LanguageModal
         open={langModalOpen}

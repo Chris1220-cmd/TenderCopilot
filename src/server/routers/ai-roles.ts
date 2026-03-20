@@ -248,6 +248,44 @@ export const aiRolesRouter = router({
       return aiFinancial.checkEligibility(input.tenderId, tenantId);
     }),
 
+  getFinancialSummary: protectedProcedure
+    .input(z.object({ tenderId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { tenantId } = await ensureTenderAccess(input.tenderId, ctx.tenantId);
+
+      const [scenarios, reqCount, profileCount] = await Promise.all([
+        db.pricingScenario.findMany({
+          where: { tenderId: input.tenderId },
+          orderBy: { createdAt: 'asc' },
+        }),
+        db.tenderRequirement.count({
+          where: { tenderId: input.tenderId, category: 'FINANCIAL_REQUIREMENTS' },
+        }),
+        db.financialProfile.count({
+          where: { tenantId },
+        }),
+      ]);
+
+      const hasExtractedRequirements = reqCount > 0;
+      const hasFinancialProfile = profileCount > 0;
+
+      let eligibility = null;
+      if (hasExtractedRequirements && hasFinancialProfile) {
+        try {
+          eligibility = await aiFinancial.checkEligibility(input.tenderId, tenantId);
+        } catch (err) {
+          console.warn('[getFinancialSummary] checkEligibility failed:', err);
+        }
+      }
+
+      return {
+        scenarios,
+        eligibility,
+        hasFinancialProfile,
+        hasExtractedRequirements,
+      };
+    }),
+
   suggestPricing: protectedProcedure
     .input(
       z.object({
