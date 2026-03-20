@@ -42,3 +42,6 @@ next-env.d.ts
 
 .vercel
 competencyhub-e5d2f-*.json
+
+# Git worktrees
+.worktrees/
