@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
+import { parseAIResponse } from './ai-prompts';
 import type { TaskPriority, TaskStatus } from '@prisma/client';
 import path from 'path';
 
@@ -178,7 +179,14 @@ class AIOpsService {
         reasons: string[];
         dependencies: string[];
         impactOnCompliance: PrioritizedTask['impactOnCompliance'];
-      }> = JSON.parse(result.content);
+      }> = parseAIResponse<Array<{
+        taskId: string;
+        suggestedPriority: TaskPriority;
+        urgencyScore: number;
+        reasons: string[];
+        dependencies: string[];
+        impactOnCompliance: PrioritizedTask['impactOnCompliance'];
+      }>>(result.content, [], 'prioritizeTasks');
 
       // Merge AI analysis with task data
       const prioritized: PrioritizedTask[] = activeTasks.map((task) => {
@@ -535,7 +543,7 @@ class AIOpsService {
         responseFormat: 'json',
       });
 
-      const actions: SuggestedAction[] = JSON.parse(result.content);
+      const actions: SuggestedAction[] = parseAIResponse<SuggestedAction[]>(result.content, [], 'suggestNextActions');
 
       await db.activity.create({
         data: {

@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
+import { parseAIResponse } from './ai-prompts';
 import type { DocumentGenerationRequest, GeneratedDocumentResult } from '@/server/ai/types';
 import type { GeneratedDocType } from '@prisma/client';
 
@@ -46,7 +47,7 @@ export class DocumentGeneratorService {
       responseFormat: 'json',
     });
 
-    const generated: GeneratedDocumentResult = JSON.parse(result.content);
+    const generated = parseAIResponse<GeneratedDocumentResult>(result.content, [], 'generateSolemnDeclaration');
 
     // Save to DB
     const doc = await db.generatedDocument.create({
@@ -99,7 +100,7 @@ export class DocumentGeneratorService {
       responseFormat: 'json',
     });
 
-    const generated: GeneratedDocumentResult = JSON.parse(result.content);
+    const generated = parseAIResponse<GeneratedDocumentResult>(result.content, [], 'generateNonExclusionDeclaration');
 
     const doc = await db.generatedDocument.create({
       data: {
@@ -173,7 +174,7 @@ export class DocumentGeneratorService {
       responseFormat: 'json',
     });
 
-    const generated: GeneratedDocumentResult = JSON.parse(result.content);
+    const generated = parseAIResponse<GeneratedDocumentResult>(result.content, [], 'generateTechnicalComplianceTable');
 
     const doc = await db.generatedDocument.create({
       data: {
@@ -239,7 +240,7 @@ export class DocumentGeneratorService {
       responseFormat: 'json',
     });
 
-    const generated: GeneratedDocumentResult = JSON.parse(result.content);
+    const generated = parseAIResponse<GeneratedDocumentResult>(result.content, [], 'generateTechnicalProposal');
 
     const doc = await db.generatedDocument.create({
       data: {

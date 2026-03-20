@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
 import { readTenderDocuments, requireDocuments } from '@/server/services/document-reader';
+import { parseAIResponse } from './ai-prompts';
 import type { RequirementCategory, RequirementType, CoverageStatus } from '@prisma/client';
 
 /**
@@ -242,7 +243,7 @@ ${langInstruction}`,
 
     let classified: ClassifiedRequirement[];
     try {
-      const parsed = JSON.parse(result.content);
+      const parsed = parseAIResponse<ClassifiedRequirement[] | { requirements: ClassifiedRequirement[] }>(result.content, [], 'analyzeTechnicalRequirements');
       classified = Array.isArray(parsed) ? parsed : parsed.requirements || [];
     } catch {
       throw new Error('Η AI ανάλυση τεχνικών απαιτήσεων απέτυχε. Δοκιμάστε ξανά.');
@@ -381,7 +382,7 @@ ${langInstruction}`,
 
     let matches: ExperienceMatch[];
     try {
-      const parsed = JSON.parse(result.content);
+      const parsed = parseAIResponse<ExperienceMatch[] | { mappings: ExperienceMatch[] }>(result.content, [], 'mapRequirementsToExperience');
       matches = Array.isArray(parsed) ? parsed : parsed.mappings || [];
     } catch {
       throw new Error('Η AI ανάλυση τεχνικών απαιτήσεων απέτυχε. Δοκιμάστε ξανά.');
@@ -581,7 +582,7 @@ ${langInstruction}`,
 
       let sectionData: { content: string; aiNotes: string };
       try {
-        sectionData = JSON.parse(result.content);
+        sectionData = parseAIResponse<{ content: string; aiNotes: string }>(result.content, [], 'generateTechnicalProposal');
       } catch {
         throw new Error('Η AI ανάλυση τεχνικών απαιτήσεων απέτυχε. Δοκιμάστε ξανά.');
       }
@@ -710,7 +711,7 @@ ${langInstruction}`,
 
     let risks: TechnicalRiskData[];
     try {
-      const parsed = JSON.parse(result.content);
+      const parsed = parseAIResponse<TechnicalRiskData[] | { risks: TechnicalRiskData[] }>(result.content, [], 'flagTechnicalRisks');
       risks = Array.isArray(parsed) ? parsed : parsed.risks || [];
     } catch {
       throw new Error('Η AI ανάλυση τεχνικών απαιτήσεων απέτυχε. Δοκιμάστε ξανά.');
@@ -869,7 +870,7 @@ ${langInstruction}`,
 
     let scoreResult: ProposalStrengthResult;
     try {
-      scoreResult = JSON.parse(result.content);
+      scoreResult = parseAIResponse<ProposalStrengthResult>(result.content, [], 'scoreProposalStrength');
       scoreResult.estimatedScore = Math.max(0, Math.min(120, scoreResult.estimatedScore));
     } catch {
       throw new Error('Η AI ανάλυση τεχνικών απαιτήσεων απέτυχε. Δοκιμάστε ξανά.');

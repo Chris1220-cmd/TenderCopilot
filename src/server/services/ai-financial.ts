@@ -676,7 +676,7 @@ ${langInstruction}`,
 
     let scenarios: PricingScenarioData[];
     try {
-      const parsed = JSON.parse(result.content);
+      const parsed = parseAIResponse<PricingScenarioData[] | { scenarios: PricingScenarioData[] }>(result.content, [], 'suggestPricingScenarios');
       scenarios = Array.isArray(parsed) ? parsed : parsed.scenarios || [];
     } catch {
       throw new Error('Η AI ανάλυση οικονομικών απέτυχε. Δοκιμάστε ξανά.');
@@ -814,7 +814,7 @@ ${langInstruction}`,
 
     let riskResult: FinancialRiskResult;
     try {
-      riskResult = JSON.parse(result.content);
+      riskResult = parseAIResponse<FinancialRiskResult>(result.content, [], 'getFinancialRiskScore');
       // Clamp score
       riskResult.score = Math.max(0, Math.min(100, riskResult.score));
       riskResult.factors = (riskResult.factors || []).map((f) => ({

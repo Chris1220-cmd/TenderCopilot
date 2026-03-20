@@ -14,6 +14,7 @@
 import { db } from '@/lib/db';
 import { uploadFile, getFileBuffer } from '@/lib/s3';
 import { ai } from '@/server/ai';
+import { parseAIResponse } from './ai-prompts';
 import { tenderAnalysisQueue, complianceCheckQueue } from '@/server/jobs/queues';
 
 // ─── Types ──────────────────────────────────────────────────
@@ -199,7 +200,7 @@ and provide your best guess for the title.`,
   });
 
   try {
-    const parsed = JSON.parse(result.content);
+    const parsed = parseAIResponse<ExtractedTenderMetadata & { [key: string]: unknown }>(result.content, [], 'identifyTenderMetadata');
     return {
       title: parsed.title || 'Untitled Tender',
       referenceNumber: parsed.referenceNumber || undefined,

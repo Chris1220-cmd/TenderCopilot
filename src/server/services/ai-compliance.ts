@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
+import { parseAIResponse } from './ai-prompts';
 import type {
   TenderRequirement,
   Certificate,
@@ -287,7 +288,7 @@ ${tender.platform === 'COSMOONE' ? 'Πλατφόρμα cosmoONE: Ξεχωρισ�
         responseFormat: 'json',
       });
 
-      const checklist: ChecklistCategory[] = JSON.parse(result.content);
+      const checklist: ChecklistCategory[] = parseAIResponse<ChecklistCategory[]>(result.content, [], 'generateSubmissionChecklist');
 
       await db.activity.create({
         data: {
@@ -514,7 +515,7 @@ ${tender.platform === 'COSMOONE' ? 'Πλατφόρμα cosmoONE: Ξεχωρισ�
         });
 
         const remediations: Array<{ requirementId: string; remediation: string }> =
-          JSON.parse(result.content);
+          parseAIResponse<Array<{ requirementId: string; remediation: string }>>(result.content, [], 'getComplianceRemediations');
 
         gapList = gapRequirements.map((r) => ({
           requirementId: r.id,
@@ -745,7 +746,12 @@ ${tender.platform === 'COSMOONE' ? 'Πλατφόρμα cosmoONE: Ξεχωρισ�
         docType: EvidenceRef['docType'];
         confidence: number;
         section?: string;
-      }> = JSON.parse(result.content);
+      }> = parseAIResponse<Array<{
+        docId: string;
+        docType: EvidenceRef['docType'];
+        confidence: number;
+        section?: string;
+      }>>(result.content, [], 'findMatchingEvidence');
 
       for (const match of matches) {
         evidenceRefs.push({

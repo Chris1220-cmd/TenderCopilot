@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
+import { parseAIResponse } from './ai-prompts';
 import type { TenderAnalysisResult, ExtractedRequirement } from '@/server/ai/types';
 import type { RequirementCategory, RequirementType } from '@prisma/client';
 
@@ -43,7 +44,7 @@ Respond ONLY with valid JSON matching the TenderAnalysisResult schema.`,
       responseFormat: 'json',
     });
 
-    const analysis: TenderAnalysisResult = JSON.parse(result.content);
+    const analysis = parseAIResponse<TenderAnalysisResult>(result.content, [], 'analyzeTender');
     return analysis;
   }
 
