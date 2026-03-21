@@ -159,7 +159,43 @@ export async function fetchDocumentsForTender(params: {
           candidateUrls.push({ url: match[1], label: match[2] });
         }
 
-        console.log(`[fetchDocumentsForTender] Found ${candidateUrls.length} candidate URLs on page`);
+        console.log(`[fetchDocumentsForTender] Found ${candidateUrls.length} candidate URLs on page (direct fetch)`);
+
+        // Jina Reader fallback: if direct scrape found nothing (JS-rendered pages like KIMDIS)
+        if (candidateUrls.length === 0) {
+          try {
+            console.log(`[fetchDocumentsForTender] Trying Jina Reader for JS-rendered page...`);
+            const jinaRes = await fetch(`https://r.jina.ai/${sourceUrl}`, {
+              headers: { Accept: 'text/html', 'X-Return-Format': 'html' },
+              signal: AbortSignal.timeout(20000),
+            });
+            if (jinaRes.ok) {
+              const jinaHtml = await jinaRes.text();
+              // Re-run all extraction strategies on Jina-rendered content
+              let jMatch;
+              const jExtRegex = /href=["']([^"']*\.(?:pdf|docx?|xlsx?|zip|xml|rar|odt)(?:\?[^"']*)?)["']/gi;
+              while ((jMatch = jExtRegex.exec(jinaHtml)) !== null) {
+                candidateUrls.push({ url: jMatch[1], label: '' });
+              }
+              const jDownloadRegex = /href=["']([^"']+(?:download|attachment|getFile|getDocument|document|arxeio|archeio|file)[^"']*)["'][^>]*>([^<]*)/gi;
+              while ((jMatch = jDownloadRegex.exec(jinaHtml)) !== null) {
+                candidateUrls.push({ url: jMatch[1], label: jMatch[2].trim() });
+              }
+              const jLabelRegex = /href=["']([^"']+)["'][^>]*>\s*(?:[^<]*?)?(Λήψη|λήψη|Download|download|PDF|pdf|Αρχείο|αρχείο|Συνημμένο|συνημμένο|Κατέβασμα|Έγγραφο|έγγραφο)[^<]*/gi;
+              while ((jMatch = jLabelRegex.exec(jinaHtml)) !== null) {
+                candidateUrls.push({ url: jMatch[1], label: jMatch[2] });
+              }
+              // Also check markdown-style links from Jina: [text](url)
+              const mdLinkRegex = /\[([^\]]*)\]\((https?:\/\/[^)]*\.(?:pdf|docx?|xlsx?|zip)[^)]*)\)/gi;
+              while ((jMatch = mdLinkRegex.exec(jinaHtml)) !== null) {
+                candidateUrls.push({ url: jMatch[2], label: jMatch[1] });
+              }
+              console.log(`[fetchDocumentsForTender] Jina found ${candidateUrls.length} candidate URLs`);
+            }
+          } catch (jinaErr) {
+            console.warn(`[fetchDocumentsForTender] Jina Reader failed:`, jinaErr);
+          }
+        }
 
         for (const candidate of candidateUrls) {
           if (documentCount >= 10) break;

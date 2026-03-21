@@ -13,9 +13,10 @@ const GlowButton = forwardRef<HTMLButtonElement, GlowButtonProps>(
   ({ className, variant = 'default', size = 'default', children, ...props }, ref) => {
     return (
       <motion.button
-        ref={ref}
+        ref={ref as any}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
+        {...(props as any)}
         className={cn(
           'relative inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200 cursor-pointer',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
@@ -34,7 +35,6 @@ const GlowButton = forwardRef<HTMLButtonElement, GlowButtonProps>(
           size === 'lg' && 'h-12 px-8 text-base',
           className
         )}
-        {...props}
       >
         {children}
       </motion.button>
