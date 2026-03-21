@@ -69,16 +69,12 @@ export function Sidebar() {
       <aside
         className={cn(
           'group/sidebar relative flex h-screen flex-col',
-          'bg-white/80 dark:bg-slate-950/80',
-          'backdrop-blur-xl',
-          'border-r border-white/10 dark:border-white/5',
+          'bg-background',
+          'border-r border-border',
           'transition-[width] duration-300 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]',
           collapsed ? 'w-[68px]' : 'w-[260px]'
         )}
       >
-        {/* Subtle glass edge highlight */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-white/20 via-white/5 to-white/20 dark:from-white/10 dark:via-white/[0.02] dark:to-white/10" />
-
         {/* Logo section */}
         <div className="flex h-16 items-center gap-3 px-4">
           <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25">
@@ -119,9 +115,9 @@ export function Sidebar() {
                 className={cn(
                   'group/item relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium cursor-pointer',
                   'transition-all duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]',
-                  'hover:bg-white/5 dark:hover:bg-white/5',
+                  'hover:bg-muted/50 dark:hover:bg-white/[0.04]',
                   isActive
-                    ? 'bg-primary/10 text-primary'
+                    ? 'bg-primary/10 text-primary dark:bg-primary/[0.08]'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
@@ -158,7 +154,7 @@ export function Sidebar() {
                   <TooltipContent
                     side="right"
                     sideOffset={12}
-                    className="border-white/10 bg-slate-900/90 text-white backdrop-blur-md dark:border-white/5"
+                    className="bg-popover text-popover-foreground border-border"
                   >
                     {item.label}
                   </TooltipContent>
@@ -183,9 +179,9 @@ export function Sidebar() {
                 className={cn(
                   'group/item relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium cursor-pointer',
                   'transition-all duration-200 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]',
-                  'hover:bg-white/5 dark:hover:bg-white/5',
+                  'hover:bg-muted/50 dark:hover:bg-white/[0.04]',
                   isActive
-                    ? 'bg-primary/10 text-primary'
+                    ? 'bg-primary/10 text-primary dark:bg-primary/[0.08]'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
@@ -221,7 +217,7 @@ export function Sidebar() {
                   <TooltipContent
                     side="right"
                     sideOffset={12}
-                    className="border-white/10 bg-slate-900/90 text-white backdrop-blur-md dark:border-white/5"
+                    className="bg-popover text-popover-foreground border-border"
                   >
                     {item.label}
                   </TooltipContent>
@@ -242,10 +238,10 @@ export function Sidebar() {
               onClick={() => setCollapsed(!collapsed)}
               className={cn(
                 'absolute -right-3.5 top-20 z-10 h-7 w-7 rounded-full cursor-pointer',
-                'border border-white/15 dark:border-white/10',
-                'bg-white/80 dark:bg-slate-900/80 backdrop-blur-md',
+                'border border-border',
+                'bg-background backdrop-blur-md',
                 'shadow-lg shadow-black/5 dark:shadow-black/20',
-                'hover:bg-white dark:hover:bg-slate-800',
+                'hover:bg-muted',
                 'hover:shadow-xl hover:shadow-blue-500/10',
                 'transition-all duration-300 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]'
               )}
@@ -260,7 +256,7 @@ export function Sidebar() {
           <TooltipContent
             side="right"
             sideOffset={8}
-            className="border-white/10 bg-slate-900/90 text-white backdrop-blur-md dark:border-white/5"
+            className="bg-popover text-popover-foreground border-border"
           >
             {collapsed ? 'Ανάπτυξη' : 'Σύμπτυξη'}
           </TooltipContent>
