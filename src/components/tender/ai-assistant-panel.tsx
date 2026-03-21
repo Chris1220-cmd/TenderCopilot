@@ -39,6 +39,11 @@ import {
   CheckSquare,
   ShieldCheck,
   Timer,
+  CheckCircle,
+  AlertTriangle,
+  BookOpen,
+  FileText,
+  Scale,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────
@@ -47,6 +52,21 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  metadata?: {
+    answer?: string;
+    confidence?: 'verified' | 'inferred' | 'general';
+    sources?: Array<{
+      type: 'document' | 'law' | 'knowledge_base';
+      reference: string;
+      quote?: string;
+    }>;
+    highlights?: Array<{
+      label: string;
+      value: string;
+      status: 'ok' | 'warning' | 'critical';
+    }>;
+    caveats?: string[];
+  };
 }
 
 interface SuggestedAction {
@@ -125,7 +145,7 @@ interface AIAssistantPanelProps {
 }
 
 export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPanelProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [actions, setActions] = useState<SuggestedAction[]>([]);
@@ -134,16 +154,26 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // tRPC mutations
-  const askMutation = trpc.aiRoles.askQuestion.useMutation({
-    onSuccess: (data: any) => {
-      const answer: ChatMessage = {
-        id: `msg-${Date.now()}`,
-        role: 'assistant',
-        content: data?.answer ?? 'Δεν μπόρεσα να βρω απάντηση.',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, answer]);
+  // Load persistent chat history
+  const historyQuery = trpc.chat.getHistory.useQuery(
+    { tenderId },
+    { enabled: !!tenderId && open }
+  );
+
+  // Merge DB history with optimistic local messages
+  const dbMessages: ChatMessage[] = (historyQuery.data || []).map((m: any) => ({
+    id: m.id,
+    role: m.role as 'user' | 'assistant',
+    content: m.content,
+    timestamp: new Date(m.createdAt),
+    metadata: m.metadata || undefined,
+  }));
+
+  const askMutation = trpc.chat.askSmart.useMutation({
+    onSuccess: () => {
+      // Refetch history to get the persisted messages
+      historyQuery.refetch();
+      setLocalMessages([]);
       setIsTyping(false);
     },
     onError: (err: any) => {
@@ -153,10 +183,13 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
         content: err?.message ?? 'Σφάλμα κατά την επεξεργασία. Δοκιμάστε ξανά.',
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, errorMsg]);
+      setLocalMessages((prev) => [...prev, errorMsg]);
       setIsTyping(false);
     },
   });
+
+  // Combined messages: DB history + optimistic local
+  const messages = [...dbMessages, ...localMessages];
 
   // suggestNextActions and getReminders are queries - use with enabled:false for manual trigger
   const nextActionsQuery = trpc.aiRoles.suggestNextActions.useQuery(
@@ -189,7 +222,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
       content: question,
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMsg]);
+    setLocalMessages((prev) => [...prev, userMsg]);
     setInputValue('');
     setIsTyping(true);
 
@@ -303,6 +336,56 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                         )}
                       >
                         <div className="whitespace-pre-wrap">{msg.content}</div>
+
+                        {/* Confidence Badge */}
+                        {msg.role === 'assistant' && msg.metadata?.confidence && (
+                          <span className={cn(
+                            "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium mt-1.5",
+                            msg.metadata.confidence === 'verified' && "bg-emerald-500/20 text-emerald-600 dark:text-emerald-300",
+                            msg.metadata.confidence === 'inferred' && "bg-amber-500/20 text-amber-600 dark:text-amber-300",
+                            msg.metadata.confidence === 'general' && "bg-blue-500/20 text-blue-600 dark:text-blue-300",
+                          )}>
+                            {msg.metadata.confidence === 'verified' && <><CheckCircle className="w-3 h-3" /> Verified</>}
+                            {msg.metadata.confidence === 'inferred' && <><AlertTriangle className="w-3 h-3" /> Inferred</>}
+                            {msg.metadata.confidence === 'general' && <><BookOpen className="w-3 h-3" /> General</>}
+                          </span>
+                        )}
+
+                        {/* Expandable Sources */}
+                        {msg.role === 'assistant' && msg.metadata?.sources && msg.metadata.sources.length > 0 && (
+                          <details className="mt-1.5">
+                            <summary className="text-[10px] text-muted-foreground/60 cursor-pointer hover:text-muted-foreground transition-colors">
+                              Πηγές ({msg.metadata.sources.length})
+                            </summary>
+                            <div className="mt-1 space-y-1">
+                              {msg.metadata.sources.map((source: any, i: number) => (
+                                <div key={i} className="text-[10px] text-muted-foreground/50 pl-2 border-l border-border/30 flex items-start gap-1">
+                                  {source.type === 'document' && <FileText className="w-3 h-3 mt-0.5 shrink-0" />}
+                                  {source.type === 'law' && <Scale className="w-3 h-3 mt-0.5 shrink-0" />}
+                                  {source.type === 'knowledge_base' && <Lightbulb className="w-3 h-3 mt-0.5 shrink-0" />}
+                                  <div>
+                                    {source.reference}
+                                    {source.quote && (
+                                      <p className="italic mt-0.5 text-muted-foreground/40">&ldquo;{source.quote}&rdquo;</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+
+                        {/* Caveats */}
+                        {msg.role === 'assistant' && msg.metadata?.caveats && msg.metadata.caveats.length > 0 && (
+                          <div className="mt-1.5 space-y-0.5">
+                            {msg.metadata.caveats.map((c: string, i: number) => (
+                              <p key={i} className="text-[10px] text-amber-600/60 dark:text-amber-300/60 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3 shrink-0" /> {c}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+
                         <p className={cn(
                           'text-[9px] mt-1.5 tabular-nums',
                           msg.role === 'user' ? 'text-blue-200' : 'text-muted-foreground/50'
