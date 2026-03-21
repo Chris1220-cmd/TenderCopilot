@@ -501,9 +501,19 @@ class AIBidOrchestrator {
 
       const metadataText = textParts.join('\n');
 
-      // ── Read actual document content ──────────────────────────
-      _log('reading documents');
-      const documentText = await readTenderDocuments(tenderId);
+      // ── Read document content from DB cache (fast) ─────────────
+      _log('reading documents from DB');
+      const docsWithText = await db.attachedDocument.findMany({
+        where: { tenderId, extractedText: { not: null } },
+        select: { fileName: true, extractedText: true },
+      });
+      let documentText = docsWithText
+        .map((d) => `\n--- ${d.fileName} ---\n${d.extractedText}`)
+        .join('\n');
+      // Limit to 80K chars to avoid Vercel 60s timeout
+      if (documentText.length > 80000) {
+        documentText = documentText.slice(0, 80000) + '\n\n[...κείμενο περικόπηκε λόγω μεγέθους]';
+      }
       _log(`documents read: ${documentText.length} chars`);
       const fullText = documentText
         ? `${metadataText}\n\n=== ΚΕΙΜΕΝΟ ΕΓΓΡΑΦΩΝ ===\n${documentText}`
