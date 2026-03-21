@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { uploadFile } from '@/lib/s3';
 import { db } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/upload
  * Upload files to S3 and create AttachedDocument records.
