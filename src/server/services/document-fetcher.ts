@@ -235,6 +235,160 @@ export async function fetchDocumentsForTender(params: {
     }
   }
 
+  // ── Platform Redirect: follow links to ΕΣΗΔΗΣ/ΚΗΜΔΗΣ/Διαύγεια if no docs found ──
+  if (documentCount === 0 && sourceUrl.startsWith('http')) {
+    console.log(`[fetchDocumentsForTender] No docs on page, looking for platform redirect links...`);
+    try {
+      // Fetch page (or reuse from above — but simplicity wins)
+      let html = '';
+      try {
+        const res = await fetch(sourceUrl, {
+          headers: { Accept: 'text/html', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+          signal: AbortSignal.timeout(10000),
+        });
+        if (res.ok) html = await res.text();
+      } catch { /* ignore */ }
+
+      // If direct fetch failed, try Jina
+      if (!html) {
+        try {
+          const jinaRes = await fetch(`https://r.jina.ai/${sourceUrl}`, {
+            headers: { Accept: 'text/html' },
+            signal: AbortSignal.timeout(15000),
+          });
+          if (jinaRes.ok) html = await jinaRes.text();
+        } catch { /* ignore */ }
+      }
+
+      if (html) {
+        // Look for links to known procurement platforms
+        const platformPatterns = [
+          { pattern: /href=["'](https?:\/\/[^"']*promitheus\.gov\.gr[^"']*)["']/gi, name: 'ΕΣΗΔΗΣ/Promitheus' },
+          { pattern: /href=["'](https?:\/\/[^"']*eprocurement\.gov\.gr[^"']*)["']/gi, name: 'ΚΗΜΔΗΣ' },
+          { pattern: /href=["'](https?:\/\/[^"']*diavgeia\.gov\.gr[^"']*)["']/gi, name: 'Διαύγεια' },
+          { pattern: /href=["'](https?:\/\/[^"']*ted\.europa\.eu[^"']*)["']/gi, name: 'TED' },
+        ];
+
+        const redirectUrls: Array<{ url: string; name: string }> = [];
+        for (const { pattern, name } of platformPatterns) {
+          let m;
+          while ((m = pattern.exec(html)) !== null) {
+            const url = m[1];
+            // Skip JS/anchor/mailto links
+            if (url.includes('javascript:') || url.includes('#') || url.length < 20) continue;
+            redirectUrls.push({ url, name });
+          }
+        }
+
+        // Also check markdown-style links (from Jina)
+        const mdPlatformRegex = /\[([^\]]*)\]\((https?:\/\/[^)]*(?:promitheus|eprocurement|diavgeia|ted\.europa)[^)]*)\)/gi;
+        let mdMatch;
+        while ((mdMatch = mdPlatformRegex.exec(html)) !== null) {
+          redirectUrls.push({ url: mdMatch[2], name: mdMatch[1] || 'Platform' });
+        }
+
+        if (redirectUrls.length > 0) {
+          console.log(`[fetchDocumentsForTender] Found ${redirectUrls.length} platform redirect(s): ${redirectUrls.map(r => r.name).join(', ')}`);
+
+          // Try fetching docs from each platform link (max 3)
+          for (const redirect of redirectUrls.slice(0, 3)) {
+            if (documentCount > 0) break;
+
+            // For Διαύγεια links, extract ADA and use API
+            if (redirect.url.includes('diavgeia.gov.gr')) {
+              const adaMatch = redirect.url.match(/\/decision\/view\/([A-Za-z0-9\u0391-\u03A9\u03B1-\u03C9-]+)/);
+              const ada = adaMatch?.[1];
+              if (ada) {
+                try {
+                  const docUrl = `https://diavgeia.gov.gr/luminapi/api/decisions/${ada}/document`;
+                  const docRes = await fetch(docUrl, {
+                    headers: { Accept: 'application/pdf' },
+                    signal: AbortSignal.timeout(20000),
+                  });
+                  if (docRes.ok && isAcceptedContentType(docRes.headers.get('content-type'))) {
+                    const buf = Buffer.from(await docRes.arrayBuffer());
+                    if (buf.length > 100) {
+                      const s3Key = `tenants/${tenantId}/tenders/${tenderId}/docs/${Date.now()}-diavgeia-redirect-${ada}.pdf`;
+                      await uploadFile(s3Key, buf, 'application/pdf');
+                      await db.attachedDocument.create({
+                        data: { tenderId, fileName: `Διαύγεια-${ada}.pdf`, fileKey: s3Key, fileSize: buf.length, mimeType: 'application/pdf', category: 'specification' },
+                      });
+                      documentCount++;
+                      console.log(`[fetchDocumentsForTender] Redirect: Downloaded Διαύγεια PDF for ADA ${ada}`);
+                    }
+                  }
+                } catch (err) {
+                  console.warn(`[fetchDocumentsForTender] Redirect Διαύγεια failed:`, (err as Error).message);
+                }
+              }
+              continue;
+            }
+
+            // For other platforms, scrape the redirect page for document links
+            try {
+              const redirectRes = await fetch(redirect.url, {
+                headers: { Accept: 'text/html', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+                signal: AbortSignal.timeout(15000),
+                redirect: 'follow',
+              });
+              if (!redirectRes.ok) continue;
+
+              const redirectHtml = await redirectRes.text();
+              const redirectOrigin = new URL(redirect.url).origin;
+              const seen = new Set<string>();
+
+              // Find document links on the redirect page
+              const extRegex = /href=["']([^"']*\.(?:pdf|docx?|xlsx?|zip|xml)(?:\?[^"']*)?)["']/gi;
+              let fileMatch;
+              while ((fileMatch = extRegex.exec(redirectHtml)) !== null && documentCount < 10) {
+                const href = fileMatch[1];
+                if (href.startsWith('#') || href.startsWith('javascript:')) continue;
+                const fullUrl = href.startsWith('http') ? href : `${redirectOrigin}${href.startsWith('/') ? '' : '/'}${href}`;
+                if (seen.has(fullUrl)) continue;
+                seen.add(fullUrl);
+
+                try {
+                  const fileRes = await fetch(fullUrl, {
+                    headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/pdf,application/octet-stream,*/*' },
+                    signal: AbortSignal.timeout(25000),
+                    redirect: 'follow',
+                  });
+                  if (!fileRes.ok) continue;
+
+                  const ct = fileRes.headers.get('content-type') || '';
+                  const ctBase = ct.split(';')[0].trim().toLowerCase();
+                  if (!isAcceptedContentType(ct) && ctBase !== 'application/octet-stream' && ctBase !== 'application/force-download') continue;
+
+                  const buf = Buffer.from(await fileRes.arrayBuffer());
+                  if (buf.length < 500) continue;
+
+                  let ext = fullUrl.match(/\.(pdf|docx?|xlsx?|zip|xml)/i)?.[1]?.toLowerCase();
+                  if (!ext) ext = ctBase.includes('pdf') ? 'pdf' : ctBase.includes('word') ? 'docx' : 'pdf';
+
+                  const filename = `redirect_${redirect.name.replace(/[^a-zA-Z0-9]/g, '_')}_${documentCount + 1}.${ext}`;
+                  const s3Key = `tenants/${tenantId}/tenders/${tenderId}/docs/${Date.now()}-${filename}`;
+                  const mimeType = MIME_BY_EXT[ext] || 'application/octet-stream';
+                  await uploadFile(s3Key, buf, mimeType);
+                  await db.attachedDocument.create({
+                    data: { tenderId, fileName: filename, fileKey: s3Key, fileSize: buf.length, mimeType, category: 'specification' },
+                  });
+                  documentCount++;
+                  console.log(`[fetchDocumentsForTender] Redirect: Downloaded ${filename} from ${redirect.name} (${buf.length} bytes)`);
+                } catch {
+                  // Continue with next file
+                }
+              }
+            } catch (err) {
+              console.warn(`[fetchDocumentsForTender] Redirect scrape failed for ${redirect.name}:`, (err as Error).message);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`[fetchDocumentsForTender] Platform redirect failed:`, (err as Error).message);
+    }
+  }
+
   // ── Jina Reader fallback: extract links from JS-rendered pages ──
   if (documentCount === 0 && sourceUrl.startsWith('http')) {
     console.log(`[fetchDocumentsForTender] HTML scraping found 0 docs, trying Jina Reader...`);
