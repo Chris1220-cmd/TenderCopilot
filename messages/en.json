@@ -1,0 +1,107 @@
+{
+  "common": {
+    "login": "Sign In",
+    "register": "Sign Up",
+    "tryFree": "Try Free",
+    "watchDemo": "Watch Demo",
+    "learnMore": "Learn More",
+    "noCard": "No credit card required. No commitments.",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "save20": "Save 20%",
+    "popular": "Popular",
+    "contactUs": "Contact Us"
+  },
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "about": "About",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "badge": "AI-Powered",
+    "title": "The AI that wins public tenders",
+    "subtitle": "Analyze documents, check eligibility, and create proposals 90% faster",
+    "trustedBy": "Trusted by companies in:"
+  },
+  "features": {
+    "title": "All the tools you need",
+    "subtitle": "From document analysis to proposal submission",
+    "docAnalysis": "AI Document Analysis",
+    "docAnalysisDesc": "Automatically extract requirements, criteria, and deadlines from any document type",
+    "eligibility": "Eligibility Check",
+    "eligibilityDesc": "Instant assessment of whether you meet the criteria for each tender",
+    "financial": "Pricing Strategy",
+    "financialDesc": "AI-driven pricing scenarios and competitiveness analysis",
+    "discovery": "Tender Discovery",
+    "discoveryDesc": "Automatic search from ESHDHS, Promitheus, and 19+ sources",
+    "legal": "Legal Compliance",
+    "legalDesc": "Automatic legal requirements and document verification",
+    "assistant": "AI Co-pilot",
+    "assistantDesc": "Ask anything about your tender — with sources and confidence scores"
+  },
+  "aiShowcase": {
+    "title": "Your AI Co-pilot",
+    "description": "Analyzes every document in seconds. Checks eligibility. Suggests pricing strategy. Identifies risks before you submit.",
+    "trust": "Every answer with sources and confidence scores"
+  },
+  "stats": {
+    "docs": "Documents Analyzed",
+    "winRate": "Win Rate Increase",
+    "timeSaved": "Time Saved"
+  },
+  "pricing": {
+    "title": "Simple, transparent pricing",
+    "subtitle": "Choose the plan that fits your business",
+    "starter": "Starter",
+    "professional": "Professional",
+    "enterprise": "Enterprise"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "q1": "What is TenderCopilot?",
+    "a1": "TenderCopilot is an AI-powered platform that helps companies prepare tender participation files faster and more effectively.",
+    "q2": "How does the AI analysis work?",
+    "a2": "The platform automatically analyzes tender documents, extracts requirements, checks eligibility, and suggests pricing strategies.",
+    "q3": "Is my data secure?",
+    "a3": "Absolutely. We use end-to-end encryption, your data is stored on European servers, and we maintain full GDPR compliance.",
+    "q4": "Can I try it for free?",
+    "a4": "Yes! We offer a 14-day free trial with no credit card required.",
+    "q5": "Do you support ESHDHS?",
+    "a5": "Yes, we support searching and analyzing tenders from ESHDHS, Promitheus, Diavgeia, and 19+ additional sources."
+  },
+  "cta": {
+    "title": "Start winning tenders today",
+    "placeholder": "Enter your email",
+    "trial": "14 days free. No commitments."
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Sign in to your account",
+    "registerTitle": "Create Account",
+    "registerSubtitle": "Start your free trial",
+    "email": "Email",
+    "password": "Password",
+    "name": "Full Name",
+    "company": "Company Name",
+    "forgotPassword": "Forgot your password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signInGoogle": "Sign in with Google",
+    "magicLink": "Sign in with Magic Link",
+    "magicLinkSent": "Check your email!",
+    "termsAgree": "I agree to the",
+    "termsLink": "Terms of Service",
+    "invalidEmail": "Invalid email address",
+    "passwordRequired": "Password is required",
+    "loginError": "Wrong email or password",
+    "genericError": "Something went wrong. Try again."
+  },
+  "footer": {
+    "product": "Product",
+    "resources": "Resources",
+    "company": "Company",
+    "legal": "Legal",
+    "poweredByAI": "Powered by AI"
+  }
+}
