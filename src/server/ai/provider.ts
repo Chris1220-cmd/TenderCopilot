@@ -51,7 +51,7 @@ export function ai(): AIProvider {
 
 // ─── AI Token Rate Limiting & Cost Controls ─────────────────
 
-const DAILY_TOKEN_LIMIT = parseInt(process.env.AI_DAILY_TOKEN_LIMIT || '500000');
+const DAILY_TOKEN_LIMIT = parseInt(process.env.AI_DAILY_TOKEN_LIMIT || '2000000');
 
 /**
  * Check if a tenant has exceeded their daily AI token limit.
