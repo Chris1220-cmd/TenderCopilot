@@ -4,9 +4,10 @@
  *
  * Live sources:
  * - Διαύγεια (Diavgeia) OpenData API — procurement decisions
- * - TED (Tenders Electronic Daily) — EU-wide, filtered for Greece
- * - ΚΗΜΔΗΣ placeholder (no public API yet)
- * - Private Sector — b2b.gr, eprocurement.gr, ypodomes.com
+ * - TED (Tenders Electronic Daily) — EU-wide, expert search API v3
+ * - ΚΗΜΔΗΣ OpenData REST API — contract notices with CPV filtering
+ * - ΔΕΚΟ — ΔΕΗ, ΔΕΔΔΗΕ, ΑΔΜΗΕ, ΕΥΔΑΠ, ΕΥΑΘ, ΔΕΠΑ, ΟΣΕ, ΟΑΣΑ, Μετρό, ΕΡΤ, ΕΦΚΑ, Cosmote
+ * - Ιδιωτικοί — contracts.gr, iSupplies, DDA, ΤΕΕ, Ελλάδα 2.0, promitheies.gr, Google
  */
 
 import { db } from '@/lib/db';
@@ -228,19 +229,16 @@ async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTen
  */
 async function getLatestFromTED(cpvCodes?: string[], countryFilter: 'GR' | 'EU' = 'GR'): Promise<DiscoveredTender[]> {
   try {
-    // TED API v3 — new endpoint as of 2025+
-    // TD=3 = Contract notices
-    // When countryFilter='GR': only Greek tenders; 'EU': all EU tenders
-    let query = 'TD=3';
+    // TED API v3 — expert search syntax
+    // buyer-country=GRC for Greek tenders, publication-date>=YYYYMMDD for recent
+    // Fields are REQUIRED — use notice-title, publication-number, publication-date, deadline
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const dateStr = threeMonthsAgo.toISOString().slice(0, 10).replace(/-/g, '');
+
+    let query = `publication-date>=${dateStr}`;
     if (countryFilter === 'GR') {
-      query += ' AND CY=GRC';
-    }
-    if (cpvCodes && cpvCodes.length > 0) {
-      const cpvQuery = cpvCodes
-        .slice(0, 5)
-        .map((c) => `PC=${c.split('-')[0]}`)
-        .join(' OR ');
-      query += ` AND (${cpvQuery})`;
+      query += ' and buyer-country=GRC';
     }
 
     const res = await fetch(
@@ -255,7 +253,12 @@ async function getLatestFromTED(cpvCodes?: string[], countryFilter: 'GR' | 'EU' 
           query,
           limit: 20,
           page: 1,
-          fields: ['BT-21-Procedure', 'BT-131(d)-Lot'],
+          fields: [
+            'notice-title',
+            'publication-number',
+            'publication-date',
+            'deadline-receipt-tender-date-lot',
+          ],
         }),
         signal: AbortSignal.timeout(15000),
       }
@@ -276,18 +279,32 @@ async function getLatestFromTED(cpvCodes?: string[], countryFilter: 'GR' | 'EU' 
         || `https://ted.europa.eu/el/notice/-/detail/${pubNumber}`;
       const pdfLink = n.links?.pdf?.ELL || n.links?.pdf?.ENG || undefined;
 
+      // Extract title — notice-title is a dict of language codes
+      const titleObj = n['notice-title'] || {};
+      const title = titleObj['ELL'] || titleObj['ENG'] || Object.values(titleObj)[0] as string || `TED ${pubNumber}`;
+
+      // Extract deadline — array of dates
+      const deadlineArr = n['deadline-receipt-tender-date-lot'];
+      const deadline = Array.isArray(deadlineArr) && deadlineArr.length > 0
+        ? new Date(deadlineArr[0])
+        : undefined;
+
+      const pubDate = n['publication-date']
+        ? new Date(n['publication-date'])
+        : new Date();
+
       return {
-        title: `TED ${pubNumber}`,
+        title: typeof title === 'string' ? title.slice(0, 300) : `TED ${pubNumber}`,
         referenceNumber: pubNumber,
         contractingAuthority: '',
         platform: 'TED' as const,
         budget: undefined,
-        submissionDeadline: undefined,
+        submissionDeadline: deadline,
         cpvCodes: [],
         sourceUrl: htmlLink,
         summary: pdfLink ? `PDF: ${pdfLink}` : undefined,
-        publishedAt: new Date(),
-        country: 'GR',
+        publishedAt: pubDate,
+        country: countryFilter === 'GR' ? 'GR' : 'EU',
         sourceLabel: 'TED',
         isPrivate: false,
       };
@@ -747,8 +764,8 @@ class TenderDiscoveryService {
           fetchers.push(scrapePromitheies());
           break;
         default:
-          // All DEKO sources use the generic scraper
-          if (source.category === 'deko') {
+          // All DEKO and private sources use the generic scraper
+          if (source.category === 'deko' || source.category === 'private') {
             fetchers.push(scrapeDEKOSource({ id: source.id, name: source.name, url: source.url }));
           }
           break;

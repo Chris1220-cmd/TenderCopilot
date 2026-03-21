@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
-  Building2, Factory, Globe, Search,
+  Building2, Factory, Globe, Search, Briefcase,
   ChevronDown, ChevronRight, Loader2,
 } from 'lucide-react';
 import type { TenderSource } from '@/data/tender-sources';
@@ -16,7 +16,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   public: <Building2 className="h-4 w-4" />,
   deko: <Factory className="h-4 w-4" />,
   eu: <Globe className="h-4 w-4" />,
-  aggregator: <Search className="h-4 w-4" />,
+  private: <Briefcase className="h-4 w-4" />,
 };
 
 interface SourceSelectorProps {

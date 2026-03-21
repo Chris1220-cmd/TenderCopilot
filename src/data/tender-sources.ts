@@ -4,7 +4,7 @@
 export interface TenderSource {
   id: string;
   name: string;
-  category: 'public' | 'deko' | 'eu' | 'aggregator';
+  category: 'public' | 'deko' | 'eu' | 'private';
   categoryLabel: string;
   url: string;
   country: 'GR' | 'EU';
@@ -36,16 +36,21 @@ export const TENDER_SOURCES: TenderSource[] = [
   { id: 'ted_gr',    name: 'TED (Ελλάδα)',   category: 'eu', categoryLabel: 'Ευρωπαϊκή Ένωση', url: 'https://api.ted.europa.eu', country: 'GR', defaultEnabled: true,  supportsCpvFilter: true },
   { id: 'ted_eu',    name: 'TED (Όλη η EU)', category: 'eu', categoryLabel: 'Ευρωπαϊκή Ένωση', url: 'https://api.ted.europa.eu', country: 'EU', defaultEnabled: false, supportsCpvFilter: true },
 
-  // ── Aggregators ───────────────────────────────────────
-  { id: 'promitheies', name: 'promitheies.gr',  category: 'aggregator', categoryLabel: 'Aggregators', url: 'https://www.promitheies.gr',                   country: 'GR', defaultEnabled: false, supportsCpvFilter: false },
-  { id: 'google',      name: 'Google Search',   category: 'aggregator', categoryLabel: 'Aggregators', url: 'https://www.googleapis.com/customsearch/v1',   country: 'GR', defaultEnabled: true,  supportsCpvFilter: true },
+  // ── Ιδιωτικοί / Aggregators ──────────────────────────────
+  { id: 'contracts',    name: 'contracts.gr',     category: 'private',    categoryLabel: 'Ιδιωτικοί & Aggregators', url: 'https://www.contracts.gr/',                                country: 'GR', defaultEnabled: true,  supportsCpvFilter: false },
+  { id: 'isupplies',    name: 'iSupplies',        category: 'private',    categoryLabel: 'Ιδιωτικοί & Aggregators', url: 'https://www.isupplies.gr/',                                country: 'GR', defaultEnabled: true,  supportsCpvFilter: false },
+  { id: 'dda',          name: 'DDA Consulting',   category: 'private',    categoryLabel: 'Ιδιωτικοί & Aggregators', url: 'https://dda.com.gr/',                                      country: 'GR', defaultEnabled: false, supportsCpvFilter: false },
+  { id: 'tee',          name: 'ΤΕΕ Διαγωνισμοί',  category: 'private',    categoryLabel: 'Ιδιωτικοί & Aggregators', url: 'https://web.tee.gr/tp-tee/diagwnismoi/',                   country: 'GR', defaultEnabled: true,  supportsCpvFilter: false },
+  { id: 'greece20',     name: 'Ελλάδα 2.0',       category: 'private',    categoryLabel: 'Ιδιωτικοί & Aggregators', url: 'https://greece20.gov.gr/diakirykseis-kai-diagwnismoi/',     country: 'GR', defaultEnabled: true,  supportsCpvFilter: false },
+  { id: 'promitheies',  name: 'promitheies.gr',   category: 'private',    categoryLabel: 'Ιδιωτικοί & Aggregators', url: 'https://www.promitheies.gr/',                              country: 'GR', defaultEnabled: false, supportsCpvFilter: false },
+  { id: 'google',       name: 'Google Search',    category: 'private',    categoryLabel: 'Ιδιωτικοί & Aggregators', url: 'https://www.googleapis.com/customsearch/v1',               country: 'GR', defaultEnabled: true,  supportsCpvFilter: true },
 ];
 
 export const SOURCE_CATEGORIES = [
   { id: 'public',     label: 'Δημόσιος Τομέας' },
   { id: 'deko',       label: 'ΔΕΚΟ' },
   { id: 'eu',         label: 'Ευρωπαϊκή Ένωση' },
-  { id: 'aggregator', label: 'Aggregators' },
+  { id: 'private',    label: 'Ιδιωτικοί & Aggregators' },
 ] as const;
 
 export function getDefaultEnabledSourceIds(): string[] {
