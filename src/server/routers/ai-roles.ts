@@ -8,6 +8,9 @@ import { aiFinancial } from '@/server/services/ai-financial';
 import { aiCompliance } from '@/server/services/ai-compliance';
 import { aiOps } from '@/server/services/ai-ops';
 import { db } from '@/lib/db';
+import { ai, logTokenUsage } from '@/server/ai';
+import { buildContext } from '@/server/services/context-builder';
+import { validateResponse } from '@/server/services/trust-shield';
 
 /**
  * Helper to ensure the calling user has a tenant and the tender belongs to that tenant.
@@ -155,12 +158,42 @@ export const aiRolesRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      await ensureTenderAccess(input.tenderId, ctx.tenantId);
-      const result = await aiBidOrchestrator.answerStatusQuestion(
-        input.tenderId,
-        input.question
-      );
-      return { answer: result.answer };
+      const { tenderId, question } = input;
+      // ctx.tenantId null guard (match existing pattern in this file)
+      const tenantId = ctx.tenantId;
+      if (!tenantId) throw new Error('No tenant');
+
+      // Use new smart context builder
+      const context = await buildContext(tenderId, tenantId, question);
+
+      const result = await ai().complete({
+        messages: [
+          { role: 'system', content: context.systemPrompt },
+          { role: 'user', content: `CONTEXT:\n${context.contextText}\n\nΕΡΩΤΗΣΗ: ${question}` },
+        ],
+        responseFormat: 'json',
+        temperature: 0.3,
+        maxTokens: 3000,
+      });
+
+      await logTokenUsage(tenderId, 'smart_chat', {
+        input: result.inputTokens ?? 0,
+        output: result.outputTokens ?? 0,
+        total: result.totalTokens ?? 0,
+      });
+
+      const providedChunks = context.sources
+        .filter((s) => s.type === 'document')
+        .map((s) => s.content);
+      const trusted = validateResponse(result.content, providedChunks);
+
+      return {
+        answer: trusted.answer,
+        highlights: trusted.highlights,
+        confidence: trusted.confidence,
+        sources: trusted.sources,
+        caveats: trusted.caveats,
+      };
     }),
 
   // ═══════════════════════════════════════════════════════════
