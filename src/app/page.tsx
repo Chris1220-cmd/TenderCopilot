@@ -1,5 +1,9 @@
-import { redirect } from 'next/navigation';
+import { LandingPage } from '@/components/landing/landing-page';
 
 export default function RootPage() {
-  redirect('/dashboard');
+  return (
+    <div className="dark bg-background text-foreground">
+      <LandingPage />
+    </div>
+  );
 }
