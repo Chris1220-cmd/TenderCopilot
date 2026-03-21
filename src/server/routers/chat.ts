@@ -112,7 +112,9 @@ export const chatRouter = router({
       const providedChunks = context.sources
         .filter((s) => s.type === 'document')
         .map((s) => s.content);
+      console.log('[Chat] AI raw response type:', typeof result.content, 'length:', result.content?.length, 'first 200:', String(result.content).slice(0, 200));
       const trustedResponse = validateResponse(result.content, providedChunks);
+      console.log('[Chat] Trust shield result — confidence:', trustedResponse.confidence, 'sources:', trustedResponse.sources.length, 'answer length:', trustedResponse.answer.length);
 
       // Save assistant message with metadata
       await db.chatMessage.create({

@@ -28,15 +28,44 @@ export function validateResponse(
 ): TrustedResponse {
   let parsed: any;
 
-  try {
-    parsed = JSON.parse(rawContent);
-  } catch {
-    // Try to extract JSON from response
-    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        parsed = JSON.parse(jsonMatch[0]);
-      } catch {
+  // If already an object (Gemini JSON mode can return parsed objects)
+  if (typeof rawContent === 'object' && rawContent !== null) {
+    parsed = rawContent;
+  } else {
+    // Try multiple parsing strategies
+    try {
+      parsed = JSON.parse(rawContent);
+    } catch {
+      // Strategy 2: strip markdown fences
+      const fenceMatch = rawContent.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+      if (fenceMatch) {
+        try { parsed = JSON.parse(fenceMatch[1].trim()); } catch { /* continue */ }
+      }
+
+      // Strategy 3: extract JSON object
+      if (!parsed) {
+        const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try { parsed = JSON.parse(jsonMatch[0]); } catch { /* continue */ }
+        }
+      }
+
+      // Strategy 4: fix common JSON issues (trailing commas, control chars)
+      if (!parsed) {
+        try {
+          let cleaned = rawContent;
+          const start = cleaned.indexOf('{');
+          const end = cleaned.lastIndexOf('}');
+          if (start >= 0 && end > start) {
+            cleaned = cleaned.slice(start, end + 1);
+            cleaned = cleaned.replace(/,\s*([\]}])/g, '$1');
+            cleaned = cleaned.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+            parsed = JSON.parse(cleaned);
+          }
+        } catch { /* give up */ }
+      }
+
+      if (!parsed) {
         return {
           answer: rawContent,
           confidence: 'general',
@@ -45,14 +74,6 @@ export function validateResponse(
           caveats: ['Η απάντηση δεν περιέχει δομημένες πηγές.'],
         };
       }
-    } else {
-      return {
-        answer: rawContent,
-        confidence: 'general',
-        sources: [],
-        highlights: [],
-        caveats: ['Η απάντηση δεν περιέχει δομημένες πηγές.'],
-      };
     }
   }
 
