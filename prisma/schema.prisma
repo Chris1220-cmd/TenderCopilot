@@ -1,11 +1,13 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [vector]
 }
 
 // ─── Multi-tenant ───────────────────────────────────────────
@@ -27,6 +29,11 @@ model Tenant {
   invitations          Invitation[]
   financialProfiles    FinancialProfile[]
   privateTenderSources PrivateTenderSource[]
+
+  // Smart AI Assistant
+  documentChunks   DocumentChunk[]
+  chatMessages     ChatMessage[]
+  tenderAlerts     TenderAlert[]
 }
 
 model User {
@@ -287,6 +294,11 @@ model Tender {
 
   analysisLanguage  String  @default("el")
 
+  // Smart AI Assistant
+  documentChunks   DocumentChunk[]
+  chatMessages     ChatMessage[]
+  alerts           TenderAlert[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -424,7 +436,67 @@ model AttachedDocument {
 
   createdAt DateTime @default(now())
 
+  chunks DocumentChunk[]
+
   @@index([tenderId])
+}
+
+model DocumentChunk {
+  id          String   @id @default(cuid())
+  documentId  String
+  document    AttachedDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tenderId    String
+  tender      Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  chunkIndex  Int
+  content     String   @db.Text
+  embedding   Unsupported("vector(768)")?
+  metadata    Json?
+  tokenCount  Int
+
+  createdAt   DateTime @default(now())
+
+  @@index([tenderId, tenantId])
+  @@index([documentId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  tenderId  String
+  tender    Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  role      String
+  content   String   @db.Text
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenderId, tenantId, createdAt])
+}
+
+model TenderAlert {
+  id        String   @id @default(cuid())
+  tenderId  String
+  tender    Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  type      String
+  severity  String
+  title     String
+  detail    String   @db.Text
+  source    String?
+
+  dismissed  Boolean  @default(false)
+  resolvedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenderId, tenantId, dismissed])
 }
 
 model GeneratedDocument {
