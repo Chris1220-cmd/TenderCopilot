@@ -151,7 +151,7 @@ export const documentRouter = router({
         tenderId: z.string().cuid(),
         type: generatedDocTypeEnum,
         title: z.string().min(1),
-        content: z.string().min(1),
+        content: z.string(),
         fileKey: z.string().nullish(),
         fileName: z.string().nullish(),
         status: docGenStatusEnum.optional(),

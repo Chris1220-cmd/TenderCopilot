@@ -342,6 +342,13 @@ export const aiRolesRouter = router({
       return aiTechnical.flagTechnicalRisks(input.tenderId);
     }),
 
+  scoreProposalStrength: protectedProcedure
+    .input(z.object({ tenderId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      return aiTechnical.scoreProposalStrength(input.tenderId);
+    }),
+
   // ═══════════════════════════════════════════════════════════
   // AI Compliance Guardian (QA/Compliance Officer)
   // ═══════════════════════════════════════════════════════════

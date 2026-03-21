@@ -191,6 +191,7 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
       );
       setLoadingAction(null);
       setError(null);
+      technicalDataQuery.refetch();
     },
     onError: (err: any) => {
       if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
@@ -199,10 +200,11 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
   });
 
   const proposalMutation = trpc.aiRoles.generateProposal.useMutation({
-    onSuccess: (data: any) => {
-      if (data?.sections) setSections(data.sections);
+    onSuccess: () => {
+      setSuccessMsg('Τεχνική πρόταση δημιουργήθηκε επιτυχώς.');
       setLoadingAction(null);
       setError(null);
+      technicalDataQuery.refetch();
     },
     onError: (err: any) => {
       if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
@@ -211,14 +213,33 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
   });
 
   const flagRisksMutation = trpc.aiRoles.flagTechRisks.useMutation({
-    onSuccess: (data: any) => {
-      if (data?.risks) setRisks(data.risks);
+    onSuccess: () => {
+      setSuccessMsg('Ανάλυση κινδύνων ολοκληρώθηκε.');
       setLoadingAction(null);
       setError(null);
+      technicalDataQuery.refetch();
     },
     onError: (err: any) => {
       if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
       setError(err?.message || 'Σφάλμα εντοπισμού κινδύνων'); setLoadingAction(null);
+    },
+  });
+
+  const scoreMutation = trpc.aiRoles.scoreProposalStrength.useMutation({
+    onSuccess: (data: any) => {
+      if (data?.breakdown) {
+        setScoreCriteria(data.breakdown.map((b: any) => ({
+          name: b.criterion,
+          maxScore: b.weight,
+          estimatedScore: b.estimatedScore,
+        })));
+      }
+      setSuccessMsg(`Εκτίμηση βαθμολογίας: ${data?.estimatedScore ?? '?'}/120`);
+      setLoadingAction(null);
+      setError(null);
+    },
+    onError: (err: any) => {
+      setError(err?.message || 'Σφάλμα εκτίμησης βαθμολογίας'); setLoadingAction(null);
     },
   });
 
@@ -244,6 +265,12 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
     setLoadingAction('risks');
     setError(null);
     flagRisksMutation.mutate({ tenderId });
+  };
+
+  const handleScore = () => {
+    setLoadingAction('score');
+    setError(null);
+    scoreMutation.mutate({ tenderId });
   };
 
   const handleToggleSection = (id: string) => {
@@ -336,6 +363,15 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
         >
           {loadingAction === 'risks' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
           Εντοπισμός Κινδύνων
+        </Button>
+        <Button
+          onClick={handleScore}
+          disabled={loadingAction !== null}
+          variant="outline"
+          className="cursor-pointer gap-2 h-9"
+        >
+          {loadingAction === 'score' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4" />}
+          Εκτίμηση Βαθμολογίας
         </Button>
       </div>
 
