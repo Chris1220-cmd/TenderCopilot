@@ -90,6 +90,23 @@ const config: Config = {
         shimmer: {
           '100%': { transform: 'translateX(100%)' },
         },
+        'glow-pulse': {
+          '0%, 100%': { opacity: '0.4' },
+          '50%': { opacity: '0.8' },
+        },
+        'count-up': {
+          from: { opacity: '0', transform: 'translateY(10px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'float-slow': {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '33%': { transform: 'translate(30px, -50px) scale(1.05)' },
+          '66%': { transform: 'translate(-20px, 30px) scale(0.95)' },
+        },
+        'float-medium': {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '50%': { transform: 'translate(-40px, -30px) scale(1.1)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -98,6 +115,10 @@ const config: Config = {
         'fade-in': 'fade-in 0.2s ease-out',
         'scale-in': 'scale-in 0.2s ease-out',
         shimmer: 'shimmer 2s infinite',
+        'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
+        'count-up': 'count-up 0.5s ease-out forwards',
+        'float-slow': 'float-slow 20s ease-in-out infinite',
+        'float-medium': 'float-medium 15s ease-in-out infinite',
       },
     },
   },
