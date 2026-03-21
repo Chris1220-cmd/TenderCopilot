@@ -122,6 +122,24 @@ export async function buildContext(
           .join('\n\n');
 
         contextParts.push(`=== ΣΧΕΤΙΚΑ ΑΠΟΣΠΑΣΜΑΤΑ ΕΓΓΡΑΦΩΝ ===\n${docContext}`);
+      } else {
+        // Fallback: if no embeddings/chunks exist, use extractedText directly
+        const docsWithText = await db.attachedDocument.findMany({
+          where: { tenderId, extractedText: { not: null } },
+          select: { fileName: true, extractedText: true },
+        });
+        if (docsWithText.length > 0) {
+          let fallbackText = docsWithText
+            .map((d) => `--- ${d.fileName} ---\n${d.extractedText}`)
+            .join('\n\n');
+          if (fallbackText.length > 40000) {
+            fallbackText = fallbackText.slice(0, 40000) + '\n[...περικόπηκε]';
+          }
+          for (const d of docsWithText) {
+            sources.push({ type: 'document', reference: d.fileName, content: (d.extractedText || '').slice(0, 200) });
+          }
+          contextParts.push(`=== ΚΕΙΜΕΝΟ ΕΓΓΡΑΦΩΝ ===\n${fallbackText}`);
+        }
       }
     } catch (err) {
       console.warn('[ContextBuilder] Document search failed, skipping:', err);
