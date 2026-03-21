@@ -84,8 +84,15 @@ export default function TenderDetailPage() {
       utils.aiRoles.getBrief.invalidate({ tenderId });
       utils.tender.getById.invalidate({ id: tenderId });
     },
-    onError: (err) => {
-      toast({ title: 'Σφάλμα ανάλυσης', description: err.message, variant: 'destructive' });
+    onError: (err: any) => {
+      const isPrecondition = err?.data?.code === 'PRECONDITION_FAILED';
+      toast({
+        title: isPrecondition ? 'Λείπουν έγγραφα' : 'Σφάλμα ανάλυσης',
+        description: isPrecondition
+          ? 'Ανεβάστε πρώτα τα PDF του διαγωνισμού στο tab "Έγγραφα" και δοκιμάστε ξανά.'
+          : err.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -98,28 +105,30 @@ export default function TenderDetailPage() {
     },
   });
 
+  const noDocsMsg = 'Ανεβάστε πρώτα τα PDF του διαγωνισμού στο tab "Έγγραφα" και δοκιμάστε ξανά.';
+  const handleAiError = (title: string) => (err: any) => {
+    const isPrecondition = err?.data?.code === 'PRECONDITION_FAILED';
+    toast({
+      title: isPrecondition ? 'Λείπουν έγγραφα' : title,
+      description: isPrecondition ? noDocsMsg : err.message,
+      variant: 'destructive',
+    });
+  };
+
   const extractLegalMutation = trpc.aiRoles.extractLegalClauses.useMutation({
-    onError: (err) => {
-      toast({ title: 'Σφάλμα νομικής ανάλυσης', description: err.message, variant: 'destructive' });
-    },
+    onError: handleAiError('Σφάλμα νομικής ανάλυσης'),
   });
 
   const assessLegalMutation = trpc.aiRoles.assessLegalRisks.useMutation({
-    onError: (err) => {
-      toast({ title: 'Σφάλμα αξιολόγησης κινδύνων', description: err.message, variant: 'destructive' });
-    },
+    onError: handleAiError('Σφάλμα αξιολόγησης κινδύνων'),
   });
 
   const extractFinancialMutation = trpc.aiRoles.extractFinancials.useMutation({
-    onError: (err) => {
-      toast({ title: 'Σφάλμα οικονομικής ανάλυσης', description: err.message, variant: 'destructive' });
-    },
+    onError: handleAiError('Σφάλμα οικονομικής ανάλυσης'),
   });
 
   const goNoGoMutation = trpc.aiRoles.goNoGo.useMutation({
-    onError: (err) => {
-      toast({ title: 'Σφάλμα Go/No-Go', description: err.message, variant: 'destructive' });
-    },
+    onError: handleAiError('Σφάλμα Go/No-Go'),
   });
 
   function handleRunFullAnalysis() {
