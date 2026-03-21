@@ -5,6 +5,7 @@ import { tenderDiscovery } from '@/server/services/tender-discovery';
 import { urlImporter } from '@/server/services/url-importer';
 import { smartIntake } from '@/server/services/smart-intake';
 import { fetchDocumentsForTender } from '@/server/services/document-fetcher';
+import { TENDER_SOURCES, SOURCE_CATEGORIES } from '@/data/tender-sources';
 import { db } from '@/lib/db';
 import type { TenderPlatform } from '@prisma/client';
 
@@ -38,6 +39,17 @@ function detectPlatformFromUrl(url: string): TenderPlatform {
 
 export const discoveryRouter = router({
   /**
+   * Returns the full list of available tender sources and categories.
+   * Used by the frontend SourceSelector sidebar.
+   */
+  getSources: protectedProcedure.query(() => {
+    return {
+      sources: TENDER_SOURCES,
+      categories: SOURCE_CATEGORIES,
+    };
+  }),
+
+  /**
    * Search for tenders matching optional filters.
    * If no filters provided, matches against the tenant's company profile.
    */
@@ -53,6 +65,7 @@ export const discoveryRouter = router({
           platforms: z
             .array(z.enum(['KIMDIS', 'DIAVGEIA', 'TED', 'ESIDIS', 'OTHER', 'PRIVATE', 'GOOGLE']))
             .optional(),
+          sources: z.array(z.string()).optional(),
           showAll: z.boolean().optional(),
           country: z.enum(['GR', 'EU', 'international', 'all']).optional(),
           entityType: z.enum(['public', 'private', 'all']).optional(),
@@ -77,6 +90,7 @@ export const discoveryRouter = router({
           minBudget: input.minBudget,
           maxBudget: input.maxBudget,
           platforms: input.platforms,
+          sources: input.sources,
           showAll: input.showAll,
           country: input.country,
           entityType: input.entityType,

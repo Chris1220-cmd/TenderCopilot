@@ -11,7 +11,7 @@
 
 import { db } from '@/lib/db';
 import { kadToCpv } from '@/lib/kad-cpv-map';
-import builtinPrivateSources from '@/data/private-sources.json';
+import { TENDER_SOURCES, getSourceById, getDefaultEnabledSourceIds } from '@/data/tender-sources';
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -39,6 +39,7 @@ export interface TenderSearchParams {
   minBudget?: number;
   maxBudget?: number;
   platforms?: Array<'KIMDIS' | 'DIAVGEIA' | 'TED' | 'ESIDIS' | 'OTHER' | 'PRIVATE' | 'GOOGLE'>;
+  sources?: string[];  // source IDs from TENDER_SOURCES registry
   showAll?: boolean;
   country?: 'GR' | 'EU' | 'international' | 'all';
   entityType?: 'public' | 'private' | 'all';
@@ -225,12 +226,15 @@ async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTen
  * Uses the public search API.
  * Docs: https://ted.europa.eu/en/simap/api
  */
-async function getLatestFromTED(cpvCodes?: string[]): Promise<DiscoveredTender[]> {
+async function getLatestFromTED(cpvCodes?: string[], countryFilter: 'GR' | 'EU' = 'GR'): Promise<DiscoveredTender[]> {
   try {
     // TED API v3 — new endpoint as of 2025+
-    // Country code is ISO 3166-1 alpha-3: GRC (not GR)
     // TD=3 = Contract notices
-    let query = 'TD=3 AND CY=GRC';
+    // When countryFilter='GR': only Greek tenders; 'EU': all EU tenders
+    let query = 'TD=3';
+    if (countryFilter === 'GR') {
+      query += ' AND CY=GRC';
+    }
     if (cpvCodes && cpvCodes.length > 0) {
       const cpvQuery = cpvCodes
         .slice(0, 5)
@@ -302,22 +306,27 @@ async function getLatestFromTED(cpvCodes?: string[]): Promise<DiscoveredTender[]
  */
 async function getLatestFromKIMDIS(cpvCodes?: string[]): Promise<DiscoveredTender[]> {
   try {
-    const cpvParam = cpvCodes && cpvCodes.length > 0
-      ? cpvCodes.slice(0, 3).map(c => c.split('-')[0]).join(',')
-      : '';
+    // ΚΗΜΔΗΣ OpenData REST API — POST /khmdhs-opendata/notice
+    // Docs: https://cerpp.eprocurement.gov.gr/khmdhs-opendata/help
+    // Rate limit: 350 req/min
+    const body: Record<string, any> = {};
 
-    // ΚΗΜΔΗΣ search endpoint
-    const searchUrl = new URL('https://cerpp.eprocurement.gov.gr/kimds2/unprotected/searchNotices.htm');
-    searchUrl.searchParams.set('type', 'json');
-    searchUrl.searchParams.set('pageSize', '15');
-    if (cpvParam) {
-      searchUrl.searchParams.set('cpv', cpvParam);
+    if (cpvCodes && cpvCodes.length > 0) {
+      body.cpvCodes = cpvCodes.slice(0, 5).map(c => c.split('-')[0]);
     }
 
-    const res = await fetch(searchUrl.toString(), {
-      headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(8000),
-    });
+    const res = await fetch(
+      'https://cerpp.eprocurement.gov.gr/khmdhs-opendata/notice?page=0',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10000),
+      }
+    );
 
     if (!res.ok) {
       console.error(`[KIMDIS] API error: ${res.status}`);
@@ -325,19 +334,22 @@ async function getLatestFromKIMDIS(cpvCodes?: string[]): Promise<DiscoveredTende
     }
 
     const data = await res.json();
-    const notices = data.notices || data.data || data.results || [];
+    const notices = data.content || data.notices || data.data || [];
 
     return notices.slice(0, 15).map((n: any) => ({
       title: n.subject || n.title || 'ΚΗΜΔΗΣ Notice',
-      referenceNumber: n.ada || n.noticeId || n.id || '',
-      contractingAuthority: n.organizationName || n.authority || '',
+      referenceNumber: n.referenceNumber || n.ada || n.id || '',
+      contractingAuthority: n.organizationName || n.contractingAuthorityName || '',
       platform: 'KIMDIS' as const,
-      budget: n.estimatedValue ? parseFloat(n.estimatedValue) : undefined,
-      submissionDeadline: n.deadline ? new Date(n.deadline) : undefined,
-      cpvCodes: n.cpvCodes || [],
-      sourceUrl: n.url || `https://cerpp.eprocurement.gov.gr/kimds2/unprotected/viewNotice.htm?id=${n.noticeId || n.id}`,
+      budget: n.estimatedValue || n.totalAmount ? parseFloat(String(n.estimatedValue || n.totalAmount)) : undefined,
+      submissionDeadline: n.submissionDeadline || n.deadline ? new Date(n.submissionDeadline || n.deadline) : undefined,
+      cpvCodes: n.cpvCodes || (n.cpv ? [n.cpv] : []),
+      sourceUrl: `https://cerpp.eprocurement.gov.gr/kimds2/unprotected/searchNotices.htm?noticeId=${n.referenceNumber || n.id}`,
       summary: n.description || n.subject || undefined,
-      publishedAt: n.publicationDate ? new Date(n.publicationDate) : new Date(),
+      publishedAt: n.publishDate ? new Date(n.publishDate) : new Date(),
+      country: 'GR',
+      sourceLabel: 'ΚΗΜΔΗΣ',
+      isPrivate: false,
     }));
   } catch (err) {
     console.error('[KIMDIS] Fetch error:', err);
@@ -345,152 +357,113 @@ async function getLatestFromKIMDIS(cpvCodes?: string[]): Promise<DiscoveredTende
   }
 }
 
-// ─── Private Sector Discovery ────────────────────────────────
+// ─── ΔΕΚΟ / HTML Scraper ─────────────────────────────────────
 
 /**
- * Search for private sector tenders/procurement opportunities.
- * Searches Greek B2B marketplaces and business directories.
+ * Generic HTML scraper for ΔΕΚΟ and other organizations.
+ * Fetches the page, finds links with tender-related keywords.
  */
-async function searchPrivateSector(
-  keywords: string[],
-  kadCodes: string[],
-): Promise<DiscoveredTender[]> {
-  const results: DiscoveredTender[] = [];
-
-  // Build search terms from KAD codes and keywords
-  const searchTerms = [
-    ...keywords,
-    ...kadCodes.map(kad => `KAD ${kad}`),
-  ].filter(Boolean);
-
-  if (searchTerms.length === 0) return results;
-
-  const query = searchTerms.slice(0, 5).join(' ');
-
-  // ── Search b2b.gr ──────────────────────────────────────
+async function scrapeDEKOSource(source: { id: string; name: string; url: string }): Promise<DiscoveredTender[]> {
   try {
-    const response = await fetch(
-      `https://www.b2b.gr/el/search?q=${encodeURIComponent(query + ' διαγωνισμός')}&type=tenders`,
-      {
-        headers: {
-          'Accept': 'text/html',
-          'Accept-Language': 'el,en;q=0.9',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-        signal: AbortSignal.timeout(15000),
-      }
-    );
+    const response = await fetch(source.url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html',
+        'Accept-Language': 'el,en;q=0.9',
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) return [];
+    const html = await response.text();
 
-    if (response.ok) {
-      const html = await response.text();
-      // Parse results using simple regex (cheerio not available here by default)
-      const titleRegex = /<h[23][^>]*class="[^"]*title[^"]*"[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
-      let match;
-      while ((match = titleRegex.exec(html)) !== null && results.length < 10) {
-        const href = match[1];
-        const title = match[2].trim();
-        if (title.length > 10) {
-          results.push({
-            title,
-            referenceNumber: '',
-            contractingAuthority: 'b2b.gr',
-            source: 'b2b.gr (Ιδιωτικός Τομέας)',
-            platform: 'PRIVATE',
-            cpvCodes: [],
-            sourceUrl: href.startsWith('http') ? href : `https://www.b2b.gr${href}`,
-            publishedAt: new Date(),
-            country: 'GR',
-            sourceLabel: 'b2b.gr',
-            isPrivate: true,
-          });
-        }
-      }
-    }
-  } catch (err) {
-    console.warn('[Discovery] b2b.gr search failed:', (err as Error).message);
-  }
+    const results: DiscoveredTender[] = [];
+    const linkRegex = /<a[^>]+href="([^"]*)"[^>]*>([^<]{8,300})<\/a>/gi;
+    let match: RegExpExecArray | null;
 
-  // ── Search eprocurement.gr ─────────────────────────────
-  try {
-    const response = await fetch(
-      `https://www.eprocurement.gr/search?q=${encodeURIComponent(query)}&category=private`,
-      {
-        headers: {
-          'Accept': 'text/html',
-          'Accept-Language': 'el,en;q=0.9',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-        signal: AbortSignal.timeout(15000),
-      }
-    );
+    const tenderKeywords = [
+      'διαγωνισμ', 'προκήρυξ', 'προκηρυξ', 'διακήρυξ', 'διακηρυξ',
+      'πρόσκληση', 'προσκληση', 'προμήθει', 'προμηθει',
+      'δημοπρασ', 'tender', 'rfp', 'rfq', 'procurement',
+      'σύμβαση', 'συμβαση', 'ανοικτ', 'ηλεκτρονικ',
+    ];
 
-    if (response.ok) {
-      const html = await response.text();
-      const titleRegex = /<a[^>]+href="([^"]+\/tender\/[^"]+)"[^>]*>([^<]{10,})<\/a>/gi;
-      let match;
-      while ((match = titleRegex.exec(html)) !== null && results.length < 15) {
-        const href = match[1];
-        const title = match[2].trim();
+    while ((match = linkRegex.exec(html)) !== null) {
+      const [, href, text] = match;
+      const lowerText = text.toLowerCase();
+      if (tenderKeywords.some(kw => lowerText.includes(kw))) {
+        const fullUrl = href.startsWith('http') ? href : new URL(href, source.url).href;
+        if (results.length >= 15) break;
         results.push({
-          title,
+          title: text.trim().replace(/\s+/g, ' '),
           referenceNumber: '',
-          contractingAuthority: 'eprocurement.gr',
-          source: 'eprocurement.gr (Ιδιωτικός Τομέας)',
+          contractingAuthority: source.name,
           platform: 'PRIVATE',
           cpvCodes: [],
-          sourceUrl: href.startsWith('http') ? href : `https://www.eprocurement.gr${href}`,
+          sourceUrl: fullUrl,
           publishedAt: new Date(),
           country: 'GR',
-          sourceLabel: 'eprocurement.gr',
-          isPrivate: true,
+          sourceLabel: source.name,
+          isPrivate: false,
         });
       }
     }
+
+    return results;
   } catch (err) {
-    console.warn('[Discovery] eprocurement.gr search failed:', (err as Error).message);
+    console.warn(`[DEKO] ${source.name} scrape failed:`, (err as Error).message);
+    return [];
   }
+}
 
-  // ── Search ypodomes.com for infrastructure projects ────
+// ─── promitheies.gr Aggregator ───────────────────────────
+
+async function scrapePromitheies(): Promise<DiscoveredTender[]> {
   try {
-    const response = await fetch(
-      `https://www.ypodomes.com/search?q=${encodeURIComponent(query)}`,
-      {
-        headers: {
-          'Accept': 'text/html',
-          'Accept-Language': 'el',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-        signal: AbortSignal.timeout(15000),
-      }
-    );
+    const response = await fetch('https://www.promitheies.gr/', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html',
+        'Accept-Language': 'el,en;q=0.9',
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) return [];
+    const html = await response.text();
 
-    if (response.ok) {
-      const html = await response.text();
-      const titleRegex = /<a[^>]+href="([^"]+\/erga\/[^"]+)"[^>]*>([^<]{10,})<\/a>/gi;
-      let match;
-      while ((match = titleRegex.exec(html)) !== null && results.length < 20) {
-        const href = match[1];
-        const title = match[2].trim();
+    const results: DiscoveredTender[] = [];
+    const linkRegex = /<a[^>]+href="([^"]*)"[^>]*>([^<]{10,300})<\/a>/gi;
+    let match: RegExpExecArray | null;
+
+    const tenderKeywords = [
+      'διαγωνισμ', 'προκήρυξ', 'διακήρυξ', 'πρόσκληση',
+      'προμήθει', 'δημοπρασ', 'σύμβαση',
+    ];
+
+    while ((match = linkRegex.exec(html)) !== null && results.length < 15) {
+      const [, href, text] = match;
+      const lowerText = text.toLowerCase();
+      if (tenderKeywords.some(kw => lowerText.includes(kw))) {
+        const fullUrl = href.startsWith('http') ? href : `https://www.promitheies.gr${href}`;
         results.push({
-          title,
+          title: text.trim().replace(/\s+/g, ' '),
           referenceNumber: '',
-          contractingAuthority: 'ypodomes.com',
-          source: 'ypodomes.com (Ιδιωτικός Τομέας)',
+          contractingAuthority: 'promitheies.gr',
           platform: 'PRIVATE',
           cpvCodes: [],
-          sourceUrl: href.startsWith('http') ? href : `https://www.ypodomes.com${href}`,
+          sourceUrl: fullUrl,
           publishedAt: new Date(),
           country: 'GR',
-          sourceLabel: 'ypodomes.com',
-          isPrivate: true,
+          sourceLabel: 'promitheies.gr',
+          isPrivate: false,
         });
       }
     }
-  } catch (err) {
-    console.warn('[Discovery] ypodomes.com search failed:', (err as Error).message);
-  }
 
-  return results;
+    return results;
+  } catch (err) {
+    console.warn('[Discovery] promitheies.gr scrape failed:', (err as Error).message);
+    return [];
+  }
 }
 
 // ─── Google Custom Search ────────────────────────────────────
@@ -683,61 +656,13 @@ const GREEK_STOP_WORDS = new Set([
   'επίσης', 'ακόμα', 'πολύ', 'λίγο', 'σχεδόν',
 ]);
 
-// ─── Private Source Scraper ──────────────────────────────────
-
-async function scrapePrivateSource(source: { name: string; url: string; country: string }): Promise<DiscoveredTender[]> {
-  try {
-    const response = await fetch(source.url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TenderCopilot/1.0)' },
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!response.ok) return [];
-    const html = await response.text();
-
-    const results: DiscoveredTender[] = [];
-    const linkRegex = /<a[^>]+href="([^"]*)"[^>]*>([^<]{5,200})<\/a>/gi;
-    let match: RegExpExecArray | null;
-
-    while ((match = linkRegex.exec(html)) !== null) {
-      const [, href, text] = match;
-      const lowerText = text.toLowerCase();
-      if (
-        lowerText.includes('διαγωνισμ') ||
-        lowerText.includes('προμήθει') ||
-        lowerText.includes('tender') ||
-        lowerText.includes('rfp') ||
-        lowerText.includes('rfq')
-      ) {
-        const fullUrl = href.startsWith('http') ? href : new URL(href, source.url).href;
-        results.push({
-          title: text.trim(),
-          referenceNumber: '',
-          contractingAuthority: source.name,
-          platform: 'PRIVATE',
-          cpvCodes: [],
-          sourceUrl: fullUrl,
-          publishedAt: new Date(),
-          country: source.country,
-          sourceLabel: source.name,
-          isPrivate: true,
-        });
-      }
-    }
-
-    return results.slice(0, 10);
-  } catch (err) {
-    console.error(`[Discovery] Private source ${source.name} error:`, err);
-    return [];
-  }
-}
-
 // ─── Main Service ───────────────────────────────────────────
 
 class TenderDiscoveryService {
   async searchTenders(params: TenderSearchParams = {}): Promise<DiscoveredTender[]> {
     const {
-      cpvCodes, kadCodes, keywords, minBudget, maxBudget, platforms, showAll,
-      country, entityType, relevanceOnly, tenantId,
+      cpvCodes, kadCodes, keywords, minBudget, maxBudget, sources, showAll,
+      tenantId,
     } = params;
 
     let effectiveCpvCodes = cpvCodes || [];
@@ -749,53 +674,59 @@ class TenderDiscoveryService {
     // If showAll is true, skip CPV filtering so all tenders are returned
     const cpvFilter = showAll ? undefined : (effectiveCpvCodes.length > 0 ? effectiveCpvCodes : undefined);
 
-    // Determine active platforms based on entityType filter
-    let activePlatforms = platforms || ['DIAVGEIA', 'TED', 'KIMDIS', 'PRIVATE'];
-    if (entityType === 'private') {
-      activePlatforms = activePlatforms.filter(p => p === 'PRIVATE');
-    } else if (entityType === 'public') {
-      activePlatforms = activePlatforms.filter(p => p !== 'PRIVATE');
-    }
+    // Determine which source IDs to search
+    const activeSourceIds = sources && sources.length > 0
+      ? sources
+      : getDefaultEnabledSourceIds();
 
     const fetchers: Promise<DiscoveredTender[]>[] = [];
 
-    if (activePlatforms.includes('DIAVGEIA')) {
-      fetchers.push(getLatestFromDiavgeia(cpvFilter));
-    }
-    if (activePlatforms.includes('TED')) {
-      fetchers.push(getLatestFromTED(cpvFilter));
-    }
-    if (activePlatforms.includes('KIMDIS')) {
-      fetchers.push(getLatestFromKIMDIS(cpvFilter));
-    }
-    if (activePlatforms.includes('PRIVATE')) {
-      fetchers.push(searchPrivateSector(keywords || [], kadCodes || []));
-    }
+    for (const sourceId of activeSourceIds) {
+      const source = getSourceById(sourceId);
+      if (!source) continue;
 
-    // Built-in private sources
-    if (activePlatforms.includes('PRIVATE') || entityType === 'private' || entityType === 'all') {
-      const activeSources = builtinPrivateSources.filter(s => s.active);
-      for (const source of activeSources) {
-        fetchers.push(scrapePrivateSource(source));
+      switch (sourceId) {
+        case 'kimdis':
+          fetchers.push(getLatestFromKIMDIS(cpvFilter));
+          break;
+        case 'diavgeia':
+          fetchers.push(getLatestFromDiavgeia(cpvFilter));
+          break;
+        case 'esidis':
+          fetchers.push(scrapeDEKOSource({ id: source.id, name: source.name, url: source.url }));
+          break;
+        case 'ted_gr':
+          fetchers.push(getLatestFromTED(cpvFilter, 'GR'));
+          break;
+        case 'ted_eu':
+          fetchers.push(getLatestFromTED(cpvFilter, 'EU'));
+          break;
+        case 'google':
+          fetchers.push(searchGoogleCustomSearch(keywords || [], cpvFilter));
+          break;
+        case 'promitheies':
+          fetchers.push(scrapePromitheies());
+          break;
+        default:
+          // All DEKO sources use the generic scraper
+          if (source.category === 'deko') {
+            fetchers.push(scrapeDEKOSource({ id: source.id, name: source.name, url: source.url }));
+          }
+          break;
       }
     }
 
-    // Google Custom Search
-    if (activePlatforms.includes('GOOGLE')) {
-      fetchers.push(searchGoogleCustomSearch(keywords || [], cpvFilter));
-    }
-
     // Custom private sources from DB (tenant-specific)
-    if (tenantId && (entityType === 'private' || entityType === 'all' || activePlatforms.includes('PRIVATE'))) {
+    if (tenantId) {
       const customSources = await db.privateTenderSource.findMany({
         where: { tenantId, active: true },
       });
       for (const source of customSources) {
-        fetchers.push(scrapePrivateSource(source));
+        fetchers.push(scrapeDEKOSource({ id: source.id, name: source.name, url: source.url }));
       }
     }
 
-    console.log(`[Discovery] Running ${fetchers.length} fetchers, platforms: ${activePlatforms.join(',')}`);
+    console.log(`[Discovery] Running ${fetchers.length} fetchers, sources: ${activeSourceIds.join(',')}`);
     const results = await Promise.allSettled(fetchers);
     let allTenders: DiscoveredTender[] = [];
 
