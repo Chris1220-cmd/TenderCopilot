@@ -155,30 +155,49 @@ async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTen
         'εντολή πληρωμής', 'εντολη πληρωμης',
         'οριστικοποίηση πληρωμής', 'οριστικοποιηση πληρωμης',
         'χρηματικό ένταλμα', 'χρηματικο ενταλμα',
-        'κήρυξης ως άγον', 'κηρυξης ως αγον',       // "Κήρυξη ως άγονος" = failed auction, not a tender
-        'εκμίσθωση', 'εκμισθωση',                    // lease/rental, not procurement
-        'κυλικείο', 'κυλικειο',                       // canteen lease
-        'μίσθωση', 'μισθωση',                         // rental
-        'απευθείας ανάθεση', 'απευθειας αναθεση',     // direct award (already decided)
-        'έγκριση δαπάνης', 'εγκριση δαπανης',         // expense approval
-        'ανάληψη υποχρέωσης', 'αναληψη υποχρεωσης',   // commitment
-        'πρόσληψη', 'προσληψη',                       // hiring
-        'αποδοχή παραίτησης', 'αποδοχη παραιτησης',   // resignation acceptance
+        'κήρυξης ως άγον', 'κηρυξης ως αγον',         // failed auction
+        'εκμίσθωση', 'εκμισθωση',                      // lease/rental
+        'κυλικείο', 'κυλικειο',                         // canteen lease
+        'μίσθωση', 'μισθωση',                           // rental
+        'απευθείας ανάθεση', 'απευθειας αναθεση',       // direct award (decided)
+        'έγκριση δαπάνης', 'εγκριση δαπανης',           // expense approval
+        'ανάληψη υποχρέωσης', 'αναληψη υποχρεωσης',     // commitment
+        'πρόσληψη', 'προσληψη',                         // hiring
+        'αποδοχή παραίτησης', 'αποδοχη παραιτησης',     // resignation
+        // Job postings & appointments (NOT procurement tenders)
+        'διορισμ',                                       // διορισμός, διορισμού
+        'μετάταξη', 'μεταταξη',                          // staff transfer
+        'μονίμου προσωπικού', 'μονιμου προσωπικου',      // permanent staff
+        'μόνιμου προσωπικού', 'μονιμου προσωπικου',
+        'πλήρωση θέσ', 'πληρωση θεσ',                   // filling job positions
+        'κάλυψη θέσ', 'καλυψη θεσ',                     // covering positions
+        'προκήρυξη θέσ', 'προκηρυξη θεσ',               // job posting
+        'θέσης επικεφαλ', 'θεσης επικεφαλ',             // head of unit position
+        'θέσης διευθυντ', 'θεσης διευθυντ',             // director position
+        'θέσης προϊστ', 'θεσης προιστ',                 // supervisor position
+        'επιλογή προϊστ', 'επιλογη προιστ',             // selecting supervisor
+        'κατάταξη', 'καταταξη',                          // staff ranking
+        'απόσπαση', 'αποσπαση',                          // secondment
+        'τοποθέτηση', 'τοποθετηση',                      // staff placement
+        'υπαλλήλ', 'υπαλληλ',                            // employee matters
       ];
       if (excludeTerms.some(term => subject.includes(term))) return false;
 
-      // Must contain a tender-like keyword
+      // Must contain a procurement-specific keyword (not just any public decision)
       const tenderKeywords = [
         'διακήρυξη', 'διακηρυξη',
-        'προκήρυξη', 'προκηρυξη',
-        'διαγωνισμ', // covers διαγωνισμός, διαγωνισμού, etc.
+        'διαγωνισμ',                                 // διαγωνισμός/ού
         'πρόσκληση υποβολής', 'προσκληση υποβολης',
         'πρόσκληση εκδήλωσης', 'προσκληση εκδηλωσης',
-        'δημοπρασί', // covers δημοπρασία, δημοπρασίας
-        'σύμβαση', 'συμβαση',
+        'δημοπρασί',                                 // δημοπρασία/ίας
         'προμήθεια', 'προμηθεια',
         'παροχή υπηρεσ', 'παροχη υπηρεσ',
-        'έργο', 'εργο',
+        'δημόσι', 'δημοσι',                          // δημόσιος διαγωνισμός
+        'ανοικτ',                                    // ανοικτός διαγωνισμός
+        'σύμβαση προμήθει', 'συμβαση προμηθει',      // supply contract (not any contract)
+        'σύμβαση παροχής', 'συμβαση παροχης',        // service contract
+        'σύμβαση έργου', 'συμβαση εργου',            // works contract (not job contract)
+        'cpv', 'CPV',                                // CPV codes = procurement
       ];
       if (!tenderKeywords.some(kw => subject.includes(kw))) return false;
 
