@@ -76,7 +76,7 @@ export const chatRouter = router({
         orderBy: { createdAt: 'desc' },
         take: 6,
       });
-      const historyMessages = recentHistory
+      let historyMessages = recentHistory
         .reverse()
         .slice(0, -1) // Exclude the message we just saved
         .map((m) => ({
@@ -85,6 +85,10 @@ export const chatRouter = router({
             ? (m.metadata as any).answer || m.content
             : m.content,
         }));
+      // Gemini requires first message to be 'user' — drop leading assistant messages
+      while (historyMessages.length > 0 && historyMessages[0].role === 'assistant') {
+        historyMessages.shift();
+      }
 
       // Call AI
       const result = await ai().complete({
