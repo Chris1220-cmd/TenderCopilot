@@ -86,6 +86,71 @@ interface Reminder {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
+
+/** Extract the answer text from a message, handling raw JSON content */
+function getAnswerText(msg: ChatMessage): string {
+  // 1. Prefer metadata.answer
+  if (msg.role === 'assistant' && msg.metadata?.answer) {
+    return String(msg.metadata.answer);
+  }
+  // 2. Try to parse JSON from content
+  if (msg.role === 'assistant' && msg.content) {
+    const trimmed = msg.content.trim();
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed.answer) return String(parsed.answer);
+      } catch { /* not JSON */ }
+    }
+  }
+  return msg.content;
+}
+
+/** Render markdown-like text as React elements (bold, lists, line breaks) */
+function renderMarkdown(text: string) {
+  // Split by lines
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Bold: **text** → <strong>text</strong>
+    const parts = line.split(/(\*\*[^*]+\*\*)/g);
+    const rendered = parts.map((part, j) => {
+      const boldMatch = part.match(/^\*\*(.+)\*\*$/);
+      if (boldMatch) {
+        return <strong key={j}>{boldMatch[1]}</strong>;
+      }
+      return part;
+    });
+
+    // Bullet list item: starts with * or - or number.
+    const isBullet = /^\s*[*\-]\s+/.test(line);
+    const isNumbered = /^\s*\d+\.\s+/.test(line);
+
+    if (isBullet || isNumbered) {
+      const content = line.replace(/^\s*[*\-]\s+/, '').replace(/^\s*\d+\.\s+/, '');
+      const contentParts = content.split(/(\*\*[^*]+\*\*)/g).map((part, j) => {
+        const bm = part.match(/^\*\*(.+)\*\*$/);
+        return bm ? <strong key={j}>{bm[1]}</strong> : part;
+      });
+      elements.push(
+        <div key={i} className="flex gap-1.5 ml-2">
+          <span className="text-muted-foreground/50 shrink-0">{isNumbered ? line.match(/^\s*(\d+\.)/)?.[1] : '\u2022'}</span>
+          <span>{contentParts}</span>
+        </div>
+      );
+    } else if (line.trim() === '') {
+      elements.push(<div key={i} className="h-1.5" />);
+    } else {
+      elements.push(<div key={i}>{rendered}</div>);
+    }
+  }
+
+  return <>{elements}</>;
+}
+
 const priorityConfig = {
   HIGH: { label: 'Υψηλή', bg: 'bg-red-500/15', text: 'text-red-700 dark:text-red-400', border: 'border-red-500/20', dot: 'bg-red-500' },
   MEDIUM: { label: 'Μέτρια', bg: 'bg-amber-500/15', text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-500/20', dot: 'bg-amber-500' },
@@ -348,18 +413,9 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                         )}
                       >
                         <div className="whitespace-pre-wrap">
-                          {msg.role === 'assistant' && msg.metadata?.answer
-                            ? msg.metadata.answer
-                            : (() => {
-                                // Fallback: try to extract answer from JSON content
-                                if (msg.role === 'assistant' && msg.content.startsWith('{')) {
-                                  try {
-                                    const parsed = JSON.parse(msg.content);
-                                    if (parsed.answer) return parsed.answer;
-                                  } catch { /* show raw */ }
-                                }
-                                return msg.content;
-                              })()
+                          {msg.role === 'assistant'
+                            ? renderMarkdown(getAnswerText(msg))
+                            : msg.content
                           }
                         </div>
 
