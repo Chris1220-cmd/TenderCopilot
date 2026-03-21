@@ -34,6 +34,9 @@ model Tenant {
   documentChunks   DocumentChunk[]
   chatMessages     ChatMessage[]
   tenderAlerts     TenderAlert[]
+
+  // Learning Memory
+  memories         TenantMemory[]
 }
 
 model User {
@@ -298,6 +301,9 @@ model Tender {
   documentChunks   DocumentChunk[]
   chatMessages     ChatMessage[]
   alerts           TenderAlert[]
+
+  // Learning Memory
+  outcome          TenderOutcome?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -792,4 +798,49 @@ model Activity {
   user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
+}
+
+// ─── Learning Memory ─────────────────────────────────────────
+
+model TenantMemory {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category   String   // 'strength' | 'weakness' | 'preference' | 'pattern' | 'lesson'
+  key        String   // e.g. 'has_iso_9001', 'weak_in_software', 'prefers_conservative_pricing'
+  value      String   @db.Text  // description
+  confidence Float    @default(0.5) // 0-1, increases with more evidence
+  evidence   Json?    // array of {tenderId, date, detail}
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tenantId, category, key])
+  @@index([tenantId])
+}
+
+model TenderOutcome {
+  id        String   @id @default(cuid())
+  tenderId  String   @unique
+  tender    Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenantId  String
+  outcome   String   // 'won' | 'lost' | 'withdrew' | 'disqualified'
+  reason    String?  @db.Text  // why won/lost
+  bidAmount Float?
+  winAmount Float?   // winning bid if lost
+  lessons   Json?    // AI-extracted lessons
+  feedback  String?  @db.Text  // user notes
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model ChatFeedback {
+  id        String   @id @default(cuid())
+  messageId String   @unique
+  tenantId  String
+  rating    Int      // 1 (bad) or 5 (good) — thumbs down/up
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }

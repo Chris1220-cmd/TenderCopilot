@@ -204,6 +204,17 @@ export async function buildContext(
     console.warn('[ContextBuilder] Knowledge retrieval failed:', err);
   }
 
+  // 5. Tenant Memory — learned patterns & preferences
+  try {
+    const { getTenantContext } = await import('@/server/services/learning-memory');
+    const tenantContext = await getTenantContext(tenantId);
+    if (tenantContext) {
+      contextParts.push(`=== ΜΝΗΜΗ & ΜΑΘΗΜΑΤΑ ===\n${tenantContext}`);
+    }
+  } catch (err) {
+    console.warn('[ContextBuilder] Tenant memory failed:', err);
+  }
+
   const systemPrompt = buildSmartSystemPrompt(intent);
 
   return {
