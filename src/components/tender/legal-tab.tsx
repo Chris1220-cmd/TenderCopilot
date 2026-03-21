@@ -207,9 +207,15 @@ export function LegalTab({ tenderId, sourceUrl, platform }: LegalTabProps) {
   });
 
   const clarifyMutation = trpc.aiRoles.proposeClarifications.useMutation({
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       legalQuery.refetch();
       setLoadingAction(null);
+      const count = Array.isArray(data) ? data.length : 0;
+      if (count === 0) {
+        setError('Δεν βρέθηκαν ρήτρες υψηλού κινδύνου (HIGH/CRITICAL) για δημιουργία διευκρινίσεων. Εκτελέστε πρώτα "Εξαγωγή Νομικών" και "Αξιολόγηση Κινδύνων".');
+      } else {
+        setError(null);
+      }
     },
     onError: (err: any) => {
       if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
