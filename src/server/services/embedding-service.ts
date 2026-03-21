@@ -3,7 +3,6 @@
  * Handles: text → embedding, batch insert to DB, semantic search.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { db } from '@/lib/db';
 import type { DocumentChunkData } from './document-chunker';
 
@@ -28,13 +27,36 @@ function setCachedEmbedding(text: string, embedding: number[]): void {
   queryCache.set(text, { embedding, ts: Date.now() });
 }
 
-// ─── Gemini Embedding ────────────────────────────────────────
+// ─── Gemini Embedding (via REST API v1) ──────────────────────
 
-function getEmbeddingModel() {
+const EMBEDDING_MODEL = 'text-embedding-004';
+
+/**
+ * Call Gemini embedding API directly via REST (v1, not v1beta).
+ * The @google/generative-ai SDK uses v1beta which doesn't support embedding models.
+ */
+async function callEmbeddingAPI(text: string): Promise<number[]> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY required for embeddings');
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: 'embedding-001' });
+
+  const url = `https://generativelanguage.googleapis.com/v1/models/${EMBEDDING_MODEL}:embedContent?key=${apiKey}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: `models/${EMBEDDING_MODEL}`,
+      content: { parts: [{ text }] },
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Embedding API error ${response.status}: ${error.slice(0, 200)}`);
+  }
+
+  const data = await response.json();
+  return data.embedding.values;
 }
 
 /**
@@ -44,31 +66,24 @@ export async function embedText(text: string): Promise<number[]> {
   const cached = getCachedEmbedding(text);
   if (cached) return cached;
 
-  const model = getEmbeddingModel();
-  const result = await model.embedContent(text);
-  const embedding = result.embedding.values;
-
+  const embedding = await callEmbeddingAPI(text);
   setCachedEmbedding(text, embedding);
   return embedding;
 }
 
 /**
- * Embed multiple texts in batch. Returns array of 768-dim vectors.
- * Uses individual embedContent calls with concurrency control.
+ * Embed multiple texts. Returns array of 768-dim vectors.
+ * Uses concurrency control to avoid rate limits.
  */
 export async function embedBatch(texts: string[]): Promise<number[][]> {
-  const model = getEmbeddingModel();
   const results: number[][] = [];
 
-  // Process in small batches with concurrency control (avoid rate limits)
+  // Process in small batches with concurrency control
   const CONCURRENCY = 5;
   for (let i = 0; i < texts.length; i += CONCURRENCY) {
     const batch = texts.slice(i, i + CONCURRENCY);
     const batchResults = await Promise.all(
-      batch.map(async (text) => {
-        const result = await model.embedContent(text);
-        return result.embedding.values;
-      })
+      batch.map((text) => callEmbeddingAPI(text))
     );
     results.push(...batchResults);
   }
