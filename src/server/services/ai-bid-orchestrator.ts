@@ -10,7 +10,7 @@
 
 import { db } from '@/lib/db';
 import { ai, checkTokenBudget, logTokenUsage } from '@/server/ai';
-import { readTenderDocuments, requireDocuments } from '@/server/services/document-reader';
+import { requireDocuments } from '@/server/services/document-reader';
 import { ANALYSIS_RULES, parseAIResponse, chunkText, shouldChunk, BRIEF_CRITICAL_FIELDS, NOT_FOUND } from './ai-prompts';
 import type { TenderStatus } from '@prisma/client';
 
@@ -1026,7 +1026,16 @@ class AIBidOrchestrator {
     const contextText = contextParts.join('\n');
 
     // Read ACTUAL document content for AI analysis
-    const documentText = await readTenderDocuments(tenderId);
+    const docsWithText = await db.attachedDocument.findMany({
+      where: { tenderId, extractedText: { not: null } },
+      select: { fileName: true, extractedText: true },
+    });
+    let documentText = docsWithText
+      .map((d) => `\n--- ${d.fileName} ---\n${d.extractedText}`)
+      .join('\n');
+    if (documentText.length > 80000) {
+      documentText = documentText.slice(0, 80000) + '\n\n[...κείμενο περικόπηκε λόγω μεγέθους]';
+    }
 
     // Language instruction
     const langInstruction = language === 'en'

@@ -12,7 +12,7 @@
 import { db } from '@/lib/db';
 import { stripAccents } from '@/lib/utils';
 import { ai, checkTokenBudget, logTokenUsage } from '@/server/ai';
-import { readTenderDocuments, requireDocuments } from '@/server/services/document-reader';
+import { requireDocuments } from '@/server/services/document-reader';
 import type { LegalClauseCategory, RiskLevel } from '@prisma/client';
 import { ANALYSIS_RULES, parseAIResponse, LEGAL_CRITICAL_FIELDS, NOT_FOUND, shouldChunk, chunkText } from './ai-prompts';
 
@@ -207,8 +207,17 @@ class AILegalAnalyzer {
       }
     }
 
-    // Read ACTUAL document content from attached files
-    const documentText = await readTenderDocuments(tenderId);
+    // Read document content from DB cache (no file I/O)
+    const docsWithText = await db.attachedDocument.findMany({
+      where: { tenderId, extractedText: { not: null } },
+      select: { fileName: true, extractedText: true },
+    });
+    let documentText = docsWithText
+      .map((d) => `\n--- ${d.fileName} ---\n${d.extractedText}`)
+      .join('\n');
+    if (documentText.length > 80000) {
+      documentText = documentText.slice(0, 80000) + '\n\n[...κείμενο περικόπηκε λόγω μεγέθους]';
+    }
     if (documentText) {
       contextParts.push('\n--- ΠΛΗΡΕΣ ΚΕΙΜΕΝΟ ΕΓΓΡΑΦΩΝ ---');
       contextParts.push(documentText);

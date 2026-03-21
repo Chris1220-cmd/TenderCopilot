@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
-import { readTenderDocuments, requireDocuments } from '@/server/services/document-reader';
+import { requireDocuments } from '@/server/services/document-reader';
 import { parseAIResponse } from './ai-prompts';
 import type { RequirementCategory, RequirementType, CoverageStatus } from '@prisma/client';
 
@@ -172,7 +172,16 @@ class AITechnicalService {
       where: { id: tenderId },
     });
 
-    const documentText = await readTenderDocuments(tenderId);
+    const docsWithText = await db.attachedDocument.findMany({
+      where: { tenderId, extractedText: { not: null } },
+      select: { fileName: true, extractedText: true },
+    });
+    let documentText = docsWithText
+      .map((d) => `\n--- ${d.fileName} ---\n${d.extractedText}`)
+      .join('\n');
+    if (documentText.length > 80000) {
+      documentText = documentText.slice(0, 80000) + '\n\n[...κείμενο περικόπηκε λόγω μεγέθους]';
+    }
 
     // Language instruction
     const langInstruction = language === 'en'
@@ -490,7 +499,16 @@ ${langInstruction}`,
         db.teamRequirement.findMany({ where: { tenderId } }),
       ]);
 
-    const documentText = await readTenderDocuments(tenderId);
+    const docsWithText = await db.attachedDocument.findMany({
+      where: { tenderId, extractedText: { not: null } },
+      select: { fileName: true, extractedText: true },
+    });
+    let documentText = docsWithText
+      .map((d) => `\n--- ${d.fileName} ---\n${d.extractedText}`)
+      .join('\n');
+    if (documentText.length > 80000) {
+      documentText = documentText.slice(0, 80000) + '\n\n[...κείμενο περικόπηκε λόγω μεγέθους]';
+    }
 
     const technicalReqs = requirements.filter((r) => r.category === 'TECHNICAL_REQUIREMENTS');
     const financialReqs = requirements.filter((r) => r.category === 'FINANCIAL_REQUIREMENTS');
@@ -656,7 +674,16 @@ ${langInstruction}`,
       db.technicalRisk.findMany({ where: { tenderId } }),
     ]);
 
-    const documentText = await readTenderDocuments(tenderId);
+    const docsWithText = await db.attachedDocument.findMany({
+      where: { tenderId, extractedText: { not: null } },
+      select: { fileName: true, extractedText: true },
+    });
+    let documentText = docsWithText
+      .map((d) => `\n--- ${d.fileName} ---\n${d.extractedText}`)
+      .join('\n');
+    if (documentText.length > 80000) {
+      documentText = documentText.slice(0, 80000) + '\n\n[...κείμενο περικόπηκε λόγω μεγέθους]';
+    }
 
     const technicalReqs = requirements.filter((r) => r.category === 'TECHNICAL_REQUIREMENTS');
     const gapRequirements = technicalReqs.filter((r) => r.coverageStatus === 'GAP');

@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { ai, checkTokenBudget, logTokenUsage } from '@/server/ai';
-import { readTenderDocuments, requireDocuments } from '@/server/services/document-reader';
+import { requireDocuments } from '@/server/services/document-reader';
 import { ANALYSIS_RULES, parseAIResponse, FINANCIAL_CRITICAL_FIELDS, NOT_FOUND, shouldChunk, chunkText } from './ai-prompts';
 import type { RequirementCategory, RequirementType } from '@prisma/client';
 
@@ -108,7 +108,16 @@ class AIFinancialService {
 
     const existingTexts = allRequirements.map((r) => r.text).join('\n');
     const docList = tender.attachedDocuments.map((d) => d.fileName).join(', ');
-    const documentText = await readTenderDocuments(tenderId);
+    const docsWithText = await db.attachedDocument.findMany({
+      where: { tenderId, extractedText: { not: null } },
+      select: { fileName: true, extractedText: true },
+    });
+    let documentText = docsWithText
+      .map((d) => `\n--- ${d.fileName} ---\n${d.extractedText}`)
+      .join('\n');
+    if (documentText.length > 80000) {
+      documentText = documentText.slice(0, 80000) + '\n\n[...κείμενο περικόπηκε λόγω μεγέθους]';
+    }
 
     // Token budget check
     const budget = await checkTokenBudget(tender.tenantId);
