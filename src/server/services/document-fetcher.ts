@@ -122,6 +122,55 @@ export async function fetchDocumentsForTender(params: {
     }
   }
 
+  // ── ΚΗΜΔΗΣ: Open Data API (no login required) ──────────────────
+  if (documentCount === 0 && (platform === 'KIMDIS' || sourceUrl.includes('eprocurement.gov.gr'))) {
+    const procNumber = tender.referenceNumber || sourceUrl.match(/(\d{2}PROC\d+)/)?.[1];
+    if (procNumber) {
+      // Try all ΚΗΜΔΗΣ attachment endpoints: notice, auction, contract, request
+      const kimdisEndpoints = ['notice', 'auction', 'contract', 'request'];
+      for (const type of kimdisEndpoints) {
+        if (documentCount > 0) break;
+        try {
+          const apiUrl = `https://cerpp.eprocurement.gov.gr/khmdhs-opendata/${type}/attachment/${procNumber}`;
+          console.log(`[fetchDocumentsForTender] Trying ΚΗΜΔΗΣ OpenData: ${type}/${procNumber}`);
+          const res = await fetch(apiUrl, {
+            headers: { Accept: 'application/pdf,application/octet-stream,*/*' },
+            signal: AbortSignal.timeout(30000),
+          });
+          if (!res.ok) continue;
+          const ct = res.headers.get('content-type') || '';
+          if (ct.includes('json')) continue; // Skip JSON error responses
+          const buf = Buffer.from(await res.arrayBuffer());
+          if (buf.length < 500) continue;
+
+          // Determine extension from content-type
+          let ext = 'pdf';
+          if (ct.includes('zip')) ext = 'zip';
+          else if (ct.includes('word') || ct.includes('docx')) ext = 'docx';
+
+          const filename = `kimdis_${type}_${procNumber}.${ext}`;
+          const s3Key = `tenants/${tenantId}/tenders/${tenderId}/docs/${Date.now()}-${filename}`;
+          const mimeType = ext === 'pdf' ? 'application/pdf' : MIME_BY_EXT[ext] || 'application/octet-stream';
+          await uploadFile(s3Key, buf, mimeType);
+          await db.attachedDocument.create({
+            data: {
+              tenderId,
+              fileName: filename,
+              fileKey: s3Key,
+              fileSize: buf.length,
+              mimeType,
+              category: 'specification',
+            },
+          });
+          documentCount++;
+          console.log(`[fetchDocumentsForTender] ΚΗΜΔΗΣ OpenData downloaded: ${filename} (${buf.length} bytes)`);
+        } catch (err) {
+          console.warn(`[fetchDocumentsForTender] ΚΗΜΔΗΣ ${type} attachment failed:`, err);
+        }
+      }
+    }
+  }
+
   // ── TED / KIMDIS / Other: scrape source page for document links ───
   if (documentCount === 0 && sourceUrl.startsWith('http')) {
     try {
