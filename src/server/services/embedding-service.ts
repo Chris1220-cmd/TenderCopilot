@@ -29,7 +29,7 @@ function setCachedEmbedding(text: string, embedding: number[]): void {
 
 // ─── Gemini Embedding (via REST API v1) ──────────────────────
 
-const EMBEDDING_MODEL = 'text-embedding-005';
+const EMBEDDING_MODEL = 'gemini-embedding-001';
 
 /**
  * Call Gemini embedding API directly via REST (v1, not v1beta).
