@@ -47,8 +47,7 @@ export async function GET() {
     const docsToProcess = docs.filter((d) => !chunkedDocIds.has(d.id));
     results.push(`${docsToProcess.length} documents need embedding`);
 
-    // Process only first document for debugging
-    for (const doc of docsToProcess.slice(0, 1)) {
+    for (const doc of docsToProcess) {
       if (!doc.extractedText || !doc.tender?.tenantId) {
         results.push(`Skipped ${doc.fileName} — no text or tenant`);
         continue;

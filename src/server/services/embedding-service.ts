@@ -34,7 +34,7 @@ function getEmbeddingModel() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY required for embeddings');
   const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: 'text-embedding-004' });
+  return genAI.getGenerativeModel({ model: 'embedding-001' });
 }
 
 /**
