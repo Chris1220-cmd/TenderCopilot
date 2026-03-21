@@ -41,3 +41,4 @@ function createQueue(queueName: string): JobQueue {
 export const tenderAnalysisQueue = createQueue('tender-analysis');
 export const complianceCheckQueue = createQueue('compliance-check');
 export const documentGenerationQueue = createQueue('document-generation');
+export const embeddingQueue = createQueue('document-embedding');

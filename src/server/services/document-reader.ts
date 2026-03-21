@@ -13,6 +13,7 @@ import { getFileBuffer } from '@/lib/s3';
 import { TRPCError } from '@trpc/server';
 import { evaluateQualityGate, type QualityGateResult } from './quality-gate';
 import { extractWithDocumentAI, isDocumentAIAvailable } from './document-ai';
+import { embeddingQueue } from '@/server/jobs/queues';
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -198,10 +199,13 @@ async function extractNonPdf(buffer: Buffer, mimeType: string, fileName: string)
 // ─── Document Reading (Main Export) ─────────────────────────
 
 export async function readTenderDocuments(tenderId: string): Promise<string> {
-  const docs = await db.attachedDocument.findMany({
-    where: { tenderId },
-    orderBy: { createdAt: 'asc' },
-  });
+  const [docs, tender] = await Promise.all([
+    db.attachedDocument.findMany({
+      where: { tenderId },
+      orderBy: { createdAt: 'asc' },
+    }),
+    db.tender.findUnique({ where: { id: tenderId }, select: { tenantId: true } }),
+  ]);
 
   if (docs.length === 0) return '';
 
@@ -261,6 +265,16 @@ export async function readTenderDocuments(tenderId: string): Promise<string> {
           },
         });
 
+        // Queue embedding job (non-blocking)
+        if (tender?.tenantId) {
+          await embeddingQueue.add('embed', {
+            documentId: doc.id,
+            tenderId: doc.tenderId,
+            tenantId: tender.tenantId,
+            extractedText: result.text,
+          });
+        }
+
         parts.push(`--- ${doc.fileName} ---\n${result.text}`);
       } else {
         const text = await extractNonPdf(buffer, doc.mimeType || '', doc.fileName);
@@ -289,6 +303,16 @@ export async function readTenderDocuments(tenderId: string): Promise<string> {
           },
         });
 
+        // Queue embedding job (non-blocking)
+        if (tender?.tenantId) {
+          await embeddingQueue.add('embed', {
+            documentId: doc.id,
+            tenderId: doc.tenderId,
+            tenantId: tender.tenantId,
+            extractedText: text,
+          });
+        }
+
         parts.push(`--- ${doc.fileName} ---\n${text}`);
       }
     } catch (err) {
@@ -310,7 +334,10 @@ export async function readTenderDocuments(tenderId: string): Promise<string> {
 // ─── Deep Parse (triggered by user) ─────────────────────────
 
 export async function deepParseDocument(documentId: string): Promise<{ success: boolean; method: string }> {
-  const doc = await db.attachedDocument.findUnique({ where: { id: documentId } });
+  const doc = await db.attachedDocument.findUnique({
+    where: { id: documentId },
+    include: { tender: { select: { tenantId: true } } },
+  });
   if (!doc) throw new Error('Document not found');
 
   const buffer = await getFileBuffer(doc.fileKey);
@@ -336,6 +363,15 @@ export async function deepParseDocument(documentId: string): Promise<{ success: 
         docAiRecommended: false,
       },
     });
+
+    // Queue embedding job (non-blocking)
+    await embeddingQueue.add('embed', {
+      documentId: doc.id,
+      tenderId: doc.tenderId,
+      tenantId: doc.tender.tenantId,
+      extractedText: docAiResult.text,
+    });
+
     return { success: true, method: 'document_ai' };
   }
 
@@ -351,6 +387,15 @@ export async function deepParseDocument(documentId: string): Promise<{ success: 
         docAiRecommended: false,
       },
     });
+
+    // Queue embedding job (non-blocking)
+    await embeddingQueue.add('embed', {
+      documentId: doc.id,
+      tenderId: doc.tenderId,
+      tenantId: doc.tender.tenantId,
+      extractedText: geminiText,
+    });
+
     return { success: true, method: 'gemini_vision' };
   }
 

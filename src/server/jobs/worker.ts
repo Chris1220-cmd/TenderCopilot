@@ -6,6 +6,8 @@ const connection = {
 import { tenderAnalysisService } from '@/server/services/tender-analysis';
 import { complianceEngine } from '@/server/services/compliance-engine';
 import { documentGenerator } from '@/server/services/document-generator';
+import { chunkDocument } from '@/server/services/document-chunker';
+import { embedBatch, storeChunksWithEmbeddings } from '@/server/services/embedding-service';
 
 // ─── Queue definitions ──────────────────────────────────────
 
@@ -110,9 +112,44 @@ const docGenWorker = new Worker(
   { connection, concurrency: 2 }
 );
 
+const embeddingWorker = new Worker(
+  'document-embedding',
+  async (job) => {
+    const { documentId, tenderId, tenantId, extractedText } = job.data as {
+      documentId: string;
+      tenderId: string;
+      tenantId: string;
+      extractedText: string;
+    };
+
+    console.log(`[Worker] Embedding document ${documentId} (${extractedText.length} chars)...`);
+
+    // 1. Chunk the text
+    const chunks = chunkDocument(extractedText);
+    if (chunks.length === 0) {
+      console.log(`[Worker] No chunks produced for document ${documentId}`);
+      return;
+    }
+
+    console.log(`[Worker] Chunked into ${chunks.length} pieces, embedding...`);
+
+    // 2. Embed all chunks
+    const embeddings = await embedBatch(chunks.map((c) => c.content));
+
+    // 3. Store in DB with vectors
+    await storeChunksWithEmbeddings(documentId, tenderId, tenantId, chunks, embeddings);
+
+    console.log(`[Worker] Document ${documentId} embedded: ${chunks.length} chunks stored`);
+  },
+  {
+    connection,
+    concurrency: 1,
+  }
+);
+
 // ─── Error handling ──────────────────────────────────────────
 
-for (const worker of [analysisWorker, complianceWorker, docGenWorker]) {
+for (const worker of [analysisWorker, complianceWorker, docGenWorker, embeddingWorker]) {
   worker.on('failed', (job, err) => {
     console.error(`[Worker] Job ${job?.id} failed:`, err);
   });
