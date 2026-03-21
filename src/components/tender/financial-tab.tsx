@@ -143,6 +143,7 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [noDocs, setNoDocs] = useState(false);
   const [langModalOpen, setLangModalOpen] = useState(false);
 
@@ -190,10 +191,12 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
   });
 
   const extractMutation = trpc.aiRoles.extractFinancials.useMutation({
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       summaryQuery.refetch();
       setLoadingAction(null);
       setError(null);
+      const count = Array.isArray(data) ? data.length : 0;
+      setSuccessMsg(`Ανάλυση ολοκληρώθηκε: ${count} οικονομικές απαιτήσεις εξήχθησαν.`);
     },
     onError: (err: any) => {
       if ((err as any).data?.code === 'PRECONDITION_FAILED') { setNoDocs(true); setLoadingAction(null); return; }
@@ -221,15 +224,29 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
     setLangModalOpen(false);
     setLoadingAction('analyze');
     setError(null);
+    setSuccessMsg(null);
     extractMutation.mutate({ tenderId, language: lang });
   };
 
   const handleEligibility = async () => {
     setLoadingAction('eligibility');
     setError(null);
+    setSuccessMsg(null);
     const result = await summaryQuery.refetch();
     if (result.status === 'error') {
       setError((result.error as any)?.message || 'Σφάλμα ελέγχου επιλεξιμότητας');
+    } else {
+      const elig = result.data?.eligibility;
+      if (elig && elig.checks?.length > 0) {
+        const passed = elig.checks.filter((c: any) => c.pass || c.passed).length;
+        setSuccessMsg(`Έλεγχος επιλεξιμότητας: ${passed}/${elig.checks.length} κριτήρια πληρούνται.`);
+      } else if (!result.data?.hasExtractedRequirements) {
+        setError('Εκτελέστε πρώτα "Ανάλυση Οικονομικών" για να εξαχθούν οι οικονομικές απαιτήσεις.');
+      } else if (!result.data?.hasFinancialProfile) {
+        setSuccessMsg('Οριακά — Συμπληρώστε τα οικονομικά στοιχεία εταιρείας στις Ρυθμίσεις → Οικονομικό Προφίλ.');
+      } else {
+        setSuccessMsg('Έλεγχος ολοκληρώθηκε.');
+      }
     }
     setLoadingAction(null);
   };
@@ -258,6 +275,12 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
         <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
           <strong>Σφάλμα:</strong> {error}
           <button onClick={() => setError(null)} className="ml-2 underline cursor-pointer">Κλείσιμο</button>
+        </div>
+      )}
+      {successMsg && (
+        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
+          {successMsg}
+          <button onClick={() => setSuccessMsg(null)} className="ml-2 underline cursor-pointer">Κλείσιμο</button>
         </div>
       )}
 
