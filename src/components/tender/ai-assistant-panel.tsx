@@ -161,13 +161,25 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
   );
 
   // Merge DB history with optimistic local messages
-  const dbMessages: ChatMessage[] = (historyQuery.data || []).map((m: any) => ({
-    id: m.id,
-    role: m.role as 'user' | 'assistant',
-    content: m.content,
-    timestamp: new Date(m.createdAt),
-    metadata: m.metadata || undefined,
-  }));
+  const dbMessages: ChatMessage[] = (historyQuery.data || []).map((m: any) => {
+    let metadata = m.metadata || undefined;
+    // Fallback: if no metadata but content is JSON, extract metadata from content
+    if (!metadata && m.role === 'assistant' && m.content?.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(m.content);
+        if (parsed.answer) {
+          metadata = parsed;
+        }
+      } catch { /* not JSON, ignore */ }
+    }
+    return {
+      id: m.id,
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+      timestamp: new Date(m.createdAt),
+      metadata,
+    };
+  });
 
   const askMutation = trpc.chat.askSmart.useMutation({
     onSuccess: () => {
@@ -335,7 +347,21 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                             : 'bg-muted/50 border border-border/50 text-foreground rounded-bl-md'
                         )}
                       >
-                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                        <div className="whitespace-pre-wrap">
+                          {msg.role === 'assistant' && msg.metadata?.answer
+                            ? msg.metadata.answer
+                            : (() => {
+                                // Fallback: try to extract answer from JSON content
+                                if (msg.role === 'assistant' && msg.content.startsWith('{')) {
+                                  try {
+                                    const parsed = JSON.parse(msg.content);
+                                    if (parsed.answer) return parsed.answer;
+                                  } catch { /* show raw */ }
+                                }
+                                return msg.content;
+                              })()
+                          }
+                        </div>
 
                         {/* Confidence Badge */}
                         {msg.role === 'assistant' && msg.metadata?.confidence && (
