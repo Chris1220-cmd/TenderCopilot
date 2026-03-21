@@ -13,6 +13,16 @@ export async function GET() {
   const results: string[] = [];
 
   try {
+    // Quick test: can we embed at all?
+    try {
+      const { embedText } = await import('@/server/services/embedding-service');
+      const testEmbed = await embedText('test');
+      results.push(`Embedding test: OK, dim=${testEmbed.length}`);
+    } catch (testErr: any) {
+      results.push(`Embedding test FAILED: ${testErr.message}`);
+      return NextResponse.json({ success: false, results, error: testErr.message }, { status: 500 });
+    }
+
     // Find all documents with extractedText
     const docs = await db.attachedDocument.findMany({
       where: { extractedText: { not: null } },
@@ -37,7 +47,8 @@ export async function GET() {
     const docsToProcess = docs.filter((d) => !chunkedDocIds.has(d.id));
     results.push(`${docsToProcess.length} documents need embedding`);
 
-    for (const doc of docsToProcess) {
+    // Process only first document for debugging
+    for (const doc of docsToProcess.slice(0, 1)) {
       if (!doc.extractedText || !doc.tender?.tenantId) {
         results.push(`Skipped ${doc.fileName} — no text or tenant`);
         continue;
@@ -65,7 +76,8 @@ export async function GET() {
 
         results.push(`✅ ${doc.fileName}: ${chunks.length} chunks embedded`);
       } catch (err: any) {
-        results.push(`❌ ${doc.fileName}: ${err.message?.slice(0, 200) || String(err).slice(0, 200)}`);
+        const fullError = err.message || String(err);
+        results.push(`❌ ${doc.fileName}: ${fullError}`);
       }
     }
 
