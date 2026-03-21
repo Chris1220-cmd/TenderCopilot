@@ -14,6 +14,19 @@ import { db } from '@/lib/db';
 import { kadToCpv } from '@/lib/kad-cpv-map';
 import { TENDER_SOURCES, getSourceById, getDefaultEnabledSourceIds } from '@/data/tender-sources';
 
+/** Safe date parser — returns fallback (now) if value is invalid */
+function safeDate(value: unknown, fallback?: Date): Date {
+  if (!value) return fallback ?? new Date();
+  const d = new Date(String(value).split('+')[0]);
+  return isNaN(d.getTime()) ? (fallback ?? new Date()) : d;
+}
+
+function safeDateOrUndefined(value: unknown): Date | undefined {
+  if (!value) return undefined;
+  const d = new Date(String(value).split('+')[0]);
+  return isNaN(d.getTime()) ? undefined : d;
+}
+
 // ─── Types ──────────────────────────────────────────────────
 
 export interface DiscoveredTender {
@@ -208,7 +221,7 @@ async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTen
           cpvCodes,
           sourceUrl: `https://diavgeia.gov.gr/decision/view/${d.ada}`,
           summary: d.subject,
-          publishedAt: d.issueDate ? new Date(d.issueDate) : new Date(),
+          publishedAt: safeDate(d.issueDate),
           country: 'GR',
           sourceLabel: 'Διαύγεια',
           isPrivate: false,
@@ -283,15 +296,13 @@ async function getLatestFromTED(cpvCodes?: string[], countryFilter: 'GR' | 'EU' 
       const titleObj = n['notice-title'] || {};
       const title = titleObj['ELL'] || titleObj['ENG'] || Object.values(titleObj)[0] as string || `TED ${pubNumber}`;
 
-      // Extract deadline — array of dates
+      // Extract deadline — array of dates (format: "2026-05-05+03:00")
       const deadlineArr = n['deadline-receipt-tender-date-lot'];
       const deadline = Array.isArray(deadlineArr) && deadlineArr.length > 0
-        ? new Date(deadlineArr[0])
+        ? safeDateOrUndefined(deadlineArr[0])
         : undefined;
 
-      const pubDate = n['publication-date']
-        ? new Date(n['publication-date'])
-        : new Date();
+      const pubDate = safeDate(n['publication-date']);
 
       return {
         title: typeof title === 'string' ? title.slice(0, 300) : `TED ${pubNumber}`,
@@ -372,11 +383,11 @@ async function getLatestFromKIMDIS(cpvCodes?: string[]): Promise<DiscoveredTende
         contractingAuthority: n.organization?.value || '',
         platform: 'KIMDIS' as const,
         budget: n.totalCostWithoutVAT ?? n.totalCostWithVAT ?? undefined,
-        submissionDeadline: n.finalSubmissionDate ? new Date(n.finalSubmissionDate) : undefined,
+        submissionDeadline: safeDateOrUndefined(n.finalSubmissionDate),
         cpvCodes,
         sourceUrl: `https://cerpp.eprocurement.gov.gr/kimds2/unprotected/searchNotices.htm?noticeId=${n.referenceNumber || ''}`,
         summary: n.objectDetails?.[0]?.shortDescription || n.title || undefined,
-        publishedAt: n.submissionDate ? new Date(n.submissionDate) : new Date(),
+        publishedAt: safeDate(n.submissionDate),
         country: 'GR',
         sourceLabel: 'ΚΗΜΔΗΣ',
         isPrivate: false,
