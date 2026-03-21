@@ -6,6 +6,7 @@
 
 import { db } from '@/lib/db';
 import { searchDocumentChunks, type SearchResult } from './embedding-service';
+import { getRelevantKnowledge, classifyTenderType } from '@/server/knowledge';
 
 // ─── Intent Classification ──────────────────────────────────
 
@@ -183,6 +184,24 @@ export async function buildContext(
       );
       sources.push({ type: 'structured_data', reference: 'Requirements', content: `${requirements.length} requirements` });
     }
+  }
+
+  // 4. Knowledge Base injection — domain expertise per intent
+  try {
+    // Classify tender type from metadata for targeted knowledge
+    const tenderText = tender
+      ? `${tender.title} ${tender.brief?.summaryText || ''}`
+      : '';
+    const tenderClass = tenderText ? classifyTenderType(tenderText) : undefined;
+    const tenderType = tenderClass?.type !== 'unknown' ? tenderClass?.type : undefined;
+
+    const knowledge = getRelevantKnowledge(intent, question, tenderType);
+    if (knowledge) {
+      contextParts.push(`=== ΓΝΩΣΗ ΕΙΔΙΚΟΥ (Ν.4412/2016 & ΕΜΠΕΙΡΙΑ) ===\n${knowledge}`);
+      sources.push({ type: 'knowledge_base' as any, reference: 'Βάση Γνώσεων Ν.4412/2016', content: 'Domain expertise' });
+    }
+  } catch (err) {
+    console.warn('[ContextBuilder] Knowledge retrieval failed:', err);
   }
 
   const systemPrompt = buildSmartSystemPrompt(intent);
