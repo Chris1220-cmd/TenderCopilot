@@ -11,6 +11,7 @@ import { discoveryRouter } from '@/server/routers/discovery';
 import { aiRolesRouter } from '@/server/routers/ai-roles';
 import { privateSourcesRouter } from '@/server/routers/private-sources';
 import { chatRouter } from './routers/chat';
+import { learningRouter } from './routers/learning';
 
 export const appRouter = router({
   auth: authRouter,
@@ -25,6 +26,7 @@ export const appRouter = router({
   aiRoles: aiRolesRouter,
   privateSources: privateSourcesRouter,
   chat: chatRouter,
+  learning: learningRouter,
 });
 
 export type AppRouter = typeof appRouter;

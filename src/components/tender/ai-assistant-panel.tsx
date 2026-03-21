@@ -44,6 +44,8 @@ import {
   BookOpen,
   FileText,
   Scale,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────
@@ -216,8 +218,16 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
   const [actions, setActions] = useState<SuggestedAction[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [activeTab, setActiveTab] = useState<'chat' | 'actions' | 'reminders'>('chat');
+  const [ratedMessages, setRatedMessages] = useState<Record<string, number>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Chat feedback mutation (thumbs up/down)
+  const rateMutation = trpc.learning.rateChatMessage.useMutation({
+    onSuccess: (_data, variables) => {
+      setRatedMessages((prev) => ({ ...prev, [variables.messageId]: variables.rating }));
+    },
+  });
 
   // Load persistent chat history
   const historyQuery = trpc.chat.getHistory.useQuery(
@@ -465,6 +475,40 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                                 <AlertTriangle className="w-3 h-3 shrink-0" /> {c}
                               </p>
                             ))}
+                          </div>
+                        )}
+
+                        {/* Feedback buttons */}
+                        {msg.role === 'assistant' && msg.metadata && (
+                          <div className="flex items-center gap-1 mt-1.5">
+                            <button
+                              onClick={() => rateMutation.mutate({ messageId: msg.id, rating: 5 })}
+                              disabled={!!ratedMessages[msg.id]}
+                              className={cn(
+                                'text-[10px] p-0.5 transition-colors cursor-pointer',
+                                ratedMessages[msg.id] === 5
+                                  ? 'text-emerald-500'
+                                  : 'text-muted-foreground/40 hover:text-emerald-500',
+                                ratedMessages[msg.id] && ratedMessages[msg.id] !== 5 && 'opacity-30'
+                              )}
+                              title="Χρήσιμο"
+                            >
+                              <ThumbsUp className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => rateMutation.mutate({ messageId: msg.id, rating: 1 })}
+                              disabled={!!ratedMessages[msg.id]}
+                              className={cn(
+                                'text-[10px] p-0.5 transition-colors cursor-pointer',
+                                ratedMessages[msg.id] === 1
+                                  ? 'text-red-500'
+                                  : 'text-muted-foreground/40 hover:text-red-500',
+                                ratedMessages[msg.id] && ratedMessages[msg.id] !== 1 && 'opacity-30'
+                              )}
+                              title="Μη χρήσιμο"
+                            >
+                              <ThumbsDown className="w-3 h-3" />
+                            </button>
                           </div>
                         )}
 
