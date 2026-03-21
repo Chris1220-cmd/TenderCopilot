@@ -333,8 +333,8 @@ ${ANALYSIS_RULES}
     "sector": "τομέας",
     "mandatoryCriteria": ["κριτήριο 1", "κριτήριο 2"],
     "awardType": "lowest_price ή best_value",
-    "duration": "διάρκεια σύμβασης (π.χ. 12 έτη)",
-    "deadlines": [{"label": "Προθεσμία υποβολής", "date": "2026-03-27T11:00:00"}],
+    "duration": "διάρκεια σύμβασης — αν δεν αναφέρεται συγκεκριμένη διάρκεια, γράψε ακριβώς τι αναφέρει το κείμενο (π.χ. 'εντός 30 ημερών από θέση σε ισχύ', '12 μήνες', '2 έτη')",
+    "deadlines": [{"label": "Προθεσμία υποβολής", "date": "ISO date αν υπάρχει συγκεκριμένη ημερομηνία, ΑΛΛΙΩΣ γράψε ακριβώς τι αναφέρει το κείμενο (π.χ. 'εντός 5 εργασίμων ημερών από ανάρτηση στο ΚΗΜΔΗΣ')"}],
     "estimatedBudget": 5416.00,
     "budgetPeriod": "monthly ή total",
     "cpvCodes": [],
@@ -645,6 +645,13 @@ class AIBidOrchestrator {
           : null,
       };
 
+      // Build a map of "relative" textual values the AI may have returned
+      // instead of structured dates/numbers (e.g. "εντός 5 εργασίμων ημερών")
+      const relativeTextMap: Record<string, string | null | undefined> = {
+        'Προθεσμία υποβολής': briefData.keyPoints?.deadlines?.[0]?.date || null,
+        'διάρκεια': briefData.duration || (briefData.keyPoints as any)?.duration || null,
+      };
+
       for (const field of BRIEF_CRITICAL_FIELDS) {
         const value = fieldValueMap[field];
         const isNotFound =
@@ -658,7 +665,34 @@ class AIBidOrchestrator {
         );
 
         if (isNotFound && !alreadyReported) {
-          missingInfo.push(`Δεν βρέθηκε: ${field}`);
+          // Check if the AI returned a relative/textual description instead
+          const relativeText = relativeTextMap[field];
+          const hasRelativeText = relativeText &&
+            relativeText !== NOT_FOUND &&
+            !relativeText.includes('ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ') &&
+            !/^\d{4}-\d{2}-\d{2}/.test(relativeText); // not a valid ISO date
+
+          if (hasRelativeText) {
+            missingInfo.push(`${field}: δεν αναφέρεται συγκεκριμένη ημερομηνία — αναφέρεται: "${relativeText}"`);
+          } else {
+            missingInfo.push(`Δεν βρέθηκε: ${field}`);
+          }
+        }
+      }
+
+      // Also check duration separately (not in BRIEF_CRITICAL_FIELDS but useful to show)
+      const durationValue = briefData.duration || (briefData.keyPoints as any)?.duration;
+      const hasDuration = durationValue &&
+        durationValue !== NOT_FOUND &&
+        !String(durationValue).includes('ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ');
+      const durationReported = missingInfo.some(m => m.toLowerCase().includes('διάρκεια'));
+      if (!hasDuration && !durationReported) {
+        missingInfo.push('Δεν βρέθηκε: διάρκεια');
+      } else if (hasDuration && durationReported) {
+        // Replace generic "Δεν βρέθηκε: διάρκεια" with the actual text
+        const idx = missingInfo.findIndex(m => m.toLowerCase().includes('διάρκεια') && m.startsWith('Δεν βρέθηκε'));
+        if (idx >= 0) {
+          missingInfo[idx] = `διάρκεια: ${durationValue}`;
         }
       }
 
