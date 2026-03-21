@@ -12,7 +12,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -81,11 +80,7 @@ export function Sidebar() {
 
         {/* Logo section */}
         <div className="flex h-16 items-center gap-3 px-4">
-          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25">
-            {/* Logo glow */}
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 opacity-0 blur-md transition-opacity duration-300 group-hover/sidebar:opacity-60" />
-            <Sparkles className="relative h-5 w-5" />
-          </div>
+          <img src="/images/logo-icon.png" alt="TenderCopilot" className="h-9 w-9 rounded-xl shadow-lg shadow-blue-500/25 shrink-0" />
           <div
             className={cn(
               'flex flex-col overflow-hidden transition-[opacity,transform] duration-300 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]',

@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Sparkles,
   Mail,
   Lock,
   User,
@@ -122,9 +121,7 @@ export default function RegisterPage() {
         <div className="relative space-y-6 p-8">
           {/* Logo & Title */}
           <div className="flex flex-col items-center space-y-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/25">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
+            <img src="/images/logo-icon.png" alt="TenderCopilot" className="h-12 w-12 rounded-xl" />
             <div className="space-y-1 text-center">
               <h1 className="text-xl font-semibold tracking-tight text-white">
                 Δημιουργία λογαριασμού

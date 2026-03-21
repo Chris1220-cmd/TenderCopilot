@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Sparkles,
   Mail,
   Lock,
   Eye,
@@ -124,16 +123,7 @@ export default function LoginPage() {
         <div className="relative space-y-6 p-8 sm:p-10">
           {/* Logo & Title */}
           <div className="flex flex-col items-center space-y-4">
-            <div
-              className={cn(
-                'flex h-14 w-14 items-center justify-center rounded-full',
-                'bg-gradient-to-br from-[#1E40AF] to-[#3B82F6]',
-                'shadow-lg shadow-blue-500/30',
-                'ring-1 ring-white/10'
-              )}
-            >
-              <Sparkles className="h-7 w-7 text-white" />
-            </div>
+            <img src="/images/logo-icon.png" alt="TenderCopilot" className="h-14 w-14 rounded-xl" />
             <div className="space-y-1.5 text-center">
               <h1 className="bg-gradient-to-b from-white to-white/80 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
                 Καλώς ήρθατε
