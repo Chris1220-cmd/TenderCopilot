@@ -379,16 +379,41 @@ async function getLatestFromKIMDIS(cpvCodes?: string[]): Promise<DiscoveredTende
  */
 async function scrapeDEKOSource(source: { id: string; name: string; url: string }): Promise<DiscoveredTender[]> {
   try {
-    const response = await fetch(source.url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html',
-        'Accept-Language': 'el,en;q=0.9',
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) return [];
-    const html = await response.text();
+    // Try direct fetch first, fallback to Jina Reader for WAF-protected/slow sites
+    let html = '';
+    try {
+      const response = await fetch(source.url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'text/html',
+          'Accept-Language': 'el,en;q=0.9',
+        },
+        signal: AbortSignal.timeout(12000),
+      });
+      if (response.ok) {
+        html = await response.text();
+      }
+    } catch {
+      // Direct fetch failed (timeout/blocked) — try Jina Reader
+    }
+
+    if (!html) {
+      try {
+        const jinaRes = await fetch(`https://r.jina.ai/${source.url}`, {
+          headers: { 'Accept': 'text/html', 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(20000),
+        });
+        if (jinaRes.ok) {
+          html = await jinaRes.text();
+          console.log(`[DEKO] ${source.name}: Jina fallback succeeded`);
+        }
+      } catch {
+        console.warn(`[DEKO] ${source.name}: both direct and Jina failed`);
+        return [];
+      }
+    }
+
+    if (!html) return [];
 
     const results: DiscoveredTender[] = [];
     const linkRegex = /<a[^>]+href="([^"]*)"[^>]*>([^<]{8,300})<\/a>/gi;
