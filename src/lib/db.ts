@@ -30,7 +30,15 @@ function createPrismaClient(): PrismaClient {
     }
   }
 
+  // Limit connections to avoid exhausting Supabase pool (free tier ~15 connections).
+  // Vercel serverless spawns many instances — each should use minimal connections.
+  const url = new URL(process.env.DATABASE_URL || '');
+  if (!url.searchParams.has('connection_limit')) {
+    url.searchParams.set('connection_limit', '3');
+  }
+
   return new PrismaClient({
+    datasourceUrl: url.toString(),
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 }
