@@ -47,6 +47,7 @@ async function callEmbeddingAPI(text: string): Promise<number[]> {
     body: JSON.stringify({
       model: `models/${EMBEDDING_MODEL}`,
       content: { parts: [{ text }] },
+      outputDimensionality: 768,
     }),
   });
 
