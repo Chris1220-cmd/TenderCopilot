@@ -10,6 +10,7 @@ import { analyticsRouter } from '@/server/routers/analytics';
 import { discoveryRouter } from '@/server/routers/discovery';
 import { aiRolesRouter } from '@/server/routers/ai-roles';
 import { privateSourcesRouter } from '@/server/routers/private-sources';
+import { chatRouter } from './routers/chat';
 
 export const appRouter = router({
   auth: authRouter,
@@ -23,6 +24,7 @@ export const appRouter = router({
   discovery: discoveryRouter,
   aiRoles: aiRolesRouter,
   privateSources: privateSourcesRouter,
+  chat: chatRouter,
 });
 
 export type AppRouter = typeof appRouter;
