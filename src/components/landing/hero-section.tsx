@@ -26,6 +26,16 @@ export function HeroSection() {
         />
       </div>
 
+      {/* Hero background image */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-30"
+        style={{
+          backgroundImage: 'url(/images/hero-bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
+
       {/* Gradient glow orbs */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-1/4 left-1/2 -translate-x-1/2 h-[600px] w-[800px] rounded-full opacity-20"
@@ -141,6 +151,24 @@ export function HeroSection() {
         >
           {t('common.noCard')}
         </motion.p>
+
+        {/* Dashboard mockup */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          className="mt-16 relative max-w-4xl mx-auto"
+        >
+          <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-blue-500/10 border border-white/[0.06]">
+            <img
+              src="/images/dashboard-mockup.png"
+              alt="TenderCopilot Dashboard"
+              className="w-full h-auto"
+              loading="eager"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+          </div>
+        </motion.div>
       </div>
     </section>
   );

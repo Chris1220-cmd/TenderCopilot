@@ -2,45 +2,44 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileSearch, Shield, DollarSign, Search, Scale, Bot } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 const features = [
   {
-    icon: FileSearch,
+    iconSrc: '/images/icons/icon-doc-analysis.png',
     titleKey: 'features.docAnalysis',
     descKey: 'features.docAnalysisDesc',
     colSpan: 'md:col-span-4',
     meta: 'PDF, DOCX, XLSX',
   },
   {
-    icon: Shield,
+    iconSrc: '/images/icons/icon-eligibility.png',
     titleKey: 'features.eligibility',
     descKey: 'features.eligibilityDesc',
     colSpan: 'md:col-span-2',
   },
   {
-    icon: DollarSign,
+    iconSrc: '/images/icons/icon-financial.png',
     titleKey: 'features.financial',
     descKey: 'features.financialDesc',
     colSpan: 'md:col-span-2',
   },
   {
-    icon: Search,
+    iconSrc: '/images/icons/icon-discovery.png',
     titleKey: 'features.discovery',
     descKey: 'features.discoveryDesc',
     colSpan: 'md:col-span-4',
     meta: '19+ sources',
   },
   {
-    icon: Scale,
+    iconSrc: '/images/icons/icon-legal.png',
     titleKey: 'features.legal',
     descKey: 'features.legalDesc',
     colSpan: 'md:col-span-3',
   },
   {
-    icon: Bot,
+    iconSrc: '/images/icons/icon-ai-assistant.png',
     titleKey: 'features.assistant',
     descKey: 'features.assistantDesc',
     colSpan: 'md:col-span-3',
@@ -94,7 +93,6 @@ export function FeaturesBento() {
         {/* Bento Grid */}
         <div ref={containerRef} className="grid grid-cols-1 md:grid-cols-6 gap-4">
           {features.map((feature, i) => {
-            const Icon = feature.icon;
             const isVisible = visibleItems.has(i);
             return (
               <div
@@ -114,8 +112,8 @@ export function FeaturesBento() {
                   )}
                 >
                   {/* Icon */}
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.06] border border-white/[0.08] transition-colors duration-300 group-hover:bg-white/[0.1] group-hover:border-white/[0.15]">
-                    <Icon className="h-5 w-5 text-muted-foreground transition-colors duration-300 group-hover:text-foreground" />
+                  <div className="h-16 w-16 mb-4">
+                    <img src={feature.iconSrc} alt="" className="w-full h-full object-contain" aria-hidden="true" />
                   </div>
 
                   {/* Title */}
