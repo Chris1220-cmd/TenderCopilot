@@ -30,13 +30,13 @@ export function Topbar() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 dark:border-white/5 bg-white/60 dark:bg-slate-950/60 backdrop-blur-xl px-6">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-background/80 backdrop-blur-xl dark:bg-[hsl(240_6%_4%/0.8)] px-6">
       {/* Search */}
       <div className="relative w-full max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Αναζήτηση διαγωνισμών, εργασιών..."
-          className="pl-10 h-9 rounded-xl bg-white/50 dark:bg-white/5 border-white/20 dark:border-white/10 focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 transition-all duration-200 placeholder:text-muted-foreground/60"
+          className="pl-10 h-9 rounded-xl bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/[0.08] focus:border-primary/30 focus:bg-background dark:focus:bg-white/[0.06] transition-all duration-200 placeholder:text-muted-foreground/60"
         />
       </div>
 
