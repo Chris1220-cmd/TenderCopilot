@@ -65,7 +65,7 @@ export async function GET() {
 
         results.push(`✅ ${doc.fileName}: ${chunks.length} chunks embedded`);
       } catch (err: any) {
-        results.push(`❌ ${doc.fileName}: ${err.message?.slice(0, 100)}`);
+        results.push(`❌ ${doc.fileName}: ${err.message?.slice(0, 200) || String(err).slice(0, 200)}`);
       }
     }
 

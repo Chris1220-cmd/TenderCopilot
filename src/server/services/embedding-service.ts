@@ -54,21 +54,23 @@ export async function embedText(text: string): Promise<number[]> {
 
 /**
  * Embed multiple texts in batch. Returns array of 768-dim vectors.
- * Uses Gemini's batchEmbedContents for efficiency (1 API call per 100 texts).
+ * Uses individual embedContent calls with concurrency control.
  */
 export async function embedBatch(texts: string[]): Promise<number[][]> {
   const model = getEmbeddingModel();
   const results: number[][] = [];
 
-  // Process in batches of 100 (Gemini batch limit)
-  for (let i = 0; i < texts.length; i += 100) {
-    const batch = texts.slice(i, i + 100);
-    const batchResult = await model.batchEmbedContents({
-      requests: batch.map((text) => ({
-        content: { role: 'user', parts: [{ text }] },
-      })),
-    });
-    results.push(...batchResult.embeddings.map((e) => e.values));
+  // Process in small batches with concurrency control (avoid rate limits)
+  const CONCURRENCY = 5;
+  for (let i = 0; i < texts.length; i += CONCURRENCY) {
+    const batch = texts.slice(i, i + CONCURRENCY);
+    const batchResults = await Promise.all(
+      batch.map(async (text) => {
+        const result = await model.embedContent(text);
+        return result.embedding.values;
+      })
+    );
+    results.push(...batchResults);
   }
 
   return results;
