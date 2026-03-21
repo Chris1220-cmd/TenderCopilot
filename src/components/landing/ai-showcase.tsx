@@ -21,6 +21,30 @@ const chatMessages = [
   },
 ];
 
+function TypingIndicator() {
+  return (
+    <div className="flex justify-start">
+      <div className="max-w-[85%] rounded-2xl px-5 py-4 bg-white/[0.04] border border-white/[0.08]">
+        <div className="flex items-center gap-1.5">
+          {[0, 1, 2].map((i) => (
+            <motion.span
+              key={i}
+              className="h-2 w-2 rounded-full bg-muted-foreground/50"
+              animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1, 0.8] }}
+              transition={{
+                duration: 1.2,
+                repeat: Infinity,
+                delay: i * 0.2,
+                ease: 'easeInOut',
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AiShowcase() {
   const { t } = useTranslation();
 
@@ -39,10 +63,14 @@ export function AiShowcase() {
             {chatMessages.map((msg, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.15 }}
+                transition={{
+                  duration: 0.5,
+                  delay: i * 0.2,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
@@ -55,7 +83,7 @@ export function AiShowcase() {
                   <p>{msg.text}</p>
                   {msg.role === 'assistant' && msg.source && (
                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-0.5 text-xs text-cyan-400">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-0.5 text-xs text-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.15)]">
                         {msg.source}
                       </span>
                       <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 border border-green-500/20 px-2.5 py-0.5 text-xs text-green-400">
@@ -66,6 +94,16 @@ export function AiShowcase() {
                 </div>
               </motion.div>
             ))}
+
+            {/* Typing indicator */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.8 }}
+            >
+              <TypingIndicator />
+            </motion.div>
           </motion.div>
 
           {/* Text content */}

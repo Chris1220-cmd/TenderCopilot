@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
 import { GlowButton } from '@/components/ui/glow-button';
 import { GlassInput } from '@/components/ui/glass-input';
+import { InfiniteSlider } from '@/components/ui/infinite-slider';
 
 const footerLinks = {
   product: ['Features', 'Pricing', 'Integrations', 'Changelog'],
@@ -12,6 +13,17 @@ const footerLinks = {
   company: ['About', 'Careers', 'Contact', 'Partners'],
   legal: ['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'GDPR'],
 };
+
+const trustLogos = [
+  'ΕΣΗΔΗΣ',
+  'Promitheus',
+  'Διαύγεια',
+  'ΚΗΜΔΗΣ',
+  'TED Europa',
+  'e-Procurement',
+  'SAM.gov',
+  'OpenTender',
+];
 
 export function CtaFooter() {
   const { t } = useTranslation();
@@ -45,6 +57,31 @@ export function CtaFooter() {
           </motion.div>
         </div>
       </section>
+
+      {/* Trust bar - InfiniteSlider */}
+      <div className="relative py-12 border-t border-white/[0.04]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-xs text-muted-foreground/50 mb-6 uppercase tracking-widest">
+            {t('hero.trustedBy')}
+          </p>
+          <div className="relative">
+            {/* Fade edges */}
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-r from-background to-transparent" />
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-l from-background to-transparent" />
+
+            <InfiniteSlider gap={24} speed={30} speedOnHover={60}>
+              {trustLogos.map((logo) => (
+                <div
+                  key={logo}
+                  className="inline-flex items-center rounded-full bg-white/[0.03] border border-white/[0.06] px-5 py-2 text-sm text-muted-foreground/70 whitespace-nowrap select-none"
+                >
+                  {logo}
+                </div>
+              ))}
+            </InfiniteSlider>
+          </div>
+        </div>
+      </div>
 
       {/* Footer */}
       <footer className="border-t border-white/[0.06] bg-white/[0.01]">
