@@ -255,7 +255,7 @@ async function getLatestFromTED(cpvCodes?: string[], countryFilter: 'GR' | 'EU' 
           query,
           limit: 20,
           page: 1,
-          fields: ['notice-identifier', 'deadline-receipt-tender-date-lot'],
+          fields: ['BT-21-Procedure', 'BT-131(d)-Lot'],
         }),
         signal: AbortSignal.timeout(15000),
       }
@@ -336,21 +336,35 @@ async function getLatestFromKIMDIS(cpvCodes?: string[]): Promise<DiscoveredTende
     const data = await res.json();
     const notices = data.content || data.notices || data.data || [];
 
-    return notices.slice(0, 15).map((n: any) => ({
-      title: n.subject || n.title || 'ΚΗΜΔΗΣ Notice',
-      referenceNumber: n.referenceNumber || n.ada || n.id || '',
-      contractingAuthority: n.organizationName || n.contractingAuthorityName || '',
-      platform: 'KIMDIS' as const,
-      budget: n.estimatedValue || n.totalAmount ? parseFloat(String(n.estimatedValue || n.totalAmount)) : undefined,
-      submissionDeadline: n.submissionDeadline || n.deadline ? new Date(n.submissionDeadline || n.deadline) : undefined,
-      cpvCodes: n.cpvCodes || (n.cpv ? [n.cpv] : []),
-      sourceUrl: `https://cerpp.eprocurement.gov.gr/kimds2/unprotected/searchNotices.htm?noticeId=${n.referenceNumber || n.id}`,
-      summary: n.description || n.subject || undefined,
-      publishedAt: n.publishDate ? new Date(n.publishDate) : new Date(),
-      country: 'GR',
-      sourceLabel: 'ΚΗΜΔΗΣ',
-      isPrivate: false,
-    }));
+    return notices.slice(0, 15).map((n: any) => {
+      // Extract CPV codes from objectDetails[].cpvs[].key
+      const cpvCodes: string[] = [];
+      if (Array.isArray(n.objectDetails)) {
+        for (const obj of n.objectDetails) {
+          if (Array.isArray(obj.cpvs)) {
+            for (const cpv of obj.cpvs) {
+              if (cpv.key && !cpvCodes.includes(cpv.key)) cpvCodes.push(cpv.key);
+            }
+          }
+        }
+      }
+
+      return {
+        title: n.title || n.subject || 'ΚΗΜΔΗΣ Notice',
+        referenceNumber: n.referenceNumber || '',
+        contractingAuthority: n.organization?.value || '',
+        platform: 'KIMDIS' as const,
+        budget: n.totalCostWithoutVAT ?? n.totalCostWithVAT ?? undefined,
+        submissionDeadline: n.finalSubmissionDate ? new Date(n.finalSubmissionDate) : undefined,
+        cpvCodes,
+        sourceUrl: `https://cerpp.eprocurement.gov.gr/kimds2/unprotected/searchNotices.htm?noticeId=${n.referenceNumber || ''}`,
+        summary: n.objectDetails?.[0]?.shortDescription || n.title || undefined,
+        publishedAt: n.submissionDate ? new Date(n.submissionDate) : new Date(),
+        country: 'GR',
+        sourceLabel: 'ΚΗΜΔΗΣ',
+        isPrivate: false,
+      };
+    });
   } catch (err) {
     console.error('[KIMDIS] Fetch error:', err);
     return [];

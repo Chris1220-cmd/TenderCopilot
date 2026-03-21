@@ -21,9 +21,9 @@ export const TENDER_SOURCES: TenderSource[] = [
   // ── ΔΕΚΟ / Δημόσιοι Οργανισμοί ────────────────────────
   { id: 'dei',       name: 'ΔΕΗ',              category: 'deko', categoryLabel: 'ΔΕΚΟ', url: 'https://eprocurement.dei.gr',                              country: 'GR', defaultEnabled: true,  supportsCpvFilter: false },
   { id: 'deddie',    name: 'ΔΕΔΔΗΕ',           category: 'deko', categoryLabel: 'ΔΕΚΟ', url: 'https://www.deddie.gr/el/tender-notice-common/',            country: 'GR', defaultEnabled: true,  supportsCpvFilter: false },
-  { id: 'admie',     name: 'ΑΔΜΗΕ',            category: 'deko', categoryLabel: 'ΔΕΚΟ', url: 'https://www.admie.gr/nea/promitheies',                      country: 'GR', defaultEnabled: true,  supportsCpvFilter: false },
+  { id: 'admie',     name: 'ΑΔΜΗΕ',            category: 'deko', categoryLabel: 'ΔΕΚΟ', url: 'https://www.admie.gr/anakoinoseis/promitheies',             country: 'GR', defaultEnabled: true,  supportsCpvFilter: false },
   { id: 'eydap',     name: 'ΕΥΔΑΠ',            category: 'deko', categoryLabel: 'ΔΕΚΟ', url: 'https://www.eydap.gr/TheCompany/Contests/ProjectNotices/',  country: 'GR', defaultEnabled: true,  supportsCpvFilter: false },
-  { id: 'eyath',     name: 'ΕΥΑΘ',             category: 'deko', categoryLabel: 'ΔΕΚΟ', url: 'https://www.eyath.gr/category/prokiryxeis-diagonismoi/',    country: 'GR', defaultEnabled: false, supportsCpvFilter: false },
+  { id: 'eyath',     name: 'ΕΥΑΘ',             category: 'deko', categoryLabel: 'ΔΕΚΟ', url: 'https://www.eyath.gr/',                                    country: 'GR', defaultEnabled: false, supportsCpvFilter: false },
   { id: 'depa',      name: 'ΔΕΠΑ',             category: 'deko', categoryLabel: 'ΔΕΚΟ', url: 'https://www.depa.gr/prokiryxis/',                           country: 'GR', defaultEnabled: false, supportsCpvFilter: false },
   { id: 'ose',       name: 'ΟΣΕ',              category: 'deko', categoryLabel: 'ΔΕΚΟ', url: 'https://ose.gr/epikoinonia/deltia-tipou/diagonismoi/',      country: 'GR', defaultEnabled: false, supportsCpvFilter: false },
   { id: 'oasa',      name: 'ΟΑΣΑ',             category: 'deko', categoryLabel: 'ΔΕΚΟ', url: 'https://www.oasa.gr/en/procurements/',                      country: 'GR', defaultEnabled: false, supportsCpvFilter: false },
