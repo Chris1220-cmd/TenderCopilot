@@ -1,9 +1,9 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { useTranslation } from '@/lib/i18n';
+import { BlurFade } from '@/components/ui/blur-fade';
 import { cn } from '@/lib/utils';
 
 const faqKeys = ['1', '2', '3', '4', '5'];
@@ -14,25 +14,15 @@ export function FaqSection() {
   return (
     <section id="faq" className="relative py-24 sm:py-32 bg-white/[0.01]">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.5 }}
-          className="text-3xl font-bold text-foreground text-center mb-12 sm:text-4xl"
-        >
-          {t('faq.title')}
-        </motion.h2>
+        <BlurFade delay={0} inView>
+          <h2 className="text-3xl font-bold text-foreground text-center mb-12 sm:text-4xl">
+            {t('faq.title')}
+          </h2>
+        </BlurFade>
 
         <AccordionPrimitive.Root type="single" collapsible className="space-y-3">
           {faqKeys.map((key, i) => (
-            <motion.div
-              key={key}
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-50px' }}
-              transition={{ duration: 0.3, delay: i * 0.06 }}
-            >
+            <BlurFade key={key} delay={0.1 + i * 0.06} inView>
               <AccordionPrimitive.Item
                 value={`faq-${key}`}
                 className={cn(
@@ -71,7 +61,7 @@ export function FaqSection() {
                   </p>
                 </AccordionPrimitive.Content>
               </AccordionPrimitive.Item>
-            </motion.div>
+            </BlurFade>
           ))}
         </AccordionPrimitive.Root>
       </div>

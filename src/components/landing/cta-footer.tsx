@@ -1,9 +1,10 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
-import { GlowButton } from '@/components/ui/glow-button';
+import { ShimmerButton } from '@/components/ui/shimmer-button';
+import { Meteors } from '@/components/ui/meteors';
+import { BlurFade } from '@/components/ui/blur-fade';
 import { GlassInput } from '@/components/ui/glass-input';
 import { InfiniteSlider } from '@/components/ui/infinite-slider';
 
@@ -30,31 +31,43 @@ export function CtaFooter() {
 
   return (
     <>
-      {/* CTA Section */}
-      <section className="relative py-24 sm:py-32">
+      {/* CTA Section with Meteors */}
+      <section className="relative py-24 sm:py-32 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.03] to-transparent" />
-        <div className="relative mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-            transition={{ duration: 0.5 }}
-          >
+
+        {/* Meteors background */}
+        <Meteors number={15} />
+
+        <div className="relative z-10 mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 text-center">
+          <BlurFade delay={0} inView>
             <h2 className="text-3xl font-bold text-foreground sm:text-4xl">
               {t('cta.title')}
             </h2>
+          </BlurFade>
+
+          <BlurFade delay={0.15} inView>
             <div className="mt-8 flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
               <GlassInput
                 type="email"
                 placeholder={t('cta.placeholder')}
                 className="flex-1"
               />
-              <GlowButton size="lg">{t('common.tryFree')}</GlowButton>
+              <ShimmerButton
+                shimmerColor="#06B6D4"
+                background="linear-gradient(135deg, #3B82F6, #06B6D4)"
+                className="px-6 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
+                borderRadius="12px"
+              >
+                {t('common.tryFree')}
+              </ShimmerButton>
             </div>
+          </BlurFade>
+
+          <BlurFade delay={0.3} inView>
             <p className="mt-4 text-sm text-muted-foreground">
               {t('cta.trial')}
             </p>
-          </motion.div>
+          </BlurFade>
         </div>
       </section>
 

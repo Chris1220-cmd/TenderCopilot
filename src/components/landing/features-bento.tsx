@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
 import { useTranslation } from '@/lib/i18n';
+import { BentoGrid } from '@/components/ui/bento-grid';
+import { MagicCard } from '@/components/ui/magic-card';
+import { BlurFade } from '@/components/ui/blur-fade';
 import { cn } from '@/lib/utils';
 
 const features = [
@@ -10,110 +11,85 @@ const features = [
     iconSrc: '/images/icons/icon-doc-analysis.png',
     titleKey: 'features.docAnalysis',
     descKey: 'features.docAnalysisDesc',
-    colSpan: 'md:col-span-4',
+    colSpan: 'md:col-span-2',
     meta: 'PDF, DOCX, XLSX',
   },
   {
     iconSrc: '/images/icons/icon-eligibility.png',
     titleKey: 'features.eligibility',
     descKey: 'features.eligibilityDesc',
-    colSpan: 'md:col-span-2',
+    colSpan: '',
   },
   {
     iconSrc: '/images/icons/icon-financial.png',
     titleKey: 'features.financial',
     descKey: 'features.financialDesc',
-    colSpan: 'md:col-span-2',
+    colSpan: '',
   },
   {
     iconSrc: '/images/icons/icon-discovery.png',
     titleKey: 'features.discovery',
     descKey: 'features.discoveryDesc',
-    colSpan: 'md:col-span-4',
+    colSpan: 'md:col-span-2',
     meta: '19+ sources',
   },
   {
     iconSrc: '/images/icons/icon-legal.png',
     titleKey: 'features.legal',
     descKey: 'features.legalDesc',
-    colSpan: 'md:col-span-3',
+    colSpan: '',
   },
   {
     iconSrc: '/images/icons/icon-ai-assistant.png',
     titleKey: 'features.assistant',
     descKey: 'features.assistantDesc',
-    colSpan: 'md:col-span-3',
+    colSpan: '',
   },
 ];
 
 export function FeaturesBento() {
   const { t } = useTranslation();
-  const [visibleItems, setVisibleItems] = useState<Set<number>>(new Set());
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const idx = Number(entry.target.getAttribute('data-index'));
-            setVisibleItems((prev) => new Set(prev).add(idx));
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.15, rootMargin: '-50px' }
-    );
-
-    const cards = containerRef.current?.querySelectorAll('[data-index]');
-    cards?.forEach((card) => observer.observe(card));
-
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <section id="features" className="relative py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Heading */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-3xl font-bold text-foreground sm:text-4xl">
-            {t('features.title')}
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            {t('features.subtitle')}
-          </p>
-        </motion.div>
+        <BlurFade delay={0} inView>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-foreground sm:text-4xl">
+              {t('features.title')}
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+              {t('features.subtitle')}
+            </p>
+          </div>
+        </BlurFade>
 
         {/* Bento Grid */}
-        <div ref={containerRef} className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          {features.map((feature, i) => {
-            const isVisible = visibleItems.has(i);
-            return (
-              <div
-                key={feature.titleKey}
-                data-index={i}
-                className={cn(feature.colSpan)}
+        <BentoGrid className="grid-cols-1 md:grid-cols-3 gap-4">
+          {features.map((feature, i) => (
+            <BlurFade
+              key={feature.titleKey}
+              delay={0.1 + i * 0.08}
+              inView
+              className={cn(feature.colSpan)}
+            >
+              <MagicCard
+                className="h-full rounded-2xl border-white/[0.06]"
+                gradientSize={250}
+                gradientColor="#1a1a2e"
+                gradientFrom="#3B82F6"
+                gradientTo="#06B6D4"
               >
-                <motion.div
-                  initial={{ opacity: 0, y: 24 }}
-                  animate={isVisible ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.5, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                  className={cn(
-                    'group relative h-full rounded-2xl p-6',
-                    'bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm',
-                    'transition-all duration-300 ease-out',
-                    'hover:-translate-y-1 hover:bg-white/[0.05] hover:border-white/[0.1]'
-                  )}
-                >
+                <div className="p-6">
                   {/* Icon */}
                   <div className="h-16 w-16 mb-4">
-                    <img src={feature.iconSrc} alt="" className="w-full h-full object-contain" aria-hidden="true" />
+                    <img
+                      src={feature.iconSrc}
+                      alt=""
+                      className="w-full h-full object-contain"
+                      aria-hidden="true"
+                    />
                   </div>
 
                   {/* Title */}
@@ -134,11 +110,11 @@ export function FeaturesBento() {
                       </span>
                     </div>
                   )}
-                </motion.div>
-              </div>
-            );
-          })}
-        </div>
+                </div>
+              </MagicCard>
+            </BlurFade>
+          ))}
+        </BentoGrid>
       </div>
     </section>
   );
