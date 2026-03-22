@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { TopNav } from '@/components/layout/top-nav';
 import { CommandPalette } from '@/components/layout/command-palette';
+import { PageTransition } from '@/components/layout/page-transition';
 
 export default function DashboardLayout({
   children,
@@ -19,7 +20,7 @@ export default function DashboardLayout({
         {/* Top edge accent glow */}
         <div className="pointer-events-none fixed inset-x-0 top-14 h-[200px] bg-gradient-to-b from-primary/[0.04] to-transparent" />
         <div className="relative z-10 mx-auto max-w-[1400px] px-6 py-8">
-          {children}
+          <PageTransition>{children}</PageTransition>
         </div>
       </main>
       <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
