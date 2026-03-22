@@ -162,6 +162,51 @@ const priorityConfig = {
   LOW: { label: 'Χαμηλή', bg: 'bg-emerald-500/15', text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-500/20', dot: 'bg-emerald-500' },
 };
 
+// ─── Stream Chat Helper ─────────────────────────────────────
+async function streamChat(
+  tenderId: string,
+  question: string,
+  onToken: (text: string) => void,
+  onDone: (metadata: any) => void,
+  onError: (error: string) => void,
+) {
+  const res = await fetch('/api/chat/stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tenderId, question }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    onError(text || `Error ${res.status}`);
+    return;
+  }
+
+  if (!res.body) { onError('Streaming not supported'); return; }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      try {
+        const event = JSON.parse(line.slice(6));
+        if (event.type === 'token') onToken(event.text);
+        else if (event.type === 'done') onDone(event.metadata);
+        else if (event.type === 'error') onError(event.message);
+      } catch { /* skip malformed */ }
+    }
+  }
+}
+
 const quickQuestions = [
   { text: 'Τι λείπει;', icon: HelpCircle },
   { text: 'Είμαστε έτοιμοι;', icon: CheckSquare },
@@ -217,7 +262,8 @@ interface AIAssistantPanelProps {
 export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPanelProps) {
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
   const [actions, setActions] = useState<SuggestedAction[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [activeTab, setActiveTab] = useState<'chat' | 'actions' | 'reminders'>('chat');
@@ -264,7 +310,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
       // Refetch history to get the persisted messages
       historyQuery.refetch();
       setLocalMessages([]);
-      setIsTyping(false);
+      setIsStreaming(false);
     },
     onError: (err: any) => {
       const errorMsg: ChatMessage = {
@@ -274,7 +320,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
         timestamp: new Date(),
       };
       setLocalMessages((prev) => [...prev, errorMsg]);
-      setIsTyping(false);
+      setIsStreaming(false);
     },
   });
 
@@ -314,9 +360,34 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
     };
     setLocalMessages((prev) => [...prev, userMsg]);
     setInputValue('');
-    setIsTyping(true);
+    setIsStreaming(true);
+    setStreamingText('');
 
-    askMutation.mutate({ tenderId, question });
+    streamChat(
+      tenderId,
+      question,
+      // onToken
+      (token) => setStreamingText((prev) => prev + token),
+      // onDone
+      (metadata) => {
+        setIsStreaming(false);
+        setStreamingText('');
+        setLocalMessages([]);
+        historyQuery.refetch();
+      },
+      // onError
+      (error) => {
+        setIsStreaming(false);
+        setStreamingText('');
+        const errorMsg: ChatMessage = {
+          id: `msg-${Date.now()}-error`,
+          role: 'assistant',
+          content: error || 'Σφάλμα κατά την επεξεργασία. Δοκιμάστε ξανά.',
+          timestamp: new Date(),
+        };
+        setLocalMessages((prev) => [...prev, errorMsg]);
+      },
+    );
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -553,8 +624,23 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                     });
                   })()}
 
+                  {/* Streaming message */}
+                  {isStreaming && streamingText && (
+                    <div className="flex gap-2.5 justify-start">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600/20 to-cyan-500/20 mt-0.5">
+                        <Bot className="h-4 w-4 text-blue-500" />
+                      </div>
+                      <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border border-white/20 dark:border-white/10 text-foreground px-3.5 py-2.5 text-xs leading-relaxed">
+                        <div className="whitespace-pre-wrap">
+                          {renderMarkdown(streamingText)}
+                          <span className="inline-block w-1.5 h-4 bg-blue-500/70 animate-pulse ml-0.5 rounded-sm align-middle" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Typing indicator */}
-                  {isTyping && (
+                  {isStreaming && !streamingText && (
                     <div className="flex gap-2.5">
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600/20 to-cyan-500/20">
                         <Bot className="h-4 w-4 text-blue-500" />
@@ -587,7 +673,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                         <button
                           key={q.text}
                           onClick={() => handleSend(q.text)}
-                          disabled={isTyping}
+                          disabled={isStreaming}
                           className={cn(
                             'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium',
                             'bg-white/50 dark:bg-white/[0.06]',
@@ -620,7 +706,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Γράψτε μια ερώτηση..."
-                      disabled={isTyping}
+                      disabled={isStreaming}
                       className={cn(
                         'w-full rounded-xl border px-4 py-2.5 text-xs',
                         'bg-white/60 dark:bg-white/[0.06]',
@@ -634,7 +720,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                   </div>
                   <Button
                     onClick={() => handleSend()}
-                    disabled={!inputValue.trim() || isTyping}
+                    disabled={!inputValue.trim() || isStreaming}
                     size="icon"
                     className={cn(
                       'h-10 w-10 rounded-xl shrink-0 cursor-pointer',
@@ -645,7 +731,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                       'active:scale-95 transition-transform'
                     )}
                   >
-                    {isTyping ? (
+                    {isStreaming ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Send className="h-4 w-4" />
