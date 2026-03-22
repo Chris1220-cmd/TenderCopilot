@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { cn, formatDate, formatCurrency } from '@/lib/utils';
+import Image from 'next/image';
+import { cn, formatDate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,19 +23,10 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import { MagicCard } from '@/components/ui/magic-card';
-import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
 import { BlurFade } from '@/components/ui/blur-fade';
-import { ShimmerButton } from '@/components/ui/shimmer-button';
-import { PremiumEmptyState } from '@/components/ui/premium-empty-state';
 import {
   Plus,
   Search,
-  FileText,
-  Calendar,
-  Building2,
-  TrendingUp,
-  Filter,
   Trash2,
 } from 'lucide-react';
 
@@ -42,56 +34,26 @@ const statusConfig: Record<
   string,
   { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' }
 > = {
-  DRAFT: { label: 'Πρόχειρο', variant: 'secondary' },
-  DISCOVERY: { label: 'Εύρεση', variant: 'default' },
+  DRAFT: { label: 'Προχειρο', variant: 'secondary' },
+  DISCOVERY: { label: 'Ευρεση', variant: 'default' },
   GO_NO_GO: { label: 'Go/No-Go', variant: 'default' },
-  IN_PROGRESS: { label: 'Σε εξέλιξη', variant: 'warning' },
-  REVIEW: { label: 'Αξιολόγηση', variant: 'default' },
-  SUBMITTED: { label: 'Υποβλήθηκε', variant: 'success' },
-  WON: { label: 'Κερδήθηκε', variant: 'success' },
-  LOST: { label: 'Χάθηκε', variant: 'destructive' },
+  IN_PROGRESS: { label: 'Σε εξελιξη', variant: 'warning' },
+  REVIEW: { label: 'Αξιολογηση', variant: 'default' },
+  SUBMITTED: { label: 'Υποβληθηκε', variant: 'success' },
+  WON: { label: 'Κερδηθηκε', variant: 'success' },
+  LOST: { label: 'Χαθηκε', variant: 'destructive' },
 };
 
-const platformConfig: Record<string, { label: string; color: string }> = {
-  ESIDIS: { label: 'ΕΣΗΔΗΣ', color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
-  KIMDIS: { label: 'ΚΗΜΔΗΣ', color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400' },
-  PROMITHEUS: { label: 'ΠΡΟΜΗΘΕΥΣ', color: 'bg-teal-500/10 text-teal-600 dark:text-teal-400' },
-  DIAVGEIA: { label: 'ΔΙΑΥΓΕΙΑ', color: 'bg-orange-500/10 text-orange-600 dark:text-orange-400' },
-  TED: { label: 'TED Europa', color: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' },
-  COSMOONE: { label: 'cosmoONE', color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400' },
-  PRIVATE: { label: 'Ιδιωτικός', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400' },
-  OTHER: { label: 'Άλλο', color: 'bg-gray-500/10 text-gray-600 dark:text-gray-400' },
+const platformConfig: Record<string, { label: string }> = {
+  ESIDIS: { label: 'ΕΣΗΔΗΣ' },
+  KIMDIS: { label: 'ΚΗΜΔΗΣ' },
+  PROMITHEUS: { label: 'ΠΡΟΜΗΘΕΥΣ' },
+  DIAVGEIA: { label: 'ΔΙΑΥΓΕΙΑ' },
+  TED: { label: 'TED Europa' },
+  COSMOONE: { label: 'cosmoONE' },
+  PRIVATE: { label: 'Ιδιωτικος' },
+  OTHER: { label: 'Αλλο' },
 };
-
-
-function ComplianceBar({ score }: { score: number }) {
-  const color =
-    score >= 80
-      ? 'bg-gradient-to-r from-emerald-400 to-emerald-600'
-      : score >= 60
-        ? 'bg-gradient-to-r from-amber-400 to-amber-600'
-        : 'bg-gradient-to-r from-red-400 to-red-600';
-  const bgColor =
-    score >= 80
-      ? 'bg-emerald-500/10'
-      : score >= 60
-        ? 'bg-amber-500/10'
-        : 'bg-red-500/10';
-
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className={cn('h-2 w-20 overflow-hidden rounded-full', bgColor)}>
-        <div
-          className={cn('h-full rounded-full transition-all duration-500', color)}
-          style={{ width: `${score}%` }}
-        />
-      </div>
-      <span className="text-xs font-semibold tabular-nums text-muted-foreground">
-        {score}%
-      </span>
-    </div>
-  );
-}
 
 export default function TendersPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -119,8 +81,7 @@ export default function TendersPage() {
   // Apply filters
   const filteredTenders = tenders.filter((tender) => {
     if (statusFilter !== 'all' && tender.status !== statusFilter) return false;
-    if (platformFilter !== 'all' && tender.platform !== platformFilter)
-      return false;
+    if (platformFilter !== 'all' && tender.platform !== platformFilter) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
@@ -138,183 +99,142 @@ export default function TendersPage() {
       <BlurFade delay={0} inView>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Διαγωνισμοί</h1>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+              Διαγωνισμοι
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Διαχειριστείτε τους διαγωνισμούς και τους φακέλους σας
+              Διαχειριστειτε τους διαγωνισμους σας
             </p>
           </div>
-          <Link href="/tenders/new">
-            <ShimmerButton
-              shimmerColor="#06B6D4"
-              shimmerSize="0.05em"
-              background="linear-gradient(135deg, #3B82F6, #06B6D4)"
-              className="px-5 py-2.5 text-sm font-semibold cursor-pointer"
-            >
+          <Button asChild className="cursor-pointer">
+            <Link href="/tenders/new">
               <Plus className="h-4 w-4 mr-1.5" />
-              Νέος Διαγωνισμός
-            </ShimmerButton>
-          </Link>
+              Νεος Διαγωνισμος
+            </Link>
+          </Button>
         </div>
       </BlurFade>
 
-      {/* Filters */}
-      <GlassCard>
-        <GlassCardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Filter className="h-4 w-4 text-muted-foreground" />
+      {/* Filters — simple row, no card wrapper */}
+      <div className="flex flex-wrap items-center gap-3 mt-8">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Αναζητηση..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
 
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Αναζήτηση διαγωνισμών..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 pl-9"
-              />
-            </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[160px] cursor-pointer">
+            <SelectValue placeholder="Κατασταση" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Ολες οι καταστασεις</SelectItem>
+            {Object.entries(statusConfig).map(([key, { label }]) => (
+              <SelectItem key={key} value={key}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Κατάσταση" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Όλες οι καταστάσεις</SelectItem>
-                {Object.entries(statusConfig).map(([key, { label }]) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <Select value={platformFilter} onValueChange={setPlatformFilter}>
+          <SelectTrigger className="w-[160px] cursor-pointer">
+            <SelectValue placeholder="Πλατφορμα" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Ολες οι πλατφορμες</SelectItem>
+            {Object.entries(platformConfig).map(([key, { label }]) => (
+              <SelectItem key={key} value={key}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-            <Select value={platformFilter} onValueChange={setPlatformFilter}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Πλατφόρμα" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Όλες οι πλατφόρμες</SelectItem>
-                {Object.entries(platformConfig).map(([key, { label }]) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </GlassCardContent>
-      </GlassCard>
-
-      {/* Tenders Grid */}
+      {/* Tender Cards */}
       {filteredTenders.length === 0 ? (
-        /* Empty state */
-        <PremiumEmptyState
-          imageSrc="/images/illustrations/empty-tenders.png"
-          title="Κανένας διαγωνισμός"
-          description={
-            searchQuery || statusFilter !== 'all' || platformFilter !== 'all'
-              ? 'Δεν βρέθηκαν αποτελέσματα. Δοκιμάστε διαφορετικά φίλτρα.'
-              : 'Δημιουργήστε τον πρώτο σας διαγωνισμό για να ξεκινήσετε.'
-          }
-          action={
-            !searchQuery && statusFilter === 'all' && platformFilter === 'all'
-              ? { label: 'Νέος Διαγωνισμός', href: '/tenders/new' }
-              : undefined
-          }
-        />
+        <div className="py-16 text-center">
+          <div className="relative mx-auto mb-4 h-[140px] w-[180px]">
+            <Image
+              src="/images/illustrations/empty-tenders.png"
+              alt=""
+              fill
+              className="object-contain opacity-50"
+            />
+          </div>
+          <h3 className="text-base font-medium">Κανενας διαγωνισμος</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            {searchQuery || statusFilter !== 'all' || platformFilter !== 'all'
+              ? 'Δεν βρεθηκαν αποτελεσματα. Δοκιμαστε διαφορετικα φιλτρα.'
+              : 'Δημιουργηστε τον πρωτο σας διαγωνισμο για να ξεκινησετε.'}
+          </p>
+          {!searchQuery && statusFilter === 'all' && platformFilter === 'all' && (
+            <Button asChild variant="outline" size="sm" className="mt-4 cursor-pointer">
+              <Link href="/tenders/new">Νεος Διαγωνισμος</Link>
+            </Button>
+          )}
+        </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-6">
           {filteredTenders.map((tender, i) => {
             const status = statusConfig[tender.status] || statusConfig.DRAFT;
             const platform = platformConfig[tender.platform] || platformConfig.OTHER;
+            const score = tender.complianceScore ?? 0;
+            const complianceColor =
+              score >= 80
+                ? 'text-emerald-500'
+                : score >= 60
+                  ? 'text-amber-500'
+                  : 'text-red-500';
 
             return (
-              <BlurFade key={tender.id} delay={0.05 + i * 0.06} inView>
-                <MagicCard
-                  className="h-full rounded-2xl border-white/[0.06]"
-                  gradientSize={250}
-                  gradientColor="#1a1a2e"
-                  gradientFrom="#3B82F6"
-                  gradientTo="#06B6D4"
-                >
-                  <div className="group relative h-full">
-                    {/* Delete button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setDeleteId(tender.id);
-                      }}
-                      className="absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-red-500/10 hover:bg-red-500/20 text-red-500 cursor-pointer"
-                      title="Διαγραφή"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+              <BlurFade key={tender.id} delay={0.03 + i * 0.03} inView>
+                <div className="group relative rounded-xl bg-card shadow-sm ring-1 ring-white/[0.04] transition-colors hover:bg-card/80">
+                  {/* Delete button on hover */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDeleteId(tender.id);
+                    }}
+                    className="absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive/10 text-destructive cursor-pointer"
+                    title="Διαγραφη"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
 
-                    <Link href={`/tenders/${tender.id}`} className="cursor-pointer">
-                      <div className="p-5">
-                        <div className="space-y-4">
-                          {/* Top row: badges */}
-                          <div className="flex items-center justify-between gap-2">
-                            <Badge variant={status.variant}>{status.label}</Badge>
-                            <span
-                              className={cn(
-                                'rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                                platform.color
-                              )}
-                            >
-                              {platform.label}
-                            </span>
-                          </div>
+                  <Link
+                    href={`/tenders/${tender.id}`}
+                    className="block p-5 cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <Badge variant={status.variant}>{status.label}</Badge>
+                      <span className="text-[11px] font-medium text-muted-foreground">
+                        {platform.label}
+                      </span>
+                    </div>
 
-                          {/* Title */}
-                          <div>
-                            <h3 className="line-clamp-2 text-sm font-semibold leading-snug group-hover:text-primary transition-colors duration-200">
-                              {tender.title}
-                            </h3>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {tender.referenceNumber}
-                            </p>
-                          </div>
+                    <h3 className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
+                      {tender.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {tender.referenceNumber}
+                    </p>
 
-                          {/* Details */}
-                          <div className="space-y-2.5 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                              <Building2 className="h-3.5 w-3.5 shrink-0" />
-                              <span className="truncate">
-                                {tender.contractingAuthority || '--'}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-3.5 w-3.5 shrink-0" />
-                              <span>
-                                Υποβολή: {formatDate(tender.submissionDeadline)}
-                              </span>
-                            </div>
-                            {tender.budget != null && (
-                              <div className="flex items-center gap-2">
-                                <TrendingUp className="h-3.5 w-3.5 shrink-0" />
-                                <span>
-                                  Π/Υ: {formatCurrency(tender.budget)}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Compliance score */}
-                          <div className="border-t pt-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-muted-foreground">
-                                Compliance
-                              </span>
-                              <ComplianceBar score={tender.complianceScore ?? 0} />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  </div>
-                </MagicCard>
+                    <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{formatDate(tender.submissionDeadline)}</span>
+                      <span className={cn('font-semibold', complianceColor)}>
+                        {score}%
+                      </span>
+                    </div>
+                  </Link>
+                </div>
               </BlurFade>
             );
           })}
@@ -325,17 +245,17 @@ export default function TendersPage() {
       <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Διαγραφή Διαγωνισμού</DialogTitle>
+            <DialogTitle>Διαγραφη Διαγωνισμου</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Θέλετε να διαγράψετε τον διαγωνισμό{' '}
+            Θελετε να διαγραψετε τον διαγωνισμο{' '}
             <strong className="text-foreground">{tenderToDelete?.title}</strong>;
-            Η ενέργεια είναι μη αναστρέψιμη.
+            Η ενεργεια ειναι μη αναστρεψιμη.
           </p>
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline" className="cursor-pointer">
-                Ακύρωση
+                Ακυρωση
               </Button>
             </DialogClose>
             <Button
@@ -345,7 +265,7 @@ export default function TendersPage() {
               onClick={() => deleteId && deleteMutation.mutate({ id: deleteId })}
             >
               <Trash2 className="h-4 w-4 mr-1.5" />
-              Διαγραφή
+              Διαγραφη
             </Button>
           </DialogFooter>
         </DialogContent>

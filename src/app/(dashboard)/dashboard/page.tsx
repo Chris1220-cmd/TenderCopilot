@@ -7,14 +7,6 @@ import { trpc } from '@/lib/trpc';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PremiumEmptyState } from '@/components/ui/premium-empty-state';
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardContent,
-  GlassCardAction,
-} from '@/components/ui/glass-card';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import Image from 'next/image';
@@ -23,7 +15,6 @@ import {
   CheckSquare,
   Target,
   Calendar,
-  ArrowUpRight,
   Plus,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -110,25 +101,28 @@ export default function DashboardPage() {
       value: activeTenders,
       subtitle: 'Τρεχοντες διαγωνισμοι',
       icon: FileText,
+      isCompliance: false,
     },
     {
       title: 'Εκκρεμεις Εργασιες',
       value: pendingTasks,
       subtitle: 'Αναμενουν ενεργεια',
       icon: CheckSquare,
+      isCompliance: false,
     },
     {
       title: 'Compliance Score',
       value: complianceScore,
       subtitle: complianceScore >= 70 ? 'Σε καλο επιπεδο' : 'Χρειαζεται βελτιωση',
       icon: Target,
-      suffix: '%',
+      isCompliance: true,
     },
     {
       title: 'Προσεχεις Deadlines',
       value: upcomingDeadlinesCount,
       subtitle: 'Εντος 30 ημερων',
       icon: Calendar,
+      isCompliance: false,
     },
   ];
 
@@ -136,32 +130,13 @@ export default function DashboardPage() {
     <div className="space-y-10">
       {/* ====== Welcome Section ====== */}
       <BlurFade delay={0} inView>
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <h1 className="text-display text-foreground">
-              Καλως ηρθατε, {firstName}
-            </h1>
-            <p className="text-body text-muted-foreground">
-              Ακολουθει η συνοψη των διαγωνισμων σας.
-            </p>
-          </div>
-          <div className="relative hidden md:block h-[130px] w-[160px] opacity-80 pointer-events-none">
-            <Image
-              src="/images/illustrations/dashboard-welcome.png"
-              alt=""
-              fill
-              className="object-contain"
-              aria-hidden="true"
-            />
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-3 mt-6">
-          <Link href="/tenders/new">
-            <Button variant="default" className="px-5 py-2 text-sm font-semibold cursor-pointer">
-              <Plus className="h-4 w-4 mr-1.5" />
-              Νέος Διαγωνισμός
-            </Button>
-          </Link>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+            Καλως ηρθατε, {firstName}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Ακολουθει η συνοψη των διαγωνισμων σας.
+          </p>
         </div>
       </BlurFade>
 
@@ -169,8 +144,8 @@ export default function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <BlurFade key={i} delay={0.15 + i * 0.08} inView>
-                <div className="rounded-xl surface-elevated p-6 animate-pulse">
+              <BlurFade key={i} delay={0.05 + i * 0.05} inView>
+                <div className="rounded-xl bg-card p-5 sm:p-6 shadow-sm ring-1 ring-white/[0.04] animate-pulse">
                   <div className="h-3 w-24 bg-muted rounded mb-4" />
                   <div className="h-8 w-16 bg-muted rounded mb-2" />
                   <div className="h-3 w-32 bg-muted rounded" />
@@ -180,17 +155,35 @@ export default function DashboardPage() {
           : statsCards.map((card, i) => {
               const Icon = card.icon;
               return (
-                <BlurFade key={card.title} delay={0.15 + i * 0.08} inView>
-                  <div className="rounded-xl surface-elevated p-6 transition-all duration-200 hover:bg-secondary/80 cursor-default">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-overline">{card.title}</span>
+                <BlurFade key={card.title} delay={0.05 + i * 0.05} inView>
+                  <div className="rounded-xl bg-card p-5 sm:p-6 shadow-sm ring-1 ring-white/[0.04] transition-colors hover:bg-card/80">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+                        {card.title}
+                      </span>
                       <Icon className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <div className="text-3xl font-semibold tracking-tight tabular-nums text-foreground">
-                      <NumberTicker value={card.value} delay={0.2} />
-                      {card.suffix && <span>{card.suffix}</span>}
+                    <div className="mt-3">
+                      {card.isCompliance ? (
+                        <span
+                          className={cn(
+                            'text-2xl sm:text-3xl font-semibold tracking-tight tabular-nums',
+                            complianceScore >= 75
+                              ? 'text-emerald-500'
+                              : complianceScore >= 50
+                                ? 'text-amber-500'
+                                : 'text-red-500'
+                          )}
+                        >
+                          {complianceScore}%
+                        </span>
+                      ) : (
+                        <span className="text-2xl sm:text-3xl font-semibold tracking-tight">
+                          <NumberTicker value={card.value} delay={0.3} />
+                        </span>
+                      )}
                     </div>
-                    <p className="text-caption mt-1">{card.subtitle}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{card.subtitle}</p>
                   </div>
                 </BlurFade>
               );
@@ -198,152 +191,136 @@ export default function DashboardPage() {
       </div>
 
       {/* ====== Recent Tenders + Upcoming Deadlines ====== */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/* Recent Tenders - 2 cols */}
-        <div className="lg:col-span-2 rounded-xl surface-elevated">
-          <div className="flex items-center justify-between px-6 pt-6 pb-4">
-            <h2 className="text-title text-foreground">Προσφατοι Διαγωνισμοι</h2>
-            <Link
-              href="/tenders"
-              className="text-caption text-primary hover:text-primary/80 transition-colors cursor-pointer"
-            >
-              Ολοι &rarr;
-            </Link>
-          </div>
-          <div className="px-6 pb-6">
-            {isLoading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-14 w-full rounded-lg" />
-                ))}
-              </div>
-            ) : recentTenders.length === 0 ? (
-              <PremiumEmptyState
-                imageSrc="/images/illustrations/empty-tenders.png"
-                title="Δεν υπάρχουν διαγωνισμοί"
-                description="Δημιουργήστε τον πρώτο σας διαγωνισμό!"
-                action={{ label: 'Νέος Διαγωνισμός', href: '/tenders/new' }}
-              />
-            ) : (
-              <div className="space-y-1">
-                {recentTenders.map((tender: any, i: number) => {
-                  const status =
-                    statusMap[tender.status] || statusMap.DRAFT;
-                  const score =
-                    tender.complianceScore ?? tender.compliance_score ?? 0;
-
-                  return (
-                    <BlurFade key={tender.id} delay={0.3 + i * 0.05} inView>
+      <div className="grid gap-6 lg:grid-cols-5">
+        {/* Recent Tenders - 3 cols */}
+        <BlurFade delay={0.2} inView className="lg:col-span-3">
+          <div className="rounded-xl bg-card shadow-sm ring-1 ring-white/[0.04]">
+            <div className="flex items-center justify-between p-5 sm:p-6 pb-0 sm:pb-0">
+              <h2 className="text-base font-medium">Προσφατοι Διαγωνισμοι</h2>
+              <Link
+                href="/tenders"
+                className="text-xs text-primary hover:underline cursor-pointer"
+              >
+                Ολοι &rarr;
+              </Link>
+            </div>
+            <div className="p-3 sm:p-4">
+              {isLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-14 w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : recentTenders.length === 0 ? (
+                <div className="py-12 text-center">
+                  <div className="relative mx-auto mb-4 h-[120px] w-[150px]">
+                    <Image
+                      src="/images/illustrations/empty-tenders.png"
+                      alt=""
+                      fill
+                      className="object-contain opacity-60"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Δεν υπαρχουν διαγωνισμοι
+                  </p>
+                  <Button asChild variant="outline" size="sm" className="mt-3 cursor-pointer">
+                    <Link href="/tenders/new">Νεος Διαγωνισμος</Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-0.5">
+                  {recentTenders.map((tender: any) => {
+                    const status = statusMap[tender.status] || statusMap.DRAFT;
+                    return (
                       <Link
+                        key={tender.id}
                         href={`/tenders/${tender.id}`}
-                        className={cn(
-                          'flex items-center justify-between rounded-lg p-4',
-                          'transition-colors duration-150',
-                          'hover:bg-secondary/50',
-                          'cursor-pointer group/row'
-                        )}
+                        className="flex items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-secondary/50 cursor-pointer"
                       >
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <p className="truncate text-sm font-medium text-foreground group-hover/row:text-primary transition-colors">
-                              {tender.title}
-                            </p>
-                            <Badge variant={status.variant} className="shrink-0">
-                              {status.label}
-                            </Badge>
-                          </div>
-                          <p className="text-caption">
-                            {tender.referenceNumber} &middot; Υποβολη:{' '}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {tender.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {tender.referenceNumber} &middot;{' '}
                             {formatDate(tender.submissionDeadline)}
                           </p>
                         </div>
-                        <div className="ml-4 shrink-0">
-                          <span
-                            className={cn(
-                              'text-caption font-medium tabular-nums',
-                              score >= 80
-                                ? 'text-emerald-500'
-                                : score >= 60
-                                  ? 'text-amber-500'
-                                  : 'text-red-500'
-                            )}
-                          >
-                            {score}%
-                          </span>
-                        </div>
+                        <Badge variant={status.variant} className="ml-3 shrink-0">
+                          {status.label}
+                        </Badge>
                       </Link>
-                    </BlurFade>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </BlurFade>
 
-        {/* Upcoming Deadlines - 1 col */}
-        <div className="rounded-xl surface-elevated">
-          <div className="flex items-center justify-between px-6 pt-6 pb-4">
-            <h2 className="text-title text-foreground">Προσεχεις Deadlines</h2>
-            <Link
-              href="/tenders"
-              className="text-caption text-primary hover:text-primary/80 transition-colors cursor-pointer"
-            >
-              Ολα &rarr;
-            </Link>
-          </div>
-          <div className="px-6 pb-6">
-            {isLoading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full rounded-lg" />
-                ))}
-              </div>
-            ) : upcomingDeadlines.length === 0 ? (
-              <PremiumEmptyState
-                imageSrc="/images/illustrations/empty-deadlines.png"
-                title="Τίποτα επείγον"
-                description="Δεν υπάρχουν προσεχείς deadlines."
-              />
-            ) : (
-              <div className="space-y-1">
-                {upcomingDeadlines.map((item: any, i: number) => (
-                  <BlurFade key={item.id} delay={0.3 + i * 0.05} inView>
+        {/* Upcoming Deadlines - 2 cols */}
+        <BlurFade delay={0.25} inView className="lg:col-span-2">
+          <div className="rounded-xl bg-card shadow-sm ring-1 ring-white/[0.04]">
+            <div className="flex items-center justify-between p-5 sm:p-6 pb-0 sm:pb-0">
+              <h2 className="text-base font-medium">Προσεχεις Deadlines</h2>
+            </div>
+            <div className="p-3 sm:p-4">
+              {isLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : upcomingDeadlines.length === 0 ? (
+                <div className="py-12 text-center">
+                  <div className="relative mx-auto mb-4 h-[120px] w-[150px]">
+                    <Image
+                      src="/images/illustrations/empty-deadlines.png"
+                      alt=""
+                      fill
+                      className="object-contain opacity-60"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Δεν υπαρχουν deadlines
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-0.5">
+                  {upcomingDeadlines.map((item: any) => (
                     <Link
+                      key={item.id}
                       href={`/tenders/${item.id}`}
-                      className={cn(
-                        'flex items-center justify-between rounded-lg p-4',
-                        'transition-colors duration-150',
-                        'hover:bg-secondary/50',
-                        'cursor-pointer'
-                      )}
+                      className="flex items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-secondary/50 cursor-pointer"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-foreground">
+                        <p className="truncate text-sm font-medium">
                           {item.title}
                         </p>
-                        <p className="text-caption">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                           {formatDate(item.deadline)}
                         </p>
                       </div>
                       <span
                         className={cn(
-                          'shrink-0 text-sm font-medium tabular-nums',
+                          'text-xs font-semibold tabular-nums shrink-0 ml-3',
                           item.daysLeft <= 7
-                            ? 'text-red-500'
+                            ? 'text-red-400'
                             : item.daysLeft <= 30
-                              ? 'text-amber-500'
+                              ? 'text-amber-400'
                               : 'text-muted-foreground'
                         )}
                       >
                         {item.daysLeft}d
                       </span>
                     </Link>
-                  </BlurFade>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </BlurFade>
       </div>
     </div>
   );
