@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { AIProvider, AICompletionOptions, AICompletionResult } from './types';
+import type { AIProvider, AICompletionOptions, AICompletionResult, AIStreamResult } from './types';
 
 /**
  * Gemini AI Provider — Uses Google's Gemini API.
@@ -99,6 +99,90 @@ export class GeminiProvider implements AIProvider {
         inputTokens,
         outputTokens,
       },
+    };
+  }
+
+  async completeStream(options: AICompletionOptions): Promise<AIStreamResult> {
+    const systemMessage = options.messages.find((m) => m.role === 'system');
+    const nonSystemMessages = options.messages.filter((m) => m.role !== 'system');
+
+    const generationConfig: Record<string, unknown> = {
+      maxOutputTokens: options.maxTokens || 8192,
+      temperature: options.temperature,
+    };
+
+    if (options.responseFormat === 'json') {
+      generationConfig.responseMimeType = 'application/json';
+    }
+
+    const generativeModel = this.client.getGenerativeModel({
+      model: this.model,
+      systemInstruction: systemMessage?.content || undefined,
+      generationConfig,
+    });
+
+    const history = nonSystemMessages.slice(0, -1).map((m) => ({
+      role: m.role === 'assistant' ? 'model' as const : 'user' as const,
+      parts: [{ text: m.content }],
+    }));
+
+    const lastMessage = nonSystemMessages[nonSystemMessages.length - 1];
+    if (!lastMessage) throw new Error('At least one user message is required');
+
+    const chat = generativeModel.startChat({ history });
+    const streamResult = await chat.sendMessageStream(lastMessage.content);
+
+    const modelName = this.model;
+    let fullText = '';
+    const encoder = new TextEncoder();
+    let resultResolve: (value: AICompletionResult) => void;
+    const resultPromise = new Promise<AICompletionResult>((resolve) => {
+      resultResolve = resolve;
+    });
+
+    const readable = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        try {
+          for await (const chunk of streamResult.stream) {
+            const text = chunk.text();
+            if (text) {
+              fullText += text;
+              controller.enqueue(encoder.encode(text));
+            }
+          }
+
+          const response = await streamResult.response;
+          const usage = response.usageMetadata;
+          const inputTokens = usage?.promptTokenCount || 0;
+          const outputTokens = usage?.candidatesTokenCount || 0;
+
+          resultResolve!({
+            content: fullText,
+            inputTokens,
+            outputTokens,
+            totalTokens: inputTokens + outputTokens,
+            model: modelName,
+            usage: { inputTokens, outputTokens },
+          });
+
+          controller.close();
+        } catch (err: any) {
+          controller.error(err);
+          resultResolve!({
+            content: fullText,
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+            model: modelName,
+            usage: { inputTokens: 0, outputTokens: 0 },
+          });
+        }
+      },
+    });
+
+    return {
+      stream: readable,
+      getResult: () => resultPromise,
     };
   }
 }
