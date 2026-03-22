@@ -27,9 +27,15 @@ export interface AICompletionResult {
   };
 }
 
+export interface AIStreamResult {
+  stream: ReadableStream<Uint8Array>;
+  getResult: () => Promise<AICompletionResult>;
+}
+
 export interface AIProvider {
   name: string;
   complete(options: AICompletionOptions): Promise<AICompletionResult>;
+  completeStream?(options: AICompletionOptions): Promise<AIStreamResult>;
 }
 
 // ─── Domain-specific types ──────────────────────────────────
