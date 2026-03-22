@@ -38,6 +38,9 @@ model Tenant {
 
   // Learning Memory
   memories         TenantMemory[]
+
+  // Smart Chat Memory
+  chatSessions     ChatSession[]
 }
 
 model User {
@@ -306,6 +309,9 @@ model Tender {
   // Learning Memory
   outcome          TenderOutcome?
 
+  // Smart Chat Memory
+  chatSessions     ChatSession[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -483,6 +489,21 @@ model ChatMessage {
   createdAt DateTime @default(now())
 
   @@index([tenderId, tenantId, createdAt])
+}
+
+model ChatSession {
+  id                 String    @id @default(cuid())
+  tenderId           String
+  tender             Tender    @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenantId           String
+  tenant             Tenant    @relation(fields: [tenantId], references: [id])
+  summary            String?   @db.Text
+  lastSummarizedAt   DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([tenderId, tenantId])
+  @@index([tenantId])
 }
 
 model TenderAlert {
