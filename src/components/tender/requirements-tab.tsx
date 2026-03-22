@@ -4,7 +4,8 @@ import { useState, useMemo } from 'react';
 import { cn, truncate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
+import { BlurFade } from '@/components/ui/blur-fade';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -150,8 +151,9 @@ export function RequirementsTab({ tenderId }: RequirementsTabProps) {
   return (
     <div className="space-y-4">
       {/* Filter Bar */}
-      <Card>
-        <CardContent className="p-4">
+      <BlurFade delay={0.05} inView>
+      <GlassCard>
+        <GlassCardContent className="p-4">
           <div className="flex flex-wrap items-center gap-3">
             <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
 
@@ -200,8 +202,9 @@ export function RequirementsTab({ tenderId }: RequirementsTabProps) {
               Μόνο υποχρεωτικά
             </label>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
+      </BlurFade>
 
       {/* Bulk Actions */}
       {selectedIds.size > 0 && (
@@ -230,7 +233,8 @@ export function RequirementsTab({ tenderId }: RequirementsTabProps) {
       )}
 
       {/* Table */}
-      <Card className="overflow-hidden">
+      <BlurFade delay={0.1} inView>
+      <GlassCard className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -329,7 +333,8 @@ export function RequirementsTab({ tenderId }: RequirementsTabProps) {
             </tbody>
           </table>
         </div>
-      </Card>
+      </GlassCard>
+      </BlurFade>
 
       {/* Detail Sheet */}
       <Sheet open={!!detailId} onOpenChange={(open) => !open && setDetailId(null)}>

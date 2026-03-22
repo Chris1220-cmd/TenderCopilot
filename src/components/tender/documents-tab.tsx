@@ -4,7 +4,8 @@ import { useState, useCallback, useRef } from 'react';
 import { cn, fileSize, formatDate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
+import { BlurFade } from '@/components/ui/blur-fade';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
@@ -225,7 +226,8 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
       {/* ── Attached Documents ────────────────────────────── */}
       <TabsContent value="attached" className="space-y-4">
         {/* Upload Zone */}
-        <Card
+        <BlurFade delay={0.05} inView>
+        <GlassCard
           className={cn(
             'border-2 border-dashed transition-all duration-200 cursor-pointer',
             isDragActive
@@ -237,7 +239,7 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >
-          <CardContent className="flex flex-col items-center justify-center py-10">
+          <GlassCardContent className="flex flex-col items-center justify-center py-10">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 mb-3">
               <CloudUpload className="h-6 w-6 text-primary" />
             </div>
@@ -252,7 +254,7 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                 {uploadProgress}
               </p>
             )}
-          </CardContent>
+          </GlassCardContent>
           <input
             ref={fileInputRef}
             type="file"
@@ -265,44 +267,46 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
               e.target.value = '';
             }}
           />
-        </Card>
+        </GlassCard>
+        </BlurFade>
 
         {/* Files List */}
         {attachedQuery.isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="flex items-center gap-4 p-4">
+              <GlassCard key={i}>
+                <GlassCardContent className="flex items-center gap-4 p-4">
                   <Skeleton className="h-10 w-10 rounded-lg" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-48" />
                     <Skeleton className="h-3 w-32" />
                   </div>
                   <Skeleton className="h-8 w-20" />
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
             ))}
           </div>
         ) : attached.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
+          <GlassCard>
+            <GlassCardContent className="flex flex-col items-center justify-center py-12">
               <FolderOpen className="h-8 w-8 text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
                 Δεν υπάρχουν έγγραφα ακόμα.
               </p>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         ) : (
+          <BlurFade delay={0.1} inView>
           <div className="space-y-2">
             {attached.map((doc) => (
-              <Card
+              <GlassCard
                 key={doc.id}
                 className={cn(
                   'group transition-all duration-200',
                   'hover:shadow-md hover:border-primary/15'
                 )}
               >
-                <CardContent className="flex items-center gap-4 p-4">
+                <GlassCardContent className="flex items-center gap-4 p-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
                     <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   </div>
@@ -357,10 +361,11 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
             ))}
           </div>
+          </BlurFade>
         )}
       </TabsContent>
 
@@ -410,21 +415,21 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
         {generatedQuery.isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 2 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="flex items-center gap-4 p-4">
+              <GlassCard key={i}>
+                <GlassCardContent className="flex items-center gap-4 p-4">
                   <Skeleton className="h-10 w-10 rounded-lg" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-48" />
                     <Skeleton className="h-3 w-32" />
                   </div>
                   <Skeleton className="h-8 w-20" />
-                </CardContent>
-              </Card>
+                </GlassCardContent>
+              </GlassCard>
             ))}
           </div>
         ) : generated.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
+          <GlassCard>
+            <GlassCardContent className="flex flex-col items-center justify-center py-12">
               <Sparkles className="h-8 w-8 text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
                 Δεν υπάρχουν έγγραφα ακόμα.
@@ -432,23 +437,24 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
               <p className="text-xs text-muted-foreground mt-1">
                 Χρησιμοποιήστε το κουμπί πάνω για AI-powered δημιουργία εγγράφων.
               </p>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         ) : (
+          <BlurFade delay={0.05} inView>
           <div className="space-y-2">
             {generated.map((doc) => {
               const docType = generatedDocTypes.find((d) => d.type === doc.type);
               const DocIcon = docType?.icon ?? FileText;
 
               return (
-                <Card
+                <GlassCard
                   key={doc.id}
                   className={cn(
                     'group transition-all duration-200',
                     'hover:shadow-md hover:border-primary/15'
                   )}
                 >
-                  <CardContent className="flex items-center gap-4 p-4">
+                  <GlassCardContent className="flex items-center gap-4 p-4">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-500/10">
                       <DocIcon className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                     </div>
@@ -515,11 +521,12 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
               );
             })}
           </div>
+          </BlurFade>
         )}
       </TabsContent>
 
