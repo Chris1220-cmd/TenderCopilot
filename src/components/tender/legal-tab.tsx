@@ -19,6 +19,7 @@ import {
   GlassCardContent,
   GlassCardAction,
 } from '@/components/ui/glass-card';
+import { BlurFade } from '@/components/ui/blur-fade';
 import {
   Sheet,
   SheetContent,
@@ -357,6 +358,7 @@ export function LegalTab({ tenderId, sourceUrl, platform }: LegalTabProps) {
       </div>
 
       {/* Legal Risk Summary */}
+      <BlurFade delay={0.05} inView>
       <GlassCard>
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-700 via-blue-500 to-amber-400" />
         <GlassCardHeader className="pt-2">
@@ -421,8 +423,10 @@ export function LegalTab({ tenderId, sourceUrl, platform }: LegalTabProps) {
           )}
         </GlassCardContent>
       </GlassCard>
+      </BlurFade>
 
       {/* Clauses Table */}
+      <BlurFade delay={0.1} inView>
       <GlassCard>
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2">
@@ -513,6 +517,7 @@ export function LegalTab({ tenderId, sourceUrl, platform }: LegalTabProps) {
           )}
         </GlassCardContent>
       </GlassCard>
+      </BlurFade>
 
       {/* Clarifications Section */}
       <GlassCard>

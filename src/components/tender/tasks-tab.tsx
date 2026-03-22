@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { cn, formatDate, getInitials } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
+import { BlurFade } from '@/components/ui/blur-fade';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -217,31 +218,32 @@ export function TasksTab({ tenderId }: TasksTabProps) {
 
       {/* Kanban Columns */}
       {!tasksQuery.isLoading && tasks.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
+        <GlassCard>
+          <GlassCardContent className="flex flex-col items-center justify-center py-16">
             <Circle className="h-8 w-8 text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">
               Δεν υπάρχουν εργασίες ακόμα.
             </p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       ) : tasksQuery.isLoading ? (
         <div className="grid gap-4 lg:grid-cols-3">
           {columnConfig.map((col) => (
             <div key={col.status} className="space-y-3">
               <Skeleton className="h-6 w-32" />
               {Array.from({ length: 2 }).map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-4">
+                <GlassCard key={i}>
+                  <GlassCardContent className="p-4">
                     <Skeleton className="h-4 w-full mb-3" />
                     <Skeleton className="h-3 w-24" />
-                  </CardContent>
-                </Card>
+                  </GlassCardContent>
+                </GlassCard>
               ))}
             </div>
           ))}
         </div>
       ) : (
+        <BlurFade delay={0.05} inView>
         <div className="grid gap-4 lg:grid-cols-3">
           {columnConfig.map((col) => {
             const colTasks = tasks.filter((t) => t.status === col.status);
@@ -268,16 +270,15 @@ export function TasksTab({ tenderId }: TasksTabProps) {
                   </div>
                 ) : (
                   colTasks.map((task) => (
-                    <Card
+                    <GlassCard
                       key={task.id}
                       className={cn(
                         'group transition-all duration-200 cursor-pointer',
-                        'hover:shadow-md hover:border-primary/15 hover:-translate-y-0.5',
-                        'bg-gradient-to-br from-background to-muted/20'
+                        'hover:shadow-md hover:border-primary/15 hover:-translate-y-0.5'
                       )}
                       onClick={() => openEdit(task)}
                     >
-                      <CardContent className="p-4 space-y-3">
+                      <GlassCardContent className="p-4 space-y-3">
                         {/* Priority + Title */}
                         <div className="flex items-start gap-2">
                           <StatusBadge type="priority" value={task.priority} className="shrink-0 mt-0.5" />
@@ -349,14 +350,15 @@ export function TasksTab({ tenderId }: TasksTabProps) {
                               );
                             })}
                         </div>
-                      </CardContent>
-                    </Card>
+                      </GlassCardContent>
+                    </GlassCard>
                   ))
                 )}
               </div>
             );
           })}
         </div>
+        </BlurFade>
       )}
 
       {/* Edit Task Dialog */}

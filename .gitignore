@@ -45,3 +45,6 @@ competencyhub-e5d2f-*.json
 
 # Git worktrees
 .worktrees/
+.playwright-mcp/
+cookies.txt
+*.png

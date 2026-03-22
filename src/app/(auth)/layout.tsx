@@ -1,40 +1,64 @@
+'use client';
+
 import './auth.css';
+import { AnimatedMesh } from '@/components/ui/animated-mesh';
+import { useTranslation } from '@/lib/i18n';
 
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
+
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
-      {/* Radial gradient glow center */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 50% at 50% 40%, rgba(30,64,175,0.25) 0%, transparent 70%)',
-        }}
-      />
+    <div className="relative flex min-h-screen overflow-hidden bg-background">
+      <AnimatedMesh />
 
-      {/* Animated gradient orbs */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="auth-orb auth-orb-1" />
-        <div className="auth-orb auth-orb-2" />
-        <div className="auth-orb auth-orb-3" />
-      </div>
-
-      {/* Subtle grid pattern */}
+      {/* Grid pattern */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.015]"
+        className="pointer-events-none absolute inset-0 opacity-[0.02]"
         style={{
           backgroundImage:
             'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '64px 64px',
+          backgroundSize: '32px 32px',
         }}
       />
 
-      <div className="relative z-10 w-full max-w-[440px] px-4 py-8">
-        {children}
+      {/* Two-column grid: product showcase + auth form */}
+      <div className="relative z-10 grid w-full grid-cols-1 lg:grid-cols-[3fr_2fr]">
+        {/* Left: Product showcase (hidden on mobile) */}
+        <div className="hidden lg:flex flex-col items-center justify-center p-12">
+          <div className="max-w-lg space-y-6">
+            <h2 className="text-4xl font-bold tracking-tight gradient-text-cyan">
+              {t('auth.showcaseTitle')}
+            </h2>
+            <p className="text-lg text-muted-foreground leading-relaxed">
+              {t('auth.showcaseSubtitle')}
+            </p>
+            <div className="flex gap-8 pt-4">
+              <div>
+                <div className="text-2xl font-bold text-foreground">500+</div>
+                <div className="text-sm text-muted-foreground">{t('auth.statDocs')}</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-foreground">90%</div>
+                <div className="text-sm text-muted-foreground">{t('auth.statTime')}</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-foreground">68%</div>
+                <div className="text-sm text-muted-foreground">{t('auth.statWinRate')}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Auth form */}
+        <div className="flex items-center justify-center p-4 py-8 lg:p-12">
+          <div className="w-full max-w-[440px]">
+            {children}
+          </div>
+        </div>
       </div>
     </div>
   );

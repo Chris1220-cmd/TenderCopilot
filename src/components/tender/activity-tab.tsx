@@ -2,7 +2,8 @@
 
 import { cn, formatDate, getInitials } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
-import { Card, CardContent } from '@/components/ui/card';
+import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
+import { BlurFade } from '@/components/ui/blur-fade';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -119,8 +120,8 @@ export function ActivityTab({ tenderId }: ActivityTabProps) {
 
   if (activities.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-16">
+      <GlassCard>
+        <GlassCardContent className="flex flex-col items-center justify-center py-16">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
             <Activity className="h-7 w-7 text-muted-foreground" />
           </div>
@@ -128,12 +129,13 @@ export function ActivityTab({ tenderId }: ActivityTabProps) {
           <p className="mt-1 text-sm text-muted-foreground">
             Δεν υπάρχει δραστηριότητα ακόμα.
           </p>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     );
   }
 
   return (
+    <BlurFade delay={0.05} inView>
     <div className="relative">
       {/* Timeline line */}
       <div className="absolute left-5 top-0 bottom-0 w-px bg-border" />
@@ -196,5 +198,6 @@ export function ActivityTab({ tenderId }: ActivityTabProps) {
         })}
       </div>
     </div>
+    </BlurFade>
   );
 }

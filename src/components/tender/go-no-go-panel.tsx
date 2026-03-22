@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NoDocumentsAlert } from './no-documents-alert';
 import { LanguageModal, type AnalysisLanguage } from './language-modal';
+import { BlurFade } from '@/components/ui/blur-fade';
 import {
   GlassCard,
   GlassCardHeader,
@@ -252,6 +253,7 @@ export function GoNoGoPanel({ tenderId, sourceUrl, platform, className }: GoNoGo
   const config = displayResult ? decisionConfig[displayResult.decision] : null;
 
   return (
+    <BlurFade delay={0.15} inView>
     <GlassCard className={cn('overflow-hidden', className)}>
       {/* Header Gradient Accent */}
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-400" />
@@ -339,7 +341,7 @@ export function GoNoGoPanel({ tenderId, sourceUrl, platform, className }: GoNoGo
               </p>
               <div className="space-y-2.5">
                 {(displayResult.factors ?? []).map((factor, i) => (
-                  <div key={i} className="group">
+                  <div key={i} className="group hover:scale-[1.02] transition-transform duration-200">
                     <div className="flex items-center gap-3">
                       <span className="text-xs font-medium text-foreground w-32 shrink-0 truncate">
                         {factor.name}
@@ -495,6 +497,7 @@ export function GoNoGoPanel({ tenderId, sourceUrl, platform, className }: GoNoGo
         onClose={() => setLangModalOpen(false)}
       />
     </GlassCard>
+    </BlurFade>
   );
 }
 

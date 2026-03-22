@@ -7,8 +7,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
+import { GlassInput } from '@/components/ui/glass-input';
+import { GlowButton } from '@/components/ui/glow-button';
+import { LanguageToggle } from '@/components/ui/language-toggle';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Mail,
@@ -21,13 +24,14 @@ import {
 } from 'lucide-react';
 
 const loginSchema = z.object({
-  email: z.string().email('Μη έγκυρη διεύθυνση email'),
-  password: z.string().min(1, 'Ο κωδικός πρόσβασης είναι υποχρεωτικός'),
+  email: z.string().email('auth.invalidEmail'),
+  password: z.string().min(1, 'auth.passwordRequired'),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
@@ -59,12 +63,12 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError('Λάθος email ή κωδικός πρόσβασης');
+        setError(t('auth.loginError'));
       } else {
         window.location.href = '/tenders';
       }
     } catch {
-      setError('Κάτι πήγε στραβά. Δοκιμάστε ξανά.');
+      setError(t('auth.genericError'));
     } finally {
       setIsLoading(false);
     }
@@ -75,14 +79,14 @@ export default function LoginPage() {
     try {
       await signIn('google', { callbackUrl: '/tenders' });
     } catch {
-      setError('Αποτυχία σύνδεσης με Google');
+      setError(t('auth.googleError'));
       setIsGoogleLoading(false);
     }
   }
 
   async function handleMagicLink() {
     if (!emailValue || !z.string().email().safeParse(emailValue).success) {
-      setError('Εισάγετε ένα έγκυρο email πρώτα');
+      setError(t('auth.magicLinkEmailError'));
       return;
     }
 
@@ -97,7 +101,7 @@ export default function LoginPage() {
       });
       setMagicLinkSent(true);
     } catch {
-      setError('Αποτυχία αποστολής magic link');
+      setError(t('auth.magicLinkError'));
     } finally {
       setIsMagicLinkLoading(false);
     }
@@ -106,14 +110,7 @@ export default function LoginPage() {
   return (
     <div className="relative">
       {/* Glass card */}
-      <div
-        className={cn(
-          'relative overflow-hidden rounded-2xl',
-          'border border-white/10',
-          'bg-white/[0.07] backdrop-blur-xl',
-          'shadow-[0_8px_60px_-12px_rgba(30,64,175,0.3)]'
-        )}
-      >
+      <div className="glass-card relative overflow-hidden rounded-2xl">
         {/* Top border glow line */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent" />
 
@@ -121,15 +118,29 @@ export default function LoginPage() {
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.05] to-transparent" />
 
         <div className="relative space-y-6 p-8 sm:p-10">
+          {/* Language Toggle */}
+          <div className="flex justify-end">
+            <LanguageToggle />
+          </div>
+
           {/* Logo & Title */}
           <div className="flex flex-col items-center space-y-4">
-            <img src="/images/logo-icon.png" alt="TenderCopilot" className="h-14 w-14 rounded-xl" />
+            <div
+              className={cn(
+                'flex h-14 w-14 items-center justify-center rounded-full',
+                'bg-gradient-to-br from-blue-600 to-cyan-500',
+                'shadow-lg shadow-blue-500/30',
+                'ring-1 ring-white/10'
+              )}
+            >
+              <Sparkles className="h-7 w-7 text-white" />
+            </div>
             <div className="space-y-1.5 text-center">
               <h1 className="bg-gradient-to-b from-white to-white/80 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
-                Καλώς ήρθατε
+                {t('auth.loginTitle')}
               </h1>
-              <p className="text-sm text-slate-400">
-                Συνδεθείτε στο TenderCopilot GR
+              <p className="text-sm text-muted-foreground">
+                {t('auth.loginSubtitle')}
               </p>
             </div>
           </div>
@@ -144,7 +155,7 @@ export default function LoginPage() {
           {/* Magic link success */}
           {magicLinkSent && (
             <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-              Ελέγξτε το email σας για τον σύνδεσμο σύνδεσης.
+              {t('auth.magicLinkSuccess')}
             </div>
           )}
 
@@ -152,56 +163,52 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-slate-300">
-                Email
+              <Label htmlFor="email" className="text-sm font-medium text-foreground/80">
+                {t('auth.email')}
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                <Input
+                <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                <GlassInput
                   id="email"
                   type="email"
                   placeholder="you@company.gr"
                   autoComplete="email"
                   className={cn(
-                    'h-11 rounded-xl border-white/[0.08] bg-white/[0.05] pl-10 text-white placeholder:text-slate-500',
-                    'focus-visible:border-[#3B82F6]/50 focus-visible:ring-2 focus-visible:ring-[#3B82F6]/20',
-                    'transition-all duration-200',
-                    errors.email && 'border-red-500/50 focus-visible:ring-red-500/20'
+                    'pl-10',
+                    errors.email && 'border-red-500/50 focus:ring-red-500/20'
                   )}
                   {...register('email')}
                 />
               </div>
               {errors.email && (
-                <p className="text-xs text-red-400">{errors.email.message}</p>
+                <p className="text-xs text-red-400">{t(errors.email.message || 'auth.invalidEmail')}</p>
               )}
             </div>
 
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-slate-300">
-                Κωδικός πρόσβασης
+              <Label htmlFor="password" className="text-sm font-medium text-foreground/80">
+                {t('auth.password')}
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                <Input
+                <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                <GlassInput
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="********"
                   autoComplete="current-password"
                   className={cn(
-                    'h-11 rounded-xl border-white/[0.08] bg-white/[0.05] pl-10 pr-10 text-white placeholder:text-slate-500',
-                    'focus-visible:border-[#3B82F6]/50 focus-visible:ring-2 focus-visible:ring-[#3B82F6]/20',
-                    'transition-all duration-200',
-                    errors.password && 'border-red-500/50 focus-visible:ring-red-500/20'
+                    'pl-10 pr-10',
+                    errors.password && 'border-red-500/50 focus:ring-red-500/20'
                   )}
                   {...register('password')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-slate-500 transition-colors duration-200 hover:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/40 focus-visible:ring-offset-0 rounded-sm"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground/60 transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 rounded-sm z-10"
                   tabIndex={0}
-                  aria-label={showPassword ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'}
+                  aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -212,34 +219,36 @@ export default function LoginPage() {
               </div>
               {errors.password && (
                 <p className="text-xs text-red-400">
-                  {errors.password.message}
+                  {t(errors.password.message || 'auth.passwordRequired')}
                 </p>
               )}
             </div>
 
+            {/* Forgot password link */}
+            <div className="flex justify-end">
+              <Link
+                href="/forgot-password"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:underline"
+              >
+                {t('auth.forgotPassword')}
+              </Link>
+            </div>
+
             {/* Submit */}
-            <Button
+            <GlowButton
               type="submit"
               disabled={isLoading}
-              className={cn(
-                'h-11 w-full cursor-pointer rounded-xl',
-                'bg-white text-[#1E40AF] font-semibold',
-                'hover:bg-white/90',
-                'shadow-lg shadow-white/10',
-                'border-0',
-                'transition-all duration-200 active:scale-[0.98]',
-                'focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
-              )}
+              className="w-full"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  Σύνδεση
+                  {t('auth.submit')}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
-            </Button>
+            </GlowButton>
           </form>
 
           {/* Divider */}
@@ -248,8 +257,8 @@ export default function LoginPage() {
               <div className="w-full border-t border-white/[0.08]" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-slate-900/60 px-4 text-slate-500 backdrop-blur-sm">
-                ή
+              <span className="bg-background/60 px-4 text-muted-foreground backdrop-blur-sm">
+                {t('auth.or')}
               </span>
             </div>
           </div>
@@ -263,9 +272,9 @@ export default function LoginPage() {
             className={cn(
               'h-11 w-full cursor-pointer rounded-xl',
               'border-white/[0.08] bg-white/[0.04]',
-              'text-slate-300 hover:bg-white/[0.08] hover:text-white',
+              'text-muted-foreground hover:bg-white/[0.08] hover:text-foreground',
               'transition-all duration-200',
-              'focus-visible:ring-2 focus-visible:ring-[#3B82F6]/30'
+              'focus-visible:ring-2 focus-visible:ring-ring'
             )}
           >
             {isGoogleLoading ? (
@@ -290,7 +299,7 @@ export default function LoginPage() {
                     fill="#EA4335"
                   />
                 </svg>
-                Συνέχεια με Google
+                {t('auth.signInGoogle')}
               </>
             )}
           </Button>
@@ -303,9 +312,9 @@ export default function LoginPage() {
             disabled={isMagicLinkLoading}
             className={cn(
               'h-10 w-full cursor-pointer rounded-xl',
-              'text-slate-400 hover:text-white hover:bg-white/[0.04]',
+              'text-muted-foreground hover:text-foreground hover:bg-white/[0.04]',
               'transition-all duration-200',
-              'focus-visible:ring-2 focus-visible:ring-[#3B82F6]/30'
+              'focus-visible:ring-2 focus-visible:ring-ring'
             )}
           >
             {isMagicLinkLoading ? (
@@ -313,23 +322,23 @@ export default function LoginPage() {
             ) : (
               <>
                 <Wand2 className="mr-2 h-4 w-4" />
-                Αποστολή Magic Link
+                {t('auth.magicLink')}
               </>
             )}
           </Button>
 
           {/* Register link */}
-          <p className="text-center text-sm text-slate-400">
-            Δεν έχετε λογαριασμό;{' '}
+          <p className="text-center text-sm text-muted-foreground">
+            {t('auth.noAccount')}{' '}
             <Link
               href="/register"
               className={cn(
-                'font-medium text-[#3B82F6] cursor-pointer',
-                'transition-colors duration-200 hover:text-blue-400',
+                'font-medium text-primary cursor-pointer',
+                'transition-colors duration-200 hover:text-primary/80',
                 'focus-visible:outline-none focus-visible:underline'
               )}
             >
-              Εγγραφή
+              {t('common.register')}
             </Link>
           </p>
         </div>

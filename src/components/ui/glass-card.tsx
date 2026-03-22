@@ -7,9 +7,8 @@ function GlassCard({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="glass-card"
       className={cn(
-        'relative flex flex-col gap-6 rounded-2xl border py-6',
-        'bg-white/60 dark:bg-white/[0.06] border-white/30 dark:border-white/10',
-        'backdrop-blur-xl shadow-lg',
+        'relative flex flex-col gap-6 rounded-2xl py-6',
+        'glass-card glass-hover',
         'transition-all duration-300 ease-out',
         'hover:shadow-xl hover:border-white/40 dark:hover:border-white/20',
         className

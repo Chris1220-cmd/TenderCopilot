@@ -2,6 +2,8 @@
 
 import { AlertTriangle, FileText, Scale, Banknote } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent } from '@/components/ui/glass-card';
+import { BlurFade } from '@/components/ui/blur-fade';
 
 interface MissingInfoPanelProps {
   tenderId: string;
@@ -66,33 +68,39 @@ export function MissingInfoPanel({ tenderId }: MissingInfoPanelProps) {
   const totalMissing = sections.reduce((sum, s) => sum + s.items.length, 0);
 
   return (
-    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <AlertTriangle className="h-5 w-5 text-amber-500" />
-        <h3 className="font-semibold text-amber-700 dark:text-amber-400">
-          Ελλιπείς Πληροφορίες ({totalMissing})
-        </h3>
-      </div>
+    <BlurFade delay={0.1} inView>
+      <GlassCard className="border-amber-500/20 bg-amber-500/5">
+        <GlassCardHeader>
+          <GlassCardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <span className="font-semibold text-amber-700 dark:text-amber-400">
+              Ελλιπείς Πληροφορίες ({totalMissing})
+            </span>
+          </GlassCardTitle>
+        </GlassCardHeader>
 
-      <div className="space-y-3">
-        {sections.map((section) => (
-          <div key={section.label}>
-            <div className="flex items-center gap-1.5 mb-1">
-              {section.icon}
-              <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                {section.label}
-              </span>
-            </div>
-            <ul className="ml-6 space-y-0.5">
-              {section.items.map((item, i) => (
-                <li key={i} className="text-sm text-muted-foreground">
-                  {item}
-                </li>
-              ))}
-            </ul>
+        <GlassCardContent>
+          <div className="space-y-3">
+            {sections.map((section) => (
+              <div key={section.label}>
+                <div className="flex items-center gap-1.5 mb-1">
+                  {section.icon}
+                  <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                    {section.label}
+                  </span>
+                </div>
+                <ul className="ml-6 space-y-0.5">
+                  {section.items.map((item, i) => (
+                    <li key={i} className="text-sm text-muted-foreground">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </div>
+        </GlassCardContent>
+      </GlassCard>
+    </BlurFade>
   );
 }

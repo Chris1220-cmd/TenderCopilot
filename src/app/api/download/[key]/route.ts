@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getFileUrl } from '@/lib/s3';
+
+export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/download/[...key]
@@ -17,6 +18,7 @@ export async function GET(
 
   try {
     // The key comes URL-encoded from the path
+    const { getFileUrl } = await import('@/lib/s3');
     const key = decodeURIComponent(params.key);
     const url = await getFileUrl(key);
     return NextResponse.json({ url });

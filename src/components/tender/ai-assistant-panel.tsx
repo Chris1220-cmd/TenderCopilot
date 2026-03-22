@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { BlurFade } from '@/components/ui/blur-fade';
+import { motion } from 'motion/react';
+import Image from 'next/image';
 import {
   GlassCard,
   GlassCardHeader,
@@ -159,12 +163,52 @@ const priorityConfig = {
   LOW: { label: 'Χαμηλή', bg: 'bg-emerald-500/15', text: 'text-emerald-700 dark:text-emerald-400', border: 'border-emerald-500/20', dot: 'bg-emerald-500' },
 };
 
-const quickQuestions = [
-  { text: 'Τι λείπει;', icon: HelpCircle },
-  { text: 'Είμαστε έτοιμοι;', icon: CheckSquare },
-  { text: 'Ποιες εργασίες καθυστερούν;', icon: Timer },
-  { text: 'Πόσο compliance έχουμε;', icon: ShieldCheck },
-];
+// ─── Stream Chat Helper ─────────────────────────────────────
+async function streamChat(
+  tenderId: string,
+  question: string,
+  onToken: (text: string) => void,
+  onDone: (metadata: any) => void,
+  onError: (error: string) => void,
+) {
+  const res = await fetch('/api/chat/stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tenderId, question }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    onError(text || `Error ${res.status}`);
+    return;
+  }
+
+  if (!res.body) { onError('Streaming not supported'); return; }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      try {
+        const event = JSON.parse(line.slice(6));
+        if (event.type === 'token') onToken(event.text);
+        else if (event.type === 'done') onDone(event.metadata);
+        else if (event.type === 'error') onError(event.message);
+      } catch { /* skip malformed */ }
+    }
+  }
+}
+
+// quickQuestions moved inside component for i18n
 
 // ─── Floating Button ──────────────────────────────────────────
 interface AIAssistantButtonProps {
@@ -189,7 +233,7 @@ export function AIAssistantButton({ onClick }: AIAssistantButtonProps) {
         'cursor-pointer',
         'group'
       )}
-      aria-label="AI Βοηθός"
+      aria-label="AI Assistant"
     >
       <Sparkles className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />
 
@@ -212,9 +256,17 @@ interface AIAssistantPanelProps {
 }
 
 export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPanelProps) {
+  const t = useTranslations('chat');
+  const quickQuestions = [
+    { text: t('quick_q_missing'), icon: HelpCircle },
+    { text: t('quick_q_ready'), icon: CheckSquare },
+    { text: t('quick_q_delayed'), icon: Timer },
+    { text: t('quick_q_compliance'), icon: ShieldCheck },
+  ];
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
   const [actions, setActions] = useState<SuggestedAction[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [activeTab, setActiveTab] = useState<'chat' | 'actions' | 'reminders'>('chat');
@@ -261,17 +313,17 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
       // Refetch history to get the persisted messages
       historyQuery.refetch();
       setLocalMessages([]);
-      setIsTyping(false);
+      setIsStreaming(false);
     },
     onError: (err: any) => {
       const errorMsg: ChatMessage = {
         id: `msg-${Date.now()}`,
         role: 'assistant',
-        content: err?.message ?? 'Σφάλμα κατά την επεξεργασία. Δοκιμάστε ξανά.',
+        content: err?.message ?? t('error_generic'),
         timestamp: new Date(),
       };
       setLocalMessages((prev) => [...prev, errorMsg]);
-      setIsTyping(false);
+      setIsStreaming(false);
     },
   });
 
@@ -311,9 +363,34 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
     };
     setLocalMessages((prev) => [...prev, userMsg]);
     setInputValue('');
-    setIsTyping(true);
+    setIsStreaming(true);
+    setStreamingText('');
 
-    askMutation.mutate({ tenderId, question });
+    streamChat(
+      tenderId,
+      question,
+      // onToken
+      (token) => setStreamingText((prev) => prev + token),
+      // onDone
+      (metadata) => {
+        setIsStreaming(false);
+        setStreamingText('');
+        setLocalMessages([]);
+        historyQuery.refetch();
+      },
+      // onError
+      (error) => {
+        setIsStreaming(false);
+        setStreamingText('');
+        const errorMsg: ChatMessage = {
+          id: `msg-${Date.now()}-error`,
+          role: 'assistant',
+          content: error || t('error_generic'),
+          timestamp: new Date(),
+        };
+        setLocalMessages((prev) => [...prev, errorMsg]);
+      },
+    );
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -342,37 +419,47 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
               </div>
               <div>
                 <span className="bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-cyan-300">
-                  AI Βοηθός
+                  {t('title')}
                 </span>
                 <p className="text-[10px] text-muted-foreground font-normal">
-                  Tender Copilot Assistant
+                  {t('subtitle')}
                 </p>
               </div>
             </SheetTitle>
             <SheetDescription className="sr-only">
-              AI Βοηθός για τον διαγωνισμό
+              {t('title')}
             </SheetDescription>
           </SheetHeader>
 
           {/* Tab Bar */}
           <div className="flex gap-1 mt-3 bg-muted/30 rounded-lg p-0.5">
             {[
-              { key: 'chat' as const, label: 'Συνομιλία', icon: MessageCircle },
-              { key: 'actions' as const, label: 'Ενέργειες', icon: Lightbulb },
-              { key: 'reminders' as const, label: 'Υπενθυμίσεις', icon: Bell },
+              { key: 'chat' as const, label: t('tab_chat'), icon: MessageCircle },
+              { key: 'actions' as const, label: t('tab_actions'), icon: Lightbulb },
+              { key: 'reminders' as const, label: t('tab_reminders'), icon: Bell },
             ].map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  'flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-all duration-200 cursor-pointer',
+                  'relative flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-all duration-200 cursor-pointer',
                   activeTab === tab.key
-                    ? 'bg-background shadow-sm text-foreground'
+                    ? 'text-foreground'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <tab.icon className="h-3.5 w-3.5" />
-                {tab.label}
+                {activeTab === tab.key && (
+                  <motion.div
+                    layoutId="ai-chat-tab-indicator"
+                    className="absolute inset-0 rounded-md bg-background shadow-sm"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    style={{ zIndex: 0 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center justify-center gap-1.5">
+                  <tab.icon className="h-3.5 w-3.5" />
+                  {tab.label}
+                </span>
               </button>
             ))}
           </div>
@@ -388,22 +475,30 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                   {/* Welcome message */}
                   {messages.length === 0 && (
                     <div className="text-center py-6">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 mx-auto mb-3">
-                        <Sparkles className="h-7 w-7 text-blue-500/50" />
+                      <div className="relative h-[120px] w-[120px] mx-auto mb-3">
+                        <Image
+                          src="/images/illustrations/ai-assistant-welcome.png"
+                          alt=""
+                          fill
+                          className="object-contain opacity-70 dark:opacity-50"
+                          aria-hidden="true"
+                        />
                       </div>
                       <p className="text-sm font-medium text-muted-foreground mb-1">
-                        Ρωτήστε οτιδήποτε για τον διαγωνισμό
+                        {t('welcome')}
                       </p>
                       <p className="text-xs text-muted-foreground/60">
-                        Χρησιμοποιήστε τα γρήγορα ερωτήματα ή γράψτε δικά σας
+                        {t('welcome_sub')}
                       </p>
                     </div>
                   )}
 
                   {/* Messages */}
-                  {messages.map((msg) => (
+                  {(() => {
+                    const recentIds = new Set(messages.slice(-3).map(m => m.id));
+                    return messages.map((msg) => {
+                      const messageContent = (
                     <div
-                      key={msg.id}
                       className={cn(
                         'flex gap-2.5',
                         msg.role === 'user' ? 'justify-end' : 'justify-start'
@@ -418,8 +513,8 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                         className={cn(
                           'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed',
                           msg.role === 'user'
-                            ? 'bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-br-md'
-                            : 'bg-muted/50 border border-border/50 text-foreground rounded-bl-md'
+                            ? 'bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-br-md shadow-lg shadow-blue-500/10'
+                            : 'bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border border-white/20 dark:border-white/10 text-foreground rounded-bl-md'
                         )}
                       >
                         <div className="whitespace-pre-wrap">
@@ -437,9 +532,9 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                             msg.metadata.confidence === 'inferred' && "bg-amber-500/20 text-amber-600 dark:text-amber-300",
                             msg.metadata.confidence === 'general' && "bg-blue-500/20 text-blue-600 dark:text-blue-300",
                           )}>
-                            {msg.metadata.confidence === 'verified' && <><CheckCircle className="w-3 h-3" /> Verified</>}
-                            {msg.metadata.confidence === 'inferred' && <><AlertTriangle className="w-3 h-3" /> Inferred</>}
-                            {msg.metadata.confidence === 'general' && <><BookOpen className="w-3 h-3" /> General</>}
+                            {msg.metadata.confidence === 'verified' && <><CheckCircle className="w-3 h-3" /> {t('confidence_verified')}</>}
+                            {msg.metadata.confidence === 'inferred' && <><AlertTriangle className="w-3 h-3" /> {t('confidence_inferred')}</>}
+                            {msg.metadata.confidence === 'general' && <><BookOpen className="w-3 h-3" /> {t('confidence_general')}</>}
                           </span>
                         )}
 
@@ -447,7 +542,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                         {msg.role === 'assistant' && msg.metadata?.sources && msg.metadata.sources.length > 0 && (
                           <details className="mt-1.5">
                             <summary className="text-[10px] text-muted-foreground/60 cursor-pointer hover:text-muted-foreground transition-colors">
-                              Πηγές ({msg.metadata.sources.length})
+                              {t('sources_label')} ({msg.metadata.sources.length})
                             </summary>
                             <div className="mt-1 space-y-1">
                               {msg.metadata.sources.map((source: any, i: number) => (
@@ -525,20 +620,42 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                         </div>
                       )}
                     </div>
-                  ))}
+                      );
+                      return recentIds.has(msg.id)
+                        ? <BlurFade key={msg.id} delay={0.03}>{messageContent}</BlurFade>
+                        : <div key={msg.id}>{messageContent}</div>;
+                    });
+                  })()}
+
+                  {/* Streaming message */}
+                  {isStreaming && streamingText && (
+                    <div className="flex gap-2.5 justify-start">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600/20 to-cyan-500/20 mt-0.5">
+                        <Bot className="h-4 w-4 text-blue-500" />
+                      </div>
+                      <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border border-white/20 dark:border-white/10 text-foreground px-3.5 py-2.5 text-xs leading-relaxed">
+                        <div className="whitespace-pre-wrap">
+                          {renderMarkdown(streamingText)}
+                          <span className="inline-block w-1.5 h-4 bg-blue-500/70 animate-pulse ml-0.5 rounded-sm align-middle" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Typing indicator */}
-                  {isTyping && (
+                  {isStreaming && !streamingText && (
                     <div className="flex gap-2.5">
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600/20 to-cyan-500/20">
                         <Bot className="h-4 w-4 text-blue-500" />
                       </div>
-                      <div className="rounded-2xl rounded-bl-md bg-muted/50 border border-border/50 px-4 py-3">
-                        <div className="flex gap-1">
-                          <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:0ms]" />
-                          <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:150ms]" />
-                          <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:300ms]" />
-                        </div>
+                      <div className="rounded-2xl rounded-bl-md bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border border-white/20 dark:border-white/10 px-4 py-3">
+                        <div
+                          className="h-4 w-24 rounded-full animate-bg-shimmer"
+                          style={{
+                            backgroundSize: '200% 100%',
+                            backgroundImage: 'linear-gradient(90deg, hsl(var(--muted-foreground) / 0.1), hsl(var(--muted-foreground) / 0.3), hsl(var(--muted-foreground) / 0.1))',
+                          }}
+                        />
                       </div>
                     </div>
                   )}
@@ -549,34 +666,36 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
 
               {/* Quick Questions */}
               {messages.length < 3 && (
-                <div className="px-4 py-2 border-t border-border/30">
-                  <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2">
-                    Γρήγορα Ερωτήματα
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {quickQuestions.map((q) => (
-                      <button
-                        key={q.text}
-                        onClick={() => handleSend(q.text)}
-                        disabled={isTyping}
-                        className={cn(
-                          'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium',
-                          'bg-white/50 dark:bg-white/[0.06]',
-                          'border border-white/40 dark:border-white/10',
-                          'backdrop-blur-sm',
-                          'transition-all duration-200',
-                          'hover:bg-blue-50/50 dark:hover:bg-blue-500/10',
-                          'hover:border-blue-300/40 dark:hover:border-blue-500/20',
-                          'disabled:opacity-50 disabled:cursor-not-allowed',
-                          'cursor-pointer'
-                        )}
-                      >
-                        <q.icon className="h-3 w-3 text-blue-500/70" />
-                        {q.text}
-                      </button>
-                    ))}
+                <BlurFade delay={0.1} inView>
+                  <div className="px-4 py-2 border-t border-border/30">
+                    <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2">
+                      {t('quick_questions_label')}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {quickQuestions.map((q) => (
+                        <button
+                          key={q.text}
+                          onClick={() => handleSend(q.text)}
+                          disabled={isStreaming}
+                          className={cn(
+                            'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium',
+                            'bg-white/50 dark:bg-white/[0.06]',
+                            'border border-white/40 dark:border-white/10',
+                            'backdrop-blur-sm',
+                            'transition-all duration-200',
+                            'hover:bg-blue-50/50 dark:hover:bg-blue-500/10',
+                            'hover:border-blue-300/40 dark:hover:border-blue-500/20',
+                            'disabled:opacity-50 disabled:cursor-not-allowed',
+                            'cursor-pointer'
+                          )}
+                        >
+                          <q.icon className="h-3 w-3 text-blue-500/70" />
+                          {q.text}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                </BlurFade>
               )}
 
               {/* Input */}
@@ -589,14 +708,14 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Γράψτε μια ερώτηση..."
-                      disabled={isTyping}
+                      placeholder={t('placeholder')}
+                      disabled={isStreaming}
                       className={cn(
                         'w-full rounded-xl border px-4 py-2.5 text-xs',
                         'bg-white/60 dark:bg-white/[0.06]',
                         'border-white/40 dark:border-white/10',
                         'placeholder:text-muted-foreground/50',
-                        'focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30',
+                        'focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30 focus:shadow-[0_0_20px_rgba(59,130,246,0.1)]',
                         'transition-all duration-200',
                         'disabled:opacity-50'
                       )}
@@ -604,17 +723,18 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                   </div>
                   <Button
                     onClick={() => handleSend()}
-                    disabled={!inputValue.trim() || isTyping}
+                    disabled={!inputValue.trim() || isStreaming}
                     size="icon"
                     className={cn(
                       'h-10 w-10 rounded-xl shrink-0 cursor-pointer',
                       'bg-gradient-to-br from-blue-700 to-blue-500',
                       'hover:from-blue-600 hover:to-blue-400',
                       'border-0 text-white shadow-lg shadow-blue-500/20',
-                      'disabled:opacity-50 disabled:shadow-none'
+                      'disabled:opacity-50 disabled:shadow-none',
+                      'active:scale-95 transition-transform'
                     )}
                   >
-                    {isTyping ? (
+                    {isStreaming ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Send className="h-4 w-4" />
@@ -630,7 +750,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
             <ScrollArea className="flex-1 px-4 py-4">
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Προτεινόμενες Ενέργειες
+                  {t('actions_title')}
                 </p>
                 {actions.map((action) => {
                   const pCfg = priorityConfig[action.priority];
@@ -677,9 +797,11 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
 
                 {actions.length === 0 && (
                   <div className="text-center py-8">
-                    <Lightbulb className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                    <div className="relative h-[100px] w-[100px] mx-auto mb-2">
+                      <Image src="/images/illustrations/empty-actions.png" alt="" fill className="object-contain opacity-60" aria-hidden="true" />
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      Δεν υπάρχουν εκκρεμείς ενέργειες
+                      {t('no_actions')}
                     </p>
                   </div>
                 )}
@@ -692,7 +814,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
             <ScrollArea className="flex-1 px-4 py-4">
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Υπενθυμίσεις & Προθεσμίες
+                  {t('reminders_title')}
                 </p>
                 {reminders.map((reminder) => {
                   const pCfg = priorityConfig[reminder.priority];
@@ -746,7 +868,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                             </span>
                             {isOverdue && (
                               <Badge variant="outline" className="text-[9px] bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20">
-                                Εκπρόθεσμο
+                                {t('overdue')}
                               </Badge>
                             )}
                             {isUrgent && !isOverdue && (
@@ -756,7 +878,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                             )}
                             {!isUrgent && !isOverdue && (
                               <span className="text-[10px] text-muted-foreground/60">
-                                σε {daysUntil} ημέρες
+                                {t('in_days', { count: daysUntil })}
                               </span>
                             )}
                           </div>
@@ -774,9 +896,11 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
 
                 {reminders.length === 0 && (
                   <div className="text-center py-8">
-                    <Bell className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                    <div className="relative h-[100px] w-[100px] mx-auto mb-2">
+                      <Image src="/images/illustrations/empty-reminders.png" alt="" fill className="object-contain opacity-60" aria-hidden="true" />
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      Δεν υπάρχουν υπενθυμίσεις
+                      {t('no_reminders')}
                     </p>
                   </div>
                 )}

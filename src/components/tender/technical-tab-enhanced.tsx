@@ -19,6 +19,7 @@ import {
   GlassCardAction,
   GlassCardFooter,
 } from '@/components/ui/glass-card';
+import { BlurFade } from '@/components/ui/blur-fade';
 import {
   Wrench,
   FileCode2,
@@ -376,6 +377,7 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
       </div>
 
       {/* Proposal Sections */}
+      <BlurFade delay={0.05} inView>
       <GlassCard>
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-700 via-indigo-500 to-violet-400" />
         <GlassCardHeader className="pt-2">
@@ -528,8 +530,10 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
           )}
         </GlassCardContent>
       </GlassCard>
+      </BlurFade>
 
       {/* Technical Risks */}
+      <BlurFade delay={0.1} inView>
       <GlassCard>
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2">
@@ -590,6 +594,7 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
           )}
         </GlassCardContent>
       </GlassCard>
+      </BlurFade>
 
       {/* Team Requirements */}
       <GlassCard>

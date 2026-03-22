@@ -17,6 +17,7 @@ import {
   GlassCardAction,
   GlassCardFooter,
 } from '@/components/ui/glass-card';
+import { BlurFade } from '@/components/ui/blur-fade';
 import {
   Banknote,
   TrendingUp,
@@ -316,6 +317,7 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
       </div>
 
       {/* Eligibility Card */}
+      <BlurFade delay={0.05} inView>
       <GlassCard>
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-600 via-blue-500 to-amber-400" />
         <GlassCardHeader className="pt-2">
@@ -419,8 +421,10 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
           )}
         </GlassCardContent>
       </GlassCard>
+      </BlurFade>
 
       {/* Pricing Scenarios */}
+      <BlurFade delay={0.1} inView>
       <div className="space-y-3">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-blue-500" />
@@ -527,6 +531,7 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
           </GlassCard>
         )}
       </div>
+      </BlurFade>
 
       <LanguageModal
         open={langModalOpen}
