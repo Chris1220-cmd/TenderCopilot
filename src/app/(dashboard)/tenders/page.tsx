@@ -8,10 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -26,6 +22,11 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import { MagicCard } from '@/components/ui/magic-card';
+import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
+import { BlurFade } from '@/components/ui/blur-fade';
+import { ShimmerButton } from '@/components/ui/shimmer-button';
+import { PremiumEmptyState } from '@/components/ui/premium-empty-state';
 import {
   Plus,
   Search,
@@ -33,7 +34,6 @@ import {
   Calendar,
   Building2,
   TrendingUp,
-  Inbox,
   Filter,
   Trash2,
 } from 'lucide-react';
@@ -67,10 +67,10 @@ const platformConfig: Record<string, { label: string; color: string }> = {
 function ComplianceBar({ score }: { score: number }) {
   const color =
     score >= 80
-      ? 'bg-emerald-500'
+      ? 'bg-gradient-to-r from-emerald-400 to-emerald-600'
       : score >= 60
-        ? 'bg-amber-500'
-        : 'bg-red-500';
+        ? 'bg-gradient-to-r from-amber-400 to-amber-600'
+        : 'bg-gradient-to-r from-red-400 to-red-600';
   const bgColor =
     score >= 80
       ? 'bg-emerald-500/10'
@@ -135,33 +135,31 @@ export default function TendersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Διαγωνισμοί</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Διαχειριστείτε τους διαγωνισμούς και τους φακέλους σας
-          </p>
-        </div>
-        <Button
-          asChild
-          className={cn(
-            'cursor-pointer',
-            'bg-gradient-to-r from-indigo-600 to-violet-600',
-            'hover:from-indigo-500 hover:to-violet-500',
-            'shadow-lg shadow-indigo-500/25',
-            'border-0 text-white'
-          )}
-        >
+      <BlurFade delay={0} inView>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Διαγωνισμοί</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Διαχειριστείτε τους διαγωνισμούς και τους φακέλους σας
+            </p>
+          </div>
           <Link href="/tenders/new">
-            <Plus className="h-4 w-4" />
-            Νέος Διαγωνισμός
+            <ShimmerButton
+              shimmerColor="#06B6D4"
+              shimmerSize="0.05em"
+              background="linear-gradient(135deg, #3B82F6, #06B6D4)"
+              className="px-5 py-2.5 text-sm font-semibold cursor-pointer"
+            >
+              <Plus className="h-4 w-4 mr-1.5" />
+              Νέος Διαγωνισμός
+            </ShimmerButton>
           </Link>
-        </Button>
-      </div>
+        </div>
+      </BlurFade>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
+      <GlassCard>
+        <GlassCardContent className="p-4">
           <div className="flex flex-wrap items-center gap-3">
             <Filter className="h-4 w-4 text-muted-foreground" />
 
@@ -203,122 +201,121 @@ export default function TendersPage() {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Tenders Grid */}
       {filteredTenders.length === 0 ? (
         /* Empty state */
-        <Card className="flex flex-col items-center justify-center py-16">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-            <Inbox className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="mt-4 text-lg font-semibold">Κανένας διαγωνισμός</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {searchQuery || statusFilter !== 'all' || platformFilter !== 'all'
+        <PremiumEmptyState
+          imageSrc="/images/illustrations/empty-tenders.png"
+          title="Κανένας διαγωνισμός"
+          description={
+            searchQuery || statusFilter !== 'all' || platformFilter !== 'all'
               ? 'Δεν βρέθηκαν αποτελέσματα. Δοκιμάστε διαφορετικά φίλτρα.'
-              : 'Δημιουργήστε τον πρώτο σας διαγωνισμό για να ξεκινήσετε.'}
-          </p>
-          {!searchQuery && statusFilter === 'all' && platformFilter === 'all' && (
-            <Button asChild className="mt-4 cursor-pointer">
-              <Link href="/tenders/new">
-                <Plus className="h-4 w-4" />
-                Νέος Διαγωνισμός
-              </Link>
-            </Button>
-          )}
-        </Card>
+              : 'Δημιουργήστε τον πρώτο σας διαγωνισμό για να ξεκινήσετε.'
+          }
+          action={
+            !searchQuery && statusFilter === 'all' && platformFilter === 'all'
+              ? { label: 'Νέος Διαγωνισμός', href: '/tenders/new' }
+              : undefined
+          }
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filteredTenders.map((tender) => {
+          {filteredTenders.map((tender, i) => {
             const status = statusConfig[tender.status] || statusConfig.DRAFT;
             const platform = platformConfig[tender.platform] || platformConfig.OTHER;
 
             return (
-              <Card
-                key={tender.id}
-                className={cn(
-                  'group relative h-full transition-all duration-200',
-                  'hover:-translate-y-0.5 hover:shadow-lg hover:border-primary/20'
-                )}
-              >
-                {/* Delete button */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setDeleteId(tender.id);
-                  }}
-                  className="absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-red-500/10 hover:bg-red-500/20 text-red-500 cursor-pointer"
-                  title="Διαγραφή"
+              <BlurFade key={tender.id} delay={0.05 + i * 0.06} inView>
+                <MagicCard
+                  className="h-full rounded-2xl border-white/[0.06]"
+                  gradientSize={250}
+                  gradientColor="#1a1a2e"
+                  gradientFrom="#3B82F6"
+                  gradientTo="#06B6D4"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                  <div className="group relative h-full">
+                    {/* Delete button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDeleteId(tender.id);
+                      }}
+                      className="absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-red-500/10 hover:bg-red-500/20 text-red-500 cursor-pointer"
+                      title="Διαγραφή"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
 
-                <Link href={`/tenders/${tender.id}`} className="cursor-pointer">
-                  <CardContent className="p-5">
-                    <div className="space-y-4">
-                      {/* Top row: badges */}
-                      <div className="flex items-center justify-between gap-2">
-                        <Badge variant={status.variant}>{status.label}</Badge>
-                        <span
-                          className={cn(
-                            'rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                            platform.color
-                          )}
-                        >
-                          {platform.label}
-                        </span>
-                      </div>
-
-                      {/* Title */}
-                      <div>
-                        <h3 className="line-clamp-2 text-sm font-semibold leading-snug group-hover:text-primary transition-colors duration-200">
-                          {tender.title}
-                        </h3>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {tender.referenceNumber}
-                        </p>
-                      </div>
-
-                      {/* Details */}
-                      <div className="space-y-2.5 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">
-                            {tender.contractingAuthority || '--'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-3.5 w-3.5 shrink-0" />
-                          <span>
-                            Υποβολή: {formatDate(tender.submissionDeadline)}
-                          </span>
-                        </div>
-                        {tender.budget != null && (
-                          <div className="flex items-center gap-2">
-                            <TrendingUp className="h-3.5 w-3.5 shrink-0" />
-                            <span>
-                              Π/Υ: {formatCurrency(tender.budget)}
+                    <Link href={`/tenders/${tender.id}`} className="cursor-pointer">
+                      <div className="p-5">
+                        <div className="space-y-4">
+                          {/* Top row: badges */}
+                          <div className="flex items-center justify-between gap-2">
+                            <Badge variant={status.variant}>{status.label}</Badge>
+                            <span
+                              className={cn(
+                                'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                                platform.color
+                              )}
+                            >
+                              {platform.label}
                             </span>
                           </div>
-                        )}
-                      </div>
 
-                      {/* Compliance score */}
-                      <div className="border-t pt-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            Compliance
-                          </span>
-                          <ComplianceBar score={tender.complianceScore ?? 0} />
+                          {/* Title */}
+                          <div>
+                            <h3 className="line-clamp-2 text-sm font-semibold leading-snug group-hover:text-primary transition-colors duration-200">
+                              {tender.title}
+                            </h3>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {tender.referenceNumber}
+                            </p>
+                          </div>
+
+                          {/* Details */}
+                          <div className="space-y-2.5 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                              <Building2 className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">
+                                {tender.contractingAuthority || '--'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-3.5 w-3.5 shrink-0" />
+                              <span>
+                                Υποβολή: {formatDate(tender.submissionDeadline)}
+                              </span>
+                            </div>
+                            {tender.budget != null && (
+                              <div className="flex items-center gap-2">
+                                <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+                                <span>
+                                  Π/Υ: {formatCurrency(tender.budget)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Compliance score */}
+                          <div className="border-t pt-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                Compliance
+                              </span>
+                              <ComplianceBar score={tender.complianceScore ?? 0} />
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Link>
-              </Card>
+                    </Link>
+                  </div>
+                </MagicCard>
+              </BlurFade>
             );
           })}
         </div>
