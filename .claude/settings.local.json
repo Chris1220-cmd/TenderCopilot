@@ -124,7 +124,9 @@
       "WebFetch(domain:opentender.eu)",
       "WebFetch(domain:sourcing.gr)",
       "WebFetch(domain:www.biddetail.com)",
-      "Read(//c/Users/athan/Desktop/TenderCopilot/src/server/**)"
+      "Read(//c/Users/athan/Desktop/TenderCopilot/src/server/**)",
+      "Bash(git merge:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }

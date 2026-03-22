@@ -14,6 +14,7 @@ import { GlowButton } from '@/components/ui/glow-button';
 import { LanguageToggle } from '@/components/ui/language-toggle';
 import { Label } from '@/components/ui/label';
 import {
+  Sparkles,
   Mail,
   Lock,
   User,
