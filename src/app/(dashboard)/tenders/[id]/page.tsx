@@ -31,6 +31,7 @@ import { LegalTab } from '@/components/tender/legal-tab';
 import { FinancialTab } from '@/components/tender/financial-tab';
 import { TechnicalTabEnhanced } from '@/components/tender/technical-tab-enhanced';
 import { AIAssistantButton, AIAssistantPanel } from '@/components/tender/ai-assistant-panel';
+import { OutcomePanel } from '@/components/tender/outcome-panel';
 import { MissingInfoPanel } from '@/components/tender/missing-info-panel';
 import {
   ChevronRight,
@@ -398,6 +399,9 @@ export default function TenderDetailPage() {
 
       {/* Missing Info Panel — always visible above tabs */}
       <MissingInfoPanel tenderId={tenderId} />
+
+      {/* Outcome Panel — always visible, record win/loss */}
+      <OutcomePanel tenderId={tenderId} currentStatus={tender?.status || ''} />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
