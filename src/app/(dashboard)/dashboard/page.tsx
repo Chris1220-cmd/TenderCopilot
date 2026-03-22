@@ -4,9 +4,21 @@ import { useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { cn, formatDate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GradientHeading } from '@/components/ui/gradient-heading';
+import { PremiumStatCard } from '@/components/ui/premium-stat-card';
+import { PremiumEmptyState } from '@/components/ui/premium-empty-state';
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardAction,
+} from '@/components/ui/glass-card';
+import { BlurFade } from '@/components/ui/blur-fade';
+import { ShimmerButton } from '@/components/ui/shimmer-button';
+import Image from 'next/image';
 import {
   FileText,
   CheckSquare,
@@ -15,21 +27,9 @@ import {
   ArrowUpRight,
   AlertTriangle,
   Clock,
+  Plus,
 } from 'lucide-react';
 import Link from 'next/link';
-import {
-  LineChart,
-  Line,
-  ResponsiveContainer,
-} from 'recharts';
-
-/* ------------------------------------------------------------------ */
-/*  Sparkline placeholder — no hardcoded data, use empty arrays       */
-/* ------------------------------------------------------------------ */
-const sparkActive: { v: number }[] = [];
-const sparkTasks: { v: number }[] = [];
-const sparkCompliance: { v: number }[] = [];
-const sparkDeadlines: { v: number }[] = [];
 
 /* ------------------------------------------------------------------ */
 /*  Status map                                                         */
@@ -46,89 +46,15 @@ const statusMap: Record<
 };
 
 /* ------------------------------------------------------------------ */
-/*  SVG Progress Ring                                                  */
-/* ------------------------------------------------------------------ */
-function ProgressRing({
-  value,
-  size = 52,
-  strokeWidth = 4,
-  color,
-}: {
-  value: number;
-  size?: number;
-  strokeWidth?: number;
-  color: string;
-}) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (value / 100) * circumference;
-
-  return (
-    <svg width={size} height={size} className="shrink-0 -rotate-90">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={strokeWidth}
-        className="text-muted/30"
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        className="transition-all duration-700 ease-out"
-      />
-    </svg>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Sparkline                                                          */
-/* ------------------------------------------------------------------ */
-function MiniSparkline({
-  data,
-  color,
-}: {
-  data: { v: number }[];
-  color: string;
-}) {
-  return (
-    <div className="h-8 w-20">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
-          <Line
-            type="monotone"
-            dataKey="v"
-            stroke={color}
-            strokeWidth={2}
-            dot={false}
-            isAnimationActive
-            animationDuration={1200}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /*  Compliance bar                                                     */
 /* ------------------------------------------------------------------ */
 function ComplianceBar({ score }: { score: number }) {
   const color =
     score >= 80
-      ? 'bg-emerald-500'
+      ? 'bg-gradient-to-r from-emerald-400 to-emerald-600'
       : score >= 60
-        ? 'bg-amber-500'
-        : 'bg-red-500';
+        ? 'bg-gradient-to-r from-amber-400 to-amber-600'
+        : 'bg-gradient-to-r from-red-400 to-red-600';
 
   return (
     <div className="flex items-center gap-2">
@@ -139,31 +65,6 @@ function ComplianceBar({ score }: { score: number }) {
         />
       </div>
       <span className="text-xs font-medium text-muted-foreground">{score}%</span>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Stats card skeleton                                                */
-/* ------------------------------------------------------------------ */
-function StatsCardSkeleton() {
-  return (
-    <div
-      className={cn(
-        'relative overflow-hidden rounded-2xl border-l-4 border-l-muted p-5',
-        'bg-white/60 dark:bg-white/[0.06] backdrop-blur-xl',
-        'border border-white/20 dark:border-white/10',
-        'shadow-lg'
-      )}
-    >
-      <div className="flex items-start justify-between">
-        <div className="space-y-3 flex-1">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-8 w-16" />
-          <Skeleton className="h-3 w-36" />
-        </div>
-        <Skeleton className="h-11 w-11 rounded-xl" />
-      </div>
     </div>
   );
 }
@@ -244,7 +145,6 @@ export default function DashboardPage() {
       borderColor: 'border-l-[#3B82F6]',
       bgCircle: 'bg-blue-500/10',
       textCircle: 'text-blue-500',
-      sparkData: sparkActive,
     },
     {
       title: 'Εκκρεμεις Εργασιες',
@@ -255,7 +155,6 @@ export default function DashboardPage() {
       borderColor: 'border-l-[#F59E0B]',
       bgCircle: 'bg-amber-500/10',
       textCircle: 'text-amber-500',
-      sparkData: sparkTasks,
     },
     {
       title: 'Μεσο Compliance Score',
@@ -275,7 +174,6 @@ export default function DashboardPage() {
         complianceScore >= 70
           ? 'text-emerald-500'
           : 'text-red-500',
-      sparkData: sparkCompliance,
       isCompliance: true,
     },
     {
@@ -287,309 +185,242 @@ export default function DashboardPage() {
       borderColor: 'border-l-orange-500',
       bgCircle: 'bg-orange-500/10',
       textCircle: 'text-orange-500',
-      sparkData: sparkDeadlines,
     },
   ];
 
   return (
     <div className="space-y-8">
       {/* ====== Welcome Section ====== */}
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">
-          <span
-            className={cn(
-              'inline-block bg-gradient-to-r from-[#1E40AF] via-[#3B82F6] to-[#F59E0B]',
-              'bg-clip-text text-transparent',
-              'animate-[gradient-shift_6s_ease-in-out_infinite]',
-              'bg-[length:200%_auto]'
-            )}
-          >
-            Καλως ηρθατε, {firstName}
-          </span>
-        </h1>
-        <p className="text-muted-foreground">
-          Ακολουθει η συνοψη των διαγωνισμων σας.
-        </p>
-      </div>
+      <BlurFade delay={0} inView>
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <GradientHeading as="h1" className="text-3xl">
+              Καλως ηρθατε, {firstName}
+            </GradientHeading>
+            <p className="text-muted-foreground">
+              Ακολουθει η συνοψη των διαγωνισμων σας.
+            </p>
+          </div>
+          <div className="relative hidden md:block h-[130px] w-[160px] opacity-80 pointer-events-none">
+            <Image
+              src="/images/illustrations/dashboard-welcome.png"
+              alt=""
+              fill
+              className="object-contain"
+              aria-hidden="true"
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-3 mt-4">
+          <Link href="/tenders/new">
+            <ShimmerButton
+              shimmerColor="#06B6D4"
+              shimmerSize="0.05em"
+              background="linear-gradient(135deg, #3B82F6, #06B6D4)"
+              className="px-5 py-2 text-sm font-semibold cursor-pointer"
+            >
+              <Plus className="h-4 w-4 mr-1.5" />
+              Νέος Διαγωνισμός
+            </ShimmerButton>
+          </Link>
+        </div>
+      </BlurFade>
 
       {/* ====== Stats Grid ====== */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <StatsCardSkeleton key={i} />
-            ))
-          : statsCards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <div
-                  key={card.title}
-                  className={cn(
-                    'group relative overflow-hidden rounded-2xl',
-                    'border-l-4',
-                    card.borderColor,
-                    'bg-white/60 dark:bg-white/[0.06]',
-                    'backdrop-blur-xl',
-                    'border border-white/20 dark:border-white/10',
-                    'shadow-lg',
-                    'transition-all duration-300 ease-out',
-                    'hover:-translate-y-1 hover:shadow-2xl',
-                    'hover:border-white/40 dark:hover:border-white/20',
-                    'p-5'
-                  )}
-                >
-                  {/* Subtle gradient overlay on hover */}
-                  <div
-                    className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                    style={{
-                      background: `radial-gradient(ellipse at top right, ${card.accentColor}08, transparent 60%)`,
-                    }}
-                  />
-
-                  <div className="relative flex items-start justify-between">
-                    <div className="space-y-1.5 flex-1">
-                      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                        {card.title}
-                      </p>
-
-                      <div className="flex items-end gap-3">
-                        {/* Main value */}
-                        {card.isCompliance ? (
-                          <div className="flex items-center gap-3">
-                            <span className="text-3xl font-bold tracking-tight">
-                              {card.value}
-                            </span>
-                            <ProgressRing
-                              value={complianceScore}
-                              color={card.accentColor}
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-3xl font-bold tracking-tight">
-                            {card.value}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <p className="text-xs text-muted-foreground">
-                          {card.subtitle}
-                        </p>
-                        <MiniSparkline
-                          data={card.sparkData}
-                          color={card.accentColor}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Icon circle */}
-                    <div
-                      className={cn(
-                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
-                        'transition-transform duration-300 group-hover:scale-110',
-                        card.bgCircle
-                      )}
-                    >
-                      <Icon className={cn('h-5 w-5', card.textCircle)} />
-                    </div>
-                  </div>
-
-                  {/* Bottom glow line */}
-                  <div
-                    className="absolute bottom-0 left-0 h-[2px] w-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                    style={{
-                      background: `linear-gradient(90deg, ${card.accentColor}, transparent)`,
-                    }}
-                  />
+              <BlurFade key={i} delay={0.15 + i * 0.08} inView>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 animate-pulse">
+                  <div className="h-4 w-28 bg-muted rounded mb-3" />
+                  <div className="h-8 w-16 bg-muted rounded mb-2" />
+                  <div className="h-3 w-36 bg-muted rounded" />
                 </div>
-              );
-            })}
+              </BlurFade>
+            ))
+          : statsCards.map((card, i) => (
+              <PremiumStatCard
+                key={card.title}
+                title={card.title}
+                value={card.isCompliance ? complianceScore : card.value as number}
+                subtitle={card.subtitle}
+                icon={card.icon}
+                accentColor={card.accentColor}
+                borderColor={card.borderColor}
+                bgCircle={card.bgCircle}
+                textCircle={card.textCircle}
+                showProgressRing={card.isCompliance}
+                progressValue={card.isCompliance ? complianceScore : undefined}
+                blurFadeDelay={0.15 + i * 0.08}
+              />
+            ))}
       </div>
 
       {/* ====== Recent Tenders + Upcoming Deadlines ====== */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent Tenders - 2 cols */}
-        <div
-          className={cn(
-            'lg:col-span-2 overflow-hidden rounded-2xl',
-            'bg-white/60 dark:bg-white/[0.06]',
-            'backdrop-blur-xl',
-            'border border-white/20 dark:border-white/10',
-            'shadow-lg'
-          )}
-        >
-          <div className="flex items-center justify-between px-6 pt-6 pb-2">
-            <h2 className="text-base font-semibold">
-              Προσφατοι Διαγωνισμοι
-            </h2>
-            <Link
-              href="/tenders"
-              className="flex items-center gap-1 text-sm font-medium text-[#3B82F6] transition-colors duration-200 hover:text-[#1E40AF] cursor-pointer"
-            >
-              Ολοι
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="px-6 pb-6">
+        <GlassCard className="lg:col-span-2">
+          <GlassCardHeader>
+            <GlassCardTitle>Προσφατοι Διαγωνισμοι</GlassCardTitle>
+            <GlassCardAction>
+              <Link
+                href="/tenders"
+                className="flex items-center gap-1 text-sm font-medium text-[#3B82F6] transition-colors duration-200 hover:text-[#1E40AF] cursor-pointer"
+              >
+                Ολοι
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </GlassCardAction>
+          </GlassCardHeader>
+          <GlassCardContent>
             {isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className="h-16 w-full rounded-xl" />
                 ))}
               </div>
+            ) : recentTenders.length === 0 ? (
+              <PremiumEmptyState
+                imageSrc="/images/illustrations/empty-tenders.png"
+                title="Δεν υπάρχουν διαγωνισμοί"
+                description="Δημιουργήστε τον πρώτο σας διαγωνισμό!"
+                action={{ label: 'Νέος Διαγωνισμός', href: '/tenders/new' }}
+              />
             ) : (
               <div className="space-y-2">
-                {recentTenders.length === 0 && (
-                  <div className="py-8 text-center text-sm text-muted-foreground">
-                    Δεν υπαρχουν διαγωνισμοι ακομα. Δημιουργηστε τον πρωτο σας!
-                  </div>
-                )}
-                {recentTenders.map((tender: any) => {
+                {recentTenders.map((tender: any, i: number) => {
                   const status =
                     statusMap[tender.status] || statusMap.DRAFT;
                   const score =
                     tender.complianceScore ?? tender.compliance_score ?? 0;
 
                   return (
-                    <Link
-                      key={tender.id}
-                      href={`/tenders/${tender.id}`}
-                      className={cn(
-                        'flex items-center justify-between rounded-xl px-4 py-3',
-                        'border border-white/10 dark:border-white/5',
-                        'bg-white/40 dark:bg-white/[0.03]',
-                        'transition-all duration-200',
-                        'hover:bg-white/70 dark:hover:bg-white/[0.08]',
-                        'hover:shadow-md',
-                        'cursor-pointer group/row'
-                      )}
-                    >
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <p className="truncate text-sm font-medium group-hover/row:text-[#1E40AF] dark:group-hover/row:text-[#3B82F6] transition-colors">
-                            {tender.title}
+                    <BlurFade key={tender.id} delay={0.3 + i * 0.05} inView>
+                      <Link
+                        href={`/tenders/${tender.id}`}
+                        className={cn(
+                          'flex items-center justify-between rounded-xl px-4 py-3',
+                          'border border-white/10 dark:border-white/5',
+                          'bg-white/40 dark:bg-white/[0.03]',
+                          'transition-all duration-200',
+                          'hover:bg-white/70 dark:hover:bg-white/[0.08]',
+                          'hover:shadow-md',
+                          'cursor-pointer group/row'
+                        )}
+                      >
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-sm font-medium group-hover/row:text-[#1E40AF] dark:group-hover/row:text-[#3B82F6] transition-colors">
+                              {tender.title}
+                            </p>
+                            <Badge variant={status.variant} className="shrink-0">
+                              {status.label}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {tender.referenceNumber} &middot; Υποβολη:{' '}
+                            {formatDate(tender.submissionDeadline)}
                           </p>
-                          <Badge variant={status.variant} className="shrink-0">
-                            {status.label}
-                          </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {tender.referenceNumber} &middot; Υποβολη:{' '}
-                          {formatDate(tender.submissionDeadline)}
-                        </p>
-                      </div>
-                      <div className="ml-4 shrink-0">
-                        <ComplianceBar score={score} />
-                      </div>
-                    </Link>
+                        <div className="ml-4 shrink-0">
+                          <ComplianceBar score={score} />
+                        </div>
+                      </Link>
+                    </BlurFade>
                   );
                 })}
               </div>
             )}
-          </div>
-        </div>
+          </GlassCardContent>
+        </GlassCard>
 
         {/* Upcoming Deadlines - 1 col */}
-        <div
-          className={cn(
-            'overflow-hidden rounded-2xl',
-            'bg-white/60 dark:bg-white/[0.06]',
-            'backdrop-blur-xl',
-            'border border-white/20 dark:border-white/10',
-            'shadow-lg'
-          )}
-        >
-          <div className="flex items-center justify-between px-6 pt-6 pb-2">
-            <h2 className="text-base font-semibold">
-              Προσεχεις Deadlines
-            </h2>
-            <Link
-              href="/tenders"
-              className="flex items-center gap-1 text-sm font-medium text-[#F97316] transition-colors duration-200 hover:text-[#EA580C] cursor-pointer"
-            >
-              Ολα
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-          <div className="px-6 pb-6">
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle>Προσεχεις Deadlines</GlassCardTitle>
+            <GlassCardAction>
+              <Link
+                href="/tenders"
+                className="flex items-center gap-1 text-sm font-medium text-[#F97316] transition-colors duration-200 hover:text-[#EA580C] cursor-pointer"
+              >
+                Ολα
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </GlassCardAction>
+          </GlassCardHeader>
+          <GlassCardContent>
             {isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <Skeleton key={i} className="h-14 w-full rounded-xl" />
                 ))}
               </div>
+            ) : upcomingDeadlines.length === 0 ? (
+              <PremiumEmptyState
+                imageSrc="/images/illustrations/empty-deadlines.png"
+                title="Τίποτα επείγον"
+                description="Δεν υπάρχουν προσεχείς deadlines."
+              />
             ) : (
               <div className="space-y-2">
-                {upcomingDeadlines.map((item: any) => (
-                  <Link
-                    key={item.id}
-                    href={`/tenders/${item.id}`}
-                    className={cn(
-                      'flex items-center gap-3 rounded-xl px-4 py-3',
-                      'border border-white/10 dark:border-white/5',
-                      'bg-white/40 dark:bg-white/[0.03]',
-                      'transition-all duration-200',
-                      'hover:bg-white/70 dark:hover:bg-white/[0.08]',
-                      'hover:shadow-md',
-                      'cursor-pointer group/deadline'
-                    )}
-                  >
-                    <div
+                {upcomingDeadlines.map((item: any, i: number) => (
+                  <BlurFade key={item.id} delay={0.3 + i * 0.05} inView>
+                    <Link
+                      href={`/tenders/${item.id}`}
                       className={cn(
-                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
-                        'transition-transform duration-200 group-hover/deadline:scale-110',
-                        item.urgent
-                          ? 'bg-red-500/10 text-red-500'
-                          : 'bg-amber-500/10 text-amber-500'
+                        'flex items-center gap-3 rounded-xl px-4 py-3',
+                        'border border-white/10 dark:border-white/5',
+                        'bg-white/40 dark:bg-white/[0.03]',
+                        'transition-all duration-200',
+                        'hover:bg-white/70 dark:hover:bg-white/[0.08]',
+                        'hover:shadow-md',
+                        'cursor-pointer group/deadline'
                       )}
                     >
-                      {item.urgent ? (
-                        <AlertTriangle className="h-4 w-4" />
-                      ) : (
-                        <Clock className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">
-                        {item.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(item.deadline)}
-                      </p>
-                    </div>
-                    <span
-                      className={cn(
-                        'shrink-0 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums',
-                        'transition-colors duration-200',
-                        item.urgent
-                          ? 'bg-red-500/10 text-red-500'
-                          : item.daysLeft <= 30
-                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                            : 'bg-muted text-muted-foreground'
-                      )}
-                    >
-                      {item.daysLeft}d
-                    </span>
-                  </Link>
+                      <div
+                        className={cn(
+                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+                          'transition-transform duration-200 group-hover/deadline:scale-110',
+                          item.urgent
+                            ? 'bg-red-500/10 text-red-500'
+                            : 'bg-amber-500/10 text-amber-500'
+                        )}
+                      >
+                        {item.urgent ? (
+                          <AlertTriangle className="h-4 w-4" />
+                        ) : (
+                          <Clock className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
+                          {item.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(item.deadline)}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          'shrink-0 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums',
+                          'transition-colors duration-200',
+                          item.urgent
+                            ? 'bg-red-500/10 text-red-500'
+                            : item.daysLeft <= 30
+                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                              : 'bg-muted text-muted-foreground'
+                        )}
+                      >
+                        {item.daysLeft}d
+                      </span>
+                    </Link>
+                  </BlurFade>
                 ))}
-
-                {upcomingDeadlines.length === 0 && (
-                  <div className="py-8 text-center text-sm text-muted-foreground">
-                    Δεν υπαρχουν προσεχεις deadlines.
-                  </div>
-                )}
               </div>
             )}
-          </div>
-        </div>
+          </GlassCardContent>
+        </GlassCard>
       </div>
-
-      {/* ====== Keyframe for gradient animation (injected via style tag) ====== */}
-      <style jsx global>{`
-        @keyframes gradient-shift {
-          0%, 100% { background-position: 0% center; }
-          50% { background-position: 100% center; }
-        }
-      `}</style>
     </div>
   );
 }
