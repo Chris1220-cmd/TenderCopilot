@@ -9,6 +9,7 @@ import { db } from '@/lib/db';
 import { ai, checkTokenBudget, logTokenUsage } from '@/server/ai/provider';
 import { buildContext } from '@/server/services/context-builder';
 import { validateResponse } from '@/server/services/trust-shield';
+import { getSmartHistory, maybeUpdateSummary } from '@/server/services/chat-memory';
 
 export const chatRouter = router({
   /**
@@ -67,34 +68,21 @@ export const chatRouter = router({
         data: { tenderId, tenantId, role: 'user', content: question },
       });
 
-      // Build smart context
-      const context = await buildContext(tenderId, tenantId, question);
+      // Build smart context + history in parallel
+      const [context, { summary, recentMessages }] = await Promise.all([
+        buildContext(tenderId, tenantId, question),
+        getSmartHistory(tenderId, tenantId),
+      ]);
 
-      // Get recent chat history for conversation continuity (last 6 messages)
-      const recentHistory = await db.chatMessage.findMany({
-        where: { tenderId, tenantId },
-        orderBy: { createdAt: 'desc' },
-        take: 6,
-      });
-      let historyMessages = recentHistory
-        .reverse()
-        .slice(0, -1) // Exclude the message we just saved
-        .map((m) => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.role === 'assistant' && m.metadata
-            ? (m.metadata as any).answer || m.content
-            : m.content,
-        }));
-      // Gemini requires first message to be 'user' — drop leading assistant messages
-      while (historyMessages.length > 0 && historyMessages[0].role === 'assistant') {
-        historyMessages.shift();
-      }
-
-      // Call AI
+      // Call AI with optional summary context
       const result = await ai().complete({
         messages: [
           { role: 'system', content: context.systemPrompt },
-          ...historyMessages,
+          ...(summary ? [
+            { role: 'user' as const, content: `PREVIOUS CONVERSATION SUMMARY:\n${summary}` },
+            { role: 'assistant' as const, content: 'Understood, I have the context from our previous conversation.' },
+          ] : []),
+          ...recentMessages,
           {
             role: 'user',
             content: `CONTEXT:\n${context.contextText}\n\nΕΡΩΤΗΣΗ: ${question}`,
@@ -130,6 +118,9 @@ export const chatRouter = router({
           metadata: trustedResponse as any,
         },
       });
+
+      // Fire-and-forget summary update
+      maybeUpdateSummary(tenderId, tenantId).catch(console.error);
 
       return trustedResponse;
     }),

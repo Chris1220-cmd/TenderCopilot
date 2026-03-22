@@ -11,6 +11,7 @@ import { buildContext } from '@/server/services/context-builder';
 import { validateResponse } from '@/server/services/trust-shield';
 import { getAuthenticatedContext } from '@/server/auth-helpers';
 import { encodeSSEBytes } from '@/server/ai/streaming';
+import { getSmartHistory, maybeUpdateSummary } from '@/server/services/chat-memory';
 import type { SSEEvent } from '@/server/ai/streaming';
 
 export const runtime = 'nodejs';
@@ -79,33 +80,20 @@ export async function POST(req: NextRequest) {
       data: { tenderId, tenantId, role: 'user', content: question },
     });
 
-    // 6. Build context
-    const context = await buildContext(tenderId, tenantId, question);
+    // 6. Build context + smart history in parallel
+    const [context, { summary, recentMessages }] = await Promise.all([
+      buildContext(tenderId, tenantId, question),
+      getSmartHistory(tenderId, tenantId),
+    ]);
 
-    // 7. Get recent history (last 6 messages, same as chat.ts)
-    const recentHistory = await db.chatMessage.findMany({
-      where: { tenderId, tenantId },
-      orderBy: { createdAt: 'desc' },
-      take: 6,
-    });
-    let historyMessages = recentHistory
-      .reverse()
-      .slice(0, -1) // Exclude the message we just saved
-      .map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content:
-          m.role === 'assistant' && m.metadata
-            ? (m.metadata as any).answer || m.content
-            : m.content,
-      }));
-    // Gemini requires first message to be 'user' — drop leading assistant messages
-    while (historyMessages.length > 0 && historyMessages[0].role === 'assistant') {
-      historyMessages.shift();
-    }
-
+    // 7. Assemble messages with optional summary context
     const messages = [
       { role: 'system' as const, content: context.systemPrompt },
-      ...historyMessages,
+      ...(summary ? [
+        { role: 'user' as const, content: `PREVIOUS CONVERSATION SUMMARY:\n${summary}` },
+        { role: 'assistant' as const, content: 'Understood, I have the context from our previous conversation.' },
+      ] : []),
+      ...recentMessages,
       {
         role: 'user' as const,
         content: `CONTEXT:\n${context.contextText}\n\nΕΡΩΤΗΣΗ: ${question}`,
@@ -172,6 +160,9 @@ export async function POST(req: NextRequest) {
               },
             });
 
+            // Fire-and-forget summary update
+            maybeUpdateSummary(tenderId, tenantId).catch(console.error);
+
             // Send done event with metadata
             const doneEvent: SSEEvent = {
               type: 'done',
@@ -229,6 +220,9 @@ export async function POST(req: NextRequest) {
         metadata: trustedResponse as any,
       },
     });
+
+    // Fire-and-forget summary update
+    maybeUpdateSummary(tenderId, tenantId).catch(console.error);
 
     return Response.json(trustedResponse);
   } catch (err: any) {
