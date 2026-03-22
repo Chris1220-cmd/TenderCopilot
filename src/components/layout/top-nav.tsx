@@ -52,7 +52,6 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
     return () => main?.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Ctrl+K / Cmd+K shortcut
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -72,27 +71,29 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
     <header
       className={cn(
         'sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b px-6',
-        'bg-card/80 backdrop-blur-xl backdrop-saturate-[180%]',
-        'border-border/60 transition-shadow duration-300',
-        scrolled && 'shadow-[0_1px_3px_rgba(0,0,0,0.4)]'
+        'bg-white/80 backdrop-blur-xl backdrop-saturate-[180%]',
+        'border-[#E8E0F0]/60 transition-shadow duration-300',
+        scrolled && 'shadow-[0_1px_3px_rgba(0,0,0,0.06)]'
       )}
     >
       {/* Left: Logo + Nav Tabs */}
       <div className="flex items-center gap-1">
-        {/* Logo */}
         <Link
           href="/dashboard"
           className="group mr-6 flex items-center gap-2.5 cursor-pointer"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent shadow-[0_0_12px_rgba(168,85,247,0.2)] transition-shadow duration-200 group-hover:shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-            <span className="text-xs font-bold text-white tracking-tight">TC</span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1a1a2e]">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" opacity="0.9"/>
+              <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
-          <span className="hidden text-sm font-semibold text-foreground/90 md:block">
+          <span className="hidden text-[14px] font-semibold text-[#1a1a2e] tracking-[-0.01em] md:block">
             TenderCopilot
           </span>
         </Link>
 
-        {/* Nav Tabs with animated underline */}
         <nav className="flex items-center">
           {navItems.map((item) => {
             const isActive =
@@ -105,16 +106,15 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
                 className={cn(
                   'relative flex items-center gap-2 px-3.5 py-2 text-[13px] font-medium transition-colors duration-150 cursor-pointer rounded-md',
                   isActive
-                    ? 'text-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                    ? 'text-[#1a1a2e]'
+                    : 'text-[#1a1a2e]/45 hover:text-[#1a1a2e]/70'
                 )}
               >
-                <item.icon className="h-[15px] w-[15px]" />
-                <span className="hidden sm:inline">{item.label}</span>
+                <span>{item.label}</span>
                 {isActive && (
                   <motion.div
                     layoutId="nav-indicator"
-                    className="absolute inset-x-2 -bottom-[11px] h-[2px] rounded-full bg-gradient-to-r from-primary to-accent"
+                    className="absolute inset-x-2 -bottom-[11px] h-[2px] rounded-full bg-[#1a1a2e]"
                     transition={{
                       type: 'spring',
                       stiffness: 500,
@@ -130,30 +130,27 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
 
       {/* Right: Search trigger + Notifications + User */}
       <div className="flex items-center gap-1.5">
-        {/* Command Palette Trigger */}
         <Button
           variant="ghost"
           size="sm"
-          className="gap-2 text-muted-foreground hover:text-foreground cursor-pointer h-8 px-2.5"
+          className="gap-2 text-[#1a1a2e]/40 hover:text-[#1a1a2e]/70 hover:bg-[#1a1a2e]/[0.04] cursor-pointer h-8 px-2.5"
           onClick={onOpenCommandPalette}
         >
           <Search className="h-[15px] w-[15px]" />
-          <kbd className="pointer-events-none hidden rounded-[4px] border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground/70 md:inline">
+          <kbd className="pointer-events-none hidden rounded-[4px] border border-[#E8E0F0] bg-[#F8F6FF]/60 px-1.5 py-0.5 text-[10px] font-mono text-[#1a1a2e]/30 md:inline">
             Ctrl K
           </kbd>
         </Button>
 
-        {/* Notifications */}
         <Button
           variant="ghost"
           size="icon"
-          className="relative text-muted-foreground hover:text-foreground cursor-pointer h-8 w-8"
+          className="relative text-[#1a1a2e]/40 hover:text-[#1a1a2e]/70 hover:bg-[#1a1a2e]/[0.04] cursor-pointer h-8 w-8"
         >
           <Bell className="h-[15px] w-[15px]" />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-accent" />
+          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#6C5CE7]" />
         </Button>
 
-        {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -165,7 +162,7 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
                   src={session?.user?.image || undefined}
                   alt={session?.user?.name || ''}
                 />
-                <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-[10px] font-semibold text-white">
+                <AvatarFallback className="bg-[#6C5CE7] text-[10px] font-semibold text-white">
                   {getInitials(session?.user?.name || 'U')}
                 </AvatarFallback>
               </Avatar>

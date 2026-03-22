@@ -14,12 +14,10 @@ export default function DashboardLayout({
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#FAFAFA]">
       <TopNav onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
       <main className="relative flex-1 overflow-y-auto scrollbar-thin">
-        {/* Top edge accent glow */}
-        <div className="pointer-events-none fixed inset-x-0 top-14 h-[200px] bg-gradient-to-b from-primary/[0.04] to-transparent" />
-        <div className="relative z-10 mx-auto max-w-[1400px] px-6 py-8">
+        <div className="mx-auto max-w-[1400px] px-6 py-8">
           <PageTransition>{children}</PageTransition>
         </div>
       </main>

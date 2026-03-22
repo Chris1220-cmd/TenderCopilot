@@ -4,42 +4,41 @@
 
 /*
  * TenderCopilot — Design System
- * Style: Superhuman Premium Dark
+ * Style: Superhuman Light Premium
  * Primary: Purple #6C5CE7
  * Accent: Purple #A855F7
- * Warning: Amber #FFB020
- * Typography: Inter / JetBrains Mono
+ * Typography: Inter / Georgia
  */
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 240 6% 10%;
+    --background: 0 0% 100%;
+    --foreground: 240 15% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 240 6% 10%;
+    --card-foreground: 240 15% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 6% 10%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 6% 10%;
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
-    --accent: 187 92% 42%;
-    --accent-foreground: 0 0% 98%;
+    --popover-foreground: 240 15% 10%;
+    --primary: 258 70% 63%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 252 5% 96%;
+    --secondary-foreground: 240 15% 10%;
+    --muted: 252 5% 96%;
+    --muted-foreground: 240 5% 46%;
+    --accent: 270 80% 70%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 98%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 160 85% 36%;
+    --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
-    --warning-foreground: 240 6% 10%;
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 217 91% 60%;
-    --radius: 1rem;
-    --sidebar: 240 6% 97%;
-    --sidebar-foreground: 240 6% 10%;
-    --sidebar-accent: 240 5% 94%;
+    --warning-foreground: 240 15% 10%;
+    --border: 252 10% 91%;
+    --input: 252 10% 91%;
+    --ring: 258 70% 63%;
+    --radius: 0.75rem;
+    --sidebar: 252 5% 97%;
+    --sidebar-foreground: 240 15% 10%;
+    --sidebar-accent: 252 5% 94%;
   }
 
   .dark {
