@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NoDocumentsAlert } from './no-documents-alert';
 import { LanguageModal, type AnalysisLanguage } from './language-modal';
+import { BlurFade } from '@/components/ui/blur-fade';
 import {
   GlassCard,
   GlassCardHeader,
@@ -116,6 +117,7 @@ export function AIBriefPanel({ tenderId, sourceUrl, platform, className }: AIBri
   const displayText = expanded || !shouldTruncate ? summaryText : summaryText.slice(0, 200) + '...';
 
   return (
+    <BlurFade delay={0.1} inView>
     <GlassCard className={cn('overflow-hidden', className)}>
       {/* Header Gradient Accent */}
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400" />
@@ -199,7 +201,8 @@ export function AIBriefPanel({ tenderId, sourceUrl, platform, className }: AIBri
                     'backdrop-blur-sm',
                     'transition-all duration-200',
                     'hover:bg-blue-50/50 dark:hover:bg-blue-500/10',
-                    'hover:border-blue-300/40 dark:hover:border-blue-500/20'
+                    'hover:border-blue-300/40 dark:hover:border-blue-500/20',
+                    'hover:scale-[1.02] transition-transform'
                   )}
                 >
                   <point.icon className="h-3.5 w-3.5 text-blue-500/70 group-hover:text-blue-500 transition-colors duration-200" />
@@ -263,6 +266,7 @@ export function AIBriefPanel({ tenderId, sourceUrl, platform, className }: AIBri
         onClose={() => setLangModalOpen(false)}
       />
     </GlassCard>
+    </BlurFade>
   );
 }
 
