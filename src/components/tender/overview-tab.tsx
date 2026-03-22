@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
+import { BlurFade } from '@/components/ui/blur-fade';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -70,10 +71,10 @@ function ComplianceScoreBar({ score }: { score: number | null }) {
   const value = score ?? 0;
   const color =
     value >= 75
-      ? 'bg-emerald-500'
+      ? 'bg-gradient-to-r from-emerald-400 to-emerald-600'
       : value >= 50
-        ? 'bg-amber-500'
-        : 'bg-red-500';
+        ? 'bg-gradient-to-r from-amber-400 to-amber-600'
+        : 'bg-gradient-to-r from-red-400 to-red-600';
   const bgColor =
     value >= 75
       ? 'bg-emerald-500/10'
@@ -213,49 +214,44 @@ export function OverviewTab({ tender }: OverviewTabProps) {
       {/* Info Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {infoItems.map((item, i) => (
-          <Card
-            key={i}
-            className={cn(
-              'group relative overflow-hidden transition-all duration-200',
-              'hover:shadow-md hover:border-primary/15',
-              'bg-gradient-to-br from-background to-muted/30'
-            )}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <item.icon className="h-4 w-4 text-primary" />
+          <BlurFade key={i} delay={0.05 + i * 0.06} inView>
+            <GlassCard>
+              <GlassCardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <item.icon className="h-4 w-4 text-primary" />
+                    </div>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {item.label}
+                    </span>
                   </div>
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {item.label}
-                  </span>
                 </div>
-              </div>
-              <div className="mt-2 text-sm font-semibold text-right">
-                {typeof item.value === 'string' ? (
-                  <span className="line-clamp-2">{item.value}</span>
-                ) : (
-                  item.value
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                <div className="mt-2 text-sm font-semibold text-right">
+                  {typeof item.value === 'string' ? (
+                    <span className="line-clamp-2">{item.value}</span>
+                  ) : (
+                    item.value
+                  )}
+                </div>
+              </GlassCardContent>
+            </GlassCard>
+          </BlurFade>
         ))}
       </div>
 
       {/* Compliance + Top Gaps Row */}
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Compliance Score */}
-        <Card className="bg-gradient-to-br from-background to-muted/30">
-          <CardContent className="p-5">
+        <GlassCard>
+          <GlassCardContent className="p-5">
             <ComplianceScoreBar score={tender.complianceScore} />
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
         {/* Top Gaps */}
-        <Card className="bg-gradient-to-br from-background to-muted/30">
-          <CardContent className="p-5">
+        <GlassCard>
+          <GlassCardContent className="p-5">
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="h-4 w-4 text-amber-500" />
               <span className="text-sm font-semibold">Κύρια Κενά Συμμόρφωσης</span>
@@ -279,13 +275,13 @@ export function OverviewTab({ tender }: OverviewTabProps) {
                 ))}
               </ul>
             )}
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       {/* Notes */}
-      <Card className="bg-gradient-to-br from-background to-muted/30">
-        <CardContent className="p-5">
+      <GlassCard>
+        <GlassCardContent className="p-5">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-semibold">Σημειώσεις</span>
             <Button
@@ -305,8 +301,8 @@ export function OverviewTab({ tender }: OverviewTabProps) {
             placeholder="Προσθέστε σημειώσεις..."
             className="min-h-[100px] resize-none"
           />
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Edit Basic Info Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -396,25 +392,25 @@ export function OverviewTabSkeleton() {
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i}>
-            <CardContent className="p-4">
+          <GlassCard key={i}>
+            <GlassCardContent className="p-4">
               <Skeleton className="h-4 w-24 mb-3" />
               <Skeleton className="h-6 w-32 ml-auto" />
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         ))}
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardContent className="p-5">
+        <GlassCard>
+          <GlassCardContent className="p-5">
             <Skeleton className="h-3 w-full" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5">
+          </GlassCardContent>
+        </GlassCard>
+        <GlassCard>
+          <GlassCardContent className="p-5">
             <Skeleton className="h-24 w-full" />
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
     </div>
   );
