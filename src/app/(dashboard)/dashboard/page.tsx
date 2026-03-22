@@ -5,9 +5,8 @@ import { useSession } from 'next-auth/react';
 import { cn, formatDate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { GradientHeading } from '@/components/ui/gradient-heading';
-import { PremiumStatCard } from '@/components/ui/premium-stat-card';
 import { PremiumEmptyState } from '@/components/ui/premium-empty-state';
 import {
   GlassCard,
@@ -17,7 +16,7 @@ import {
   GlassCardAction,
 } from '@/components/ui/glass-card';
 import { BlurFade } from '@/components/ui/blur-fade';
-import { ShimmerButton } from '@/components/ui/shimmer-button';
+import { NumberTicker } from '@/components/ui/number-ticker';
 import Image from 'next/image';
 import {
   FileText,
@@ -25,8 +24,6 @@ import {
   Target,
   Calendar,
   ArrowUpRight,
-  AlertTriangle,
-  Clock,
   Plus,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -44,30 +41,6 @@ const statusMap: Record<
   WON: { label: 'Κερδηθηκε', variant: 'success' },
   LOST: { label: 'Χαθηκε', variant: 'destructive' },
 };
-
-/* ------------------------------------------------------------------ */
-/*  Compliance bar                                                     */
-/* ------------------------------------------------------------------ */
-function ComplianceBar({ score }: { score: number }) {
-  const color =
-    score >= 80
-      ? 'bg-gradient-to-r from-emerald-400 to-emerald-600'
-      : score >= 60
-        ? 'bg-gradient-to-r from-amber-400 to-amber-600'
-        : 'bg-gradient-to-r from-red-400 to-red-600';
-
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-2 w-24 overflow-hidden rounded-full bg-muted">
-        <div
-          className={cn('h-full rounded-full transition-all duration-500', color)}
-          style={{ width: `${score}%` }}
-        />
-      </div>
-      <span className="text-xs font-medium text-muted-foreground">{score}%</span>
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /*  Main dashboard                                                     */
@@ -130,10 +103,6 @@ export default function DashboardPage() {
     return items.slice(0, 5);
   }, [recentTenders]);
 
-  /* ---- Compliance color ---- */
-  const complianceColor =
-    complianceScore >= 70 ? '#22C55E' : '#EF4444';
-
   /* ---- Stats config ---- */
   const statsCards = [
     {
@@ -141,63 +110,38 @@ export default function DashboardPage() {
       value: activeTenders,
       subtitle: 'Τρεχοντες διαγωνισμοι',
       icon: FileText,
-      accentColor: '#3B82F6',
-      borderColor: 'border-l-[#3B82F6]',
-      bgCircle: 'bg-blue-500/10',
-      textCircle: 'text-blue-500',
     },
     {
       title: 'Εκκρεμεις Εργασιες',
       value: pendingTasks,
       subtitle: 'Αναμενουν ενεργεια',
       icon: CheckSquare,
-      accentColor: '#F59E0B',
-      borderColor: 'border-l-[#F59E0B]',
-      bgCircle: 'bg-amber-500/10',
-      textCircle: 'text-amber-500',
     },
     {
-      title: 'Μεσο Compliance Score',
-      value: `${complianceScore}%`,
+      title: 'Compliance Score',
+      value: complianceScore,
       subtitle: complianceScore >= 70 ? 'Σε καλο επιπεδο' : 'Χρειαζεται βελτιωση',
       icon: Target,
-      accentColor: complianceColor,
-      borderColor:
-        complianceScore >= 70
-          ? 'border-l-[#22C55E]'
-          : 'border-l-[#EF4444]',
-      bgCircle:
-        complianceScore >= 70
-          ? 'bg-emerald-500/10'
-          : 'bg-red-500/10',
-      textCircle:
-        complianceScore >= 70
-          ? 'text-emerald-500'
-          : 'text-red-500',
-      isCompliance: true,
+      suffix: '%',
     },
     {
       title: 'Προσεχεις Deadlines',
       value: upcomingDeadlinesCount,
       subtitle: 'Εντος 30 ημερων',
       icon: Calendar,
-      accentColor: '#F97316',
-      borderColor: 'border-l-orange-500',
-      bgCircle: 'bg-orange-500/10',
-      textCircle: 'text-orange-500',
     },
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {/* ====== Welcome Section ====== */}
       <BlurFade delay={0} inView>
         <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <GradientHeading as="h1" className="text-3xl">
+          <div className="space-y-2">
+            <h1 className="text-display text-foreground">
               Καλως ηρθατε, {firstName}
-            </GradientHeading>
-            <p className="text-muted-foreground">
+            </h1>
+            <p className="text-body text-muted-foreground">
               Ακολουθει η συνοψη των διαγωνισμων σας.
             </p>
           </div>
@@ -211,72 +155,66 @@ export default function DashboardPage() {
             />
           </div>
         </div>
-        <div className="flex flex-wrap gap-3 mt-4">
+        <div className="flex flex-wrap gap-3 mt-6">
           <Link href="/tenders/new">
-            <ShimmerButton
-              shimmerColor="#06B6D4"
-              shimmerSize="0.05em"
-              background="linear-gradient(135deg, #3B82F6, #06B6D4)"
-              className="px-5 py-2 text-sm font-semibold cursor-pointer"
-            >
+            <Button variant="default" className="px-5 py-2 text-sm font-semibold cursor-pointer">
               <Plus className="h-4 w-4 mr-1.5" />
               Νέος Διαγωνισμός
-            </ShimmerButton>
+            </Button>
           </Link>
         </div>
       </BlurFade>
 
       {/* ====== Stats Grid ====== */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => (
               <BlurFade key={i} delay={0.15 + i * 0.08} inView>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 animate-pulse">
-                  <div className="h-4 w-28 bg-muted rounded mb-3" />
+                <div className="rounded-xl surface-elevated p-6 animate-pulse">
+                  <div className="h-3 w-24 bg-muted rounded mb-4" />
                   <div className="h-8 w-16 bg-muted rounded mb-2" />
-                  <div className="h-3 w-36 bg-muted rounded" />
+                  <div className="h-3 w-32 bg-muted rounded" />
                 </div>
               </BlurFade>
             ))
-          : statsCards.map((card, i) => (
-              <PremiumStatCard
-                key={card.title}
-                title={card.title}
-                value={card.isCompliance ? complianceScore : card.value as number}
-                subtitle={card.subtitle}
-                icon={card.icon}
-                accentColor={card.accentColor}
-                borderColor={card.borderColor}
-                bgCircle={card.bgCircle}
-                textCircle={card.textCircle}
-                showProgressRing={card.isCompliance}
-                progressValue={card.isCompliance ? complianceScore : undefined}
-                blurFadeDelay={0.15 + i * 0.08}
-              />
-            ))}
+          : statsCards.map((card, i) => {
+              const Icon = card.icon;
+              return (
+                <BlurFade key={card.title} delay={0.15 + i * 0.08} inView>
+                  <div className="rounded-xl surface-elevated p-6 transition-all duration-200 hover:bg-secondary/80 cursor-default">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-overline">{card.title}</span>
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="text-3xl font-semibold tracking-tight tabular-nums text-foreground">
+                      <NumberTicker value={card.value} delay={0.2} />
+                      {card.suffix && <span>{card.suffix}</span>}
+                    </div>
+                    <p className="text-caption mt-1">{card.subtitle}</p>
+                  </div>
+                </BlurFade>
+              );
+            })}
       </div>
 
       {/* ====== Recent Tenders + Upcoming Deadlines ====== */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3">
         {/* Recent Tenders - 2 cols */}
-        <GlassCard className="lg:col-span-2">
-          <GlassCardHeader>
-            <GlassCardTitle>Προσφατοι Διαγωνισμοι</GlassCardTitle>
-            <GlassCardAction>
-              <Link
-                href="/tenders"
-                className="flex items-center gap-1 text-sm font-medium text-[#3B82F6] transition-colors duration-200 hover:text-[#1E40AF] cursor-pointer"
-              >
-                Ολοι
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            </GlassCardAction>
-          </GlassCardHeader>
-          <GlassCardContent>
+        <div className="lg:col-span-2 rounded-xl surface-elevated">
+          <div className="flex items-center justify-between px-6 pt-6 pb-4">
+            <h2 className="text-title text-foreground">Προσφατοι Διαγωνισμοι</h2>
+            <Link
+              href="/tenders"
+              className="text-caption text-primary hover:text-primary/80 transition-colors cursor-pointer"
+            >
+              Ολοι &rarr;
+            </Link>
+          </div>
+          <div className="px-6 pb-6">
             {isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                  <Skeleton key={i} className="h-14 w-full rounded-lg" />
                 ))}
               </div>
             ) : recentTenders.length === 0 ? (
@@ -287,7 +225,7 @@ export default function DashboardPage() {
                 action={{ label: 'Νέος Διαγωνισμός', href: '/tenders/new' }}
               />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {recentTenders.map((tender: any, i: number) => {
                   const status =
                     statusMap[tender.status] || statusMap.DRAFT;
@@ -299,31 +237,39 @@ export default function DashboardPage() {
                       <Link
                         href={`/tenders/${tender.id}`}
                         className={cn(
-                          'flex items-center justify-between rounded-xl px-4 py-3',
-                          'border border-white/10 dark:border-white/5',
-                          'bg-white/40 dark:bg-white/[0.03]',
-                          'transition-all duration-200',
-                          'hover:bg-white/70 dark:hover:bg-white/[0.08]',
-                          'hover:shadow-md',
+                          'flex items-center justify-between rounded-lg p-4',
+                          'transition-colors duration-150',
+                          'hover:bg-secondary/50',
                           'cursor-pointer group/row'
                         )}
                       >
                         <div className="min-w-0 flex-1 space-y-1">
                           <div className="flex items-center gap-2">
-                            <p className="truncate text-sm font-medium group-hover/row:text-[#1E40AF] dark:group-hover/row:text-[#3B82F6] transition-colors">
+                            <p className="truncate text-sm font-medium text-foreground group-hover/row:text-primary transition-colors">
                               {tender.title}
                             </p>
                             <Badge variant={status.variant} className="shrink-0">
                               {status.label}
                             </Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-caption">
                             {tender.referenceNumber} &middot; Υποβολη:{' '}
                             {formatDate(tender.submissionDeadline)}
                           </p>
                         </div>
                         <div className="ml-4 shrink-0">
-                          <ComplianceBar score={score} />
+                          <span
+                            className={cn(
+                              'text-caption font-medium tabular-nums',
+                              score >= 80
+                                ? 'text-emerald-500'
+                                : score >= 60
+                                  ? 'text-amber-500'
+                                  : 'text-red-500'
+                            )}
+                          >
+                            {score}%
+                          </span>
                         </div>
                       </Link>
                     </BlurFade>
@@ -331,28 +277,25 @@ export default function DashboardPage() {
                 })}
               </div>
             )}
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </div>
 
         {/* Upcoming Deadlines - 1 col */}
-        <GlassCard>
-          <GlassCardHeader>
-            <GlassCardTitle>Προσεχεις Deadlines</GlassCardTitle>
-            <GlassCardAction>
-              <Link
-                href="/tenders"
-                className="flex items-center gap-1 text-sm font-medium text-[#F97316] transition-colors duration-200 hover:text-[#EA580C] cursor-pointer"
-              >
-                Ολα
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            </GlassCardAction>
-          </GlassCardHeader>
-          <GlassCardContent>
+        <div className="rounded-xl surface-elevated">
+          <div className="flex items-center justify-between px-6 pt-6 pb-4">
+            <h2 className="text-title text-foreground">Προσεχεις Deadlines</h2>
+            <Link
+              href="/tenders"
+              className="text-caption text-primary hover:text-primary/80 transition-colors cursor-pointer"
+            >
+              Ολα &rarr;
+            </Link>
+          </div>
+          <div className="px-6 pb-6">
             {isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-14 w-full rounded-xl" />
+                  <Skeleton key={i} className="h-12 w-full rounded-lg" />
                 ))}
               </div>
             ) : upcomingDeadlines.length === 0 ? (
@@ -362,53 +305,34 @@ export default function DashboardPage() {
                 description="Δεν υπάρχουν προσεχείς deadlines."
               />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {upcomingDeadlines.map((item: any, i: number) => (
                   <BlurFade key={item.id} delay={0.3 + i * 0.05} inView>
                     <Link
                       href={`/tenders/${item.id}`}
                       className={cn(
-                        'flex items-center gap-3 rounded-xl px-4 py-3',
-                        'border border-white/10 dark:border-white/5',
-                        'bg-white/40 dark:bg-white/[0.03]',
-                        'transition-all duration-200',
-                        'hover:bg-white/70 dark:hover:bg-white/[0.08]',
-                        'hover:shadow-md',
-                        'cursor-pointer group/deadline'
+                        'flex items-center justify-between rounded-lg p-4',
+                        'transition-colors duration-150',
+                        'hover:bg-secondary/50',
+                        'cursor-pointer'
                       )}
                     >
-                      <div
-                        className={cn(
-                          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
-                          'transition-transform duration-200 group-hover/deadline:scale-110',
-                          item.urgent
-                            ? 'bg-red-500/10 text-red-500'
-                            : 'bg-amber-500/10 text-amber-500'
-                        )}
-                      >
-                        {item.urgent ? (
-                          <AlertTriangle className="h-4 w-4" />
-                        ) : (
-                          <Clock className="h-4 w-4" />
-                        )}
-                      </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
+                        <p className="truncate text-sm font-medium text-foreground">
                           {item.title}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-caption">
                           {formatDate(item.deadline)}
                         </p>
                       </div>
                       <span
                         className={cn(
-                          'shrink-0 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums',
-                          'transition-colors duration-200',
-                          item.urgent
-                            ? 'bg-red-500/10 text-red-500'
+                          'shrink-0 text-sm font-medium tabular-nums',
+                          item.daysLeft <= 7
+                            ? 'text-red-500'
                             : item.daysLeft <= 30
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                              : 'bg-muted text-muted-foreground'
+                              ? 'text-amber-500'
+                              : 'text-muted-foreground'
                         )}
                       >
                         {item.daysLeft}d
@@ -418,8 +342,8 @@ export default function DashboardPage() {
                 ))}
               </div>
             )}
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </div>
       </div>
     </div>
   );

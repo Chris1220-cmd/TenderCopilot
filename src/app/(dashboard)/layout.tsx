@@ -20,10 +20,10 @@ export default async function DashboardLayout({
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar />
-        <main className="relative flex-1 overflow-y-auto p-6 scrollbar-thin bg-muted/20 dark:bg-slate-950/50 bg-grid">
-          {/* Subtle radial glow in background */}
-          <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(59,130,246,0.06),transparent)] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(59,130,246,0.08),transparent)]" />
-          <div className="relative z-10">{children}</div>
+        <main className="relative flex-1 overflow-y-auto p-8 scrollbar-thin surface-0">
+          {/* Subtle gradient accent — top edge glow */}
+          <div className="pointer-events-none fixed inset-x-0 top-0 h-[300px] bg-gradient-to-b from-blue-500/[0.03] to-transparent" />
+          <div className="relative z-10 mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
       <Toaster />
