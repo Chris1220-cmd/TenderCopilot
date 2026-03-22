@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, type ComponentPropsWithoutRef } from "react"
-import { useInView, useMotionValue, useSpring } from "motion/react"
+import { useInView, useMotionValue, useReducedMotion, useSpring } from "motion/react"
 
 import { cn } from "@/lib/utils"
 
@@ -22,6 +22,7 @@ export function NumberTicker({
   decimalPlaces = 0,
   ...props
 }: NumberTickerProps) {
+  const prefersReducedMotion = useReducedMotion()
   const ref = useRef<HTMLSpanElement>(null)
   const motionValue = useMotionValue(direction === "down" ? value : startValue)
   const springValue = useSpring(motionValue, {
@@ -31,6 +32,7 @@ export function NumberTicker({
   const isInView = useInView(ref, { once: true, margin: "0px" })
 
   useEffect(() => {
+    if (prefersReducedMotion) return
     let timer: ReturnType<typeof setTimeout> | null = null
 
     if (isInView) {
@@ -44,20 +46,28 @@ export function NumberTicker({
         clearTimeout(timer)
       }
     }
-  }, [motionValue, isInView, delay, value, direction, startValue])
+  }, [motionValue, isInView, delay, value, direction, startValue, prefersReducedMotion])
 
   useEffect(
     () =>
       springValue.on("change", (latest) => {
-        if (ref.current) {
+        if (ref.current && !prefersReducedMotion) {
           ref.current.textContent = Intl.NumberFormat("en-US", {
             minimumFractionDigits: decimalPlaces,
             maximumFractionDigits: decimalPlaces,
           }).format(Number(latest.toFixed(decimalPlaces)))
         }
       }),
-    [springValue, decimalPlaces]
+    [springValue, decimalPlaces, prefersReducedMotion]
   )
+
+  if (prefersReducedMotion) {
+    return (
+      <span className={cn("inline-block tracking-wider text-black tabular-nums dark:text-white", className)} {...props}>
+        {Intl.NumberFormat("en-US", { minimumFractionDigits: decimalPlaces, maximumFractionDigits: decimalPlaces }).format(value)}
+      </span>
+    )
+  }
 
   return (
     <span

@@ -5,6 +5,7 @@ import {
   AnimatePresence,
   motion,
   useInView,
+  useReducedMotion,
   type MotionProps,
   type UseInViewOptions,
   type Variants,
@@ -44,6 +45,7 @@ export function BlurFade({
   blur = "6px",
   ...props
 }: BlurFadeProps) {
+  const prefersReducedMotion = useReducedMotion()
   const ref = useRef(null)
   const inViewResult = useInView(ref, { once: true, margin: inViewMargin })
   const isInView = !inView || inViewResult
@@ -61,6 +63,10 @@ export function BlurFade({
     },
   }
   const combinedVariants = variant ?? defaultVariants
+
+  if (prefersReducedMotion) {
+    return <div className={className}>{children}</div>
+  }
 
   const hiddenFilter = getFilter(combinedVariants.hidden)
   const visibleFilter = getFilter(combinedVariants.visible)
