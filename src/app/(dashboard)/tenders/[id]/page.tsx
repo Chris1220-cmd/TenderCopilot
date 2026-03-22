@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
+import { PremiumStatCard } from '@/components/ui/premium-stat-card';
+import { BlurFade } from '@/components/ui/blur-fade';
+import { ShimmerButton } from '@/components/ui/shimmer-button';
+import { AnimatedTabsTrigger } from '@/components/ui/animated-tabs';
 import { useToast } from '@/components/ui/use-toast';
 import {
   Dialog,
@@ -241,160 +243,171 @@ export default function TenderDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
-        <Link
-          href="/tenders"
-          className="hover:text-foreground transition-colors duration-200 cursor-pointer"
-        >
-          Διαγωνισμοί
-        </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
-        {isLoading ? (
-          <Skeleton className="h-4 w-48" />
-        ) : (
-          <span className="font-medium text-foreground truncate max-w-[400px]">
-            {tender?.title ?? '...'}
-          </span>
-        )}
-      </nav>
+      {/* Breadcrumb + Header */}
+      <BlurFade delay={0} inView>
+        <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Link
+            href="/tenders"
+            className="hover:text-foreground transition-colors duration-200 cursor-pointer"
+          >
+            Διαγωνισμοί
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          {isLoading ? (
+            <Skeleton className="h-4 w-48" />
+          ) : (
+            <span className="font-medium text-foreground truncate max-w-[400px]">
+              {tender?.title ?? '...'}
+            </span>
+          )}
+        </nav>
 
-      {/* Header */}
-      {isLoading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-8 w-3/4" />
-          <div className="flex gap-2">
-            <Skeleton className="h-6 w-24" />
-            <Skeleton className="h-6 w-20" />
-            <Skeleton className="h-6 w-32" />
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight leading-tight">
-              {tender?.title}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge type="tender" value={tender?.status} />
-              <StatusBadge type="platform" value={tender?.platform} />
-              {tender?.referenceNumber && (
-                <span className="text-xs font-mono text-muted-foreground bg-muted rounded-md px-2 py-0.5">
-                  {tender.referenceNumber}
-                </span>
-              )}
+        {/* Header */}
+        <div className="mt-6">
+          {isLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-8 w-3/4" />
+              <div className="flex gap-2">
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-6 w-32" />
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-2">
+                <h1 className="text-2xl font-bold tracking-tight leading-tight">
+                  {tender?.title}
+                </h1>
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge type="tender" value={tender?.status} />
+                  <StatusBadge type="platform" value={tender?.platform} />
+                  {tender?.referenceNumber && (
+                    <span className="text-xs font-mono text-muted-foreground bg-muted rounded-md px-2 py-0.5">
+                      {tender.referenceNumber}
+                    </span>
+                  )}
+                </div>
+              </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Prominent full analysis button */}
-            <Button
-              size="sm"
-              className={cn(
-                'cursor-pointer gap-1.5 h-9',
-                'bg-gradient-to-r from-indigo-600 to-violet-600',
-                'hover:from-indigo-500 hover:to-violet-500',
-                'shadow-sm shadow-indigo-500/25',
-                'border-0 text-white'
-              )}
-              disabled={!!analysisStep}
-              onClick={handleRunFullAnalysis}
-            >
-              {analysisStep ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  {analysisStep}
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Ανάλυση Διαγωνισμού
-                </>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="cursor-pointer gap-1.5 h-9"
-              onClick={() => setActiveTab('overview')}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Επεξεργασία
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="cursor-pointer gap-1.5 h-9"
-              disabled={complianceMutation.isPending}
-              onClick={() => {
-                complianceMutation.mutate({ tenderId });
-                setActiveTab('requirements');
-              }}
-            >
-              {complianceMutation.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <ShieldCheck className="h-3.5 w-3.5" />
-              )}
-              Έλεγχος Συμμόρφωσης
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="cursor-pointer gap-1.5 h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Διαγραφή
-            </Button>
-          </div>
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Prominent full analysis button */}
+                <ShimmerButton
+                  shimmerColor="#06B6D4"
+                  shimmerSize="0.05em"
+                  background="linear-gradient(135deg, #6366F1, #8B5CF6)"
+                  className="h-9 px-4 text-sm font-semibold cursor-pointer gap-1.5"
+                  disabled={!!analysisStep}
+                  onClick={handleRunFullAnalysis}
+                >
+                  {analysisStep ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      {analysisStep}
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Ανάλυση Διαγωνισμού
+                    </>
+                  )}
+                </ShimmerButton>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="cursor-pointer gap-1.5 h-9"
+                  onClick={() => setActiveTab('overview')}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Επεξεργασία
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="cursor-pointer gap-1.5 h-9"
+                  disabled={complianceMutation.isPending}
+                  onClick={() => {
+                    complianceMutation.mutate({ tenderId });
+                    setActiveTab('requirements');
+                  }}
+                >
+                  {complianceMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                  )}
+                  Έλεγχος Συμμόρφωσης
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="cursor-pointer gap-1.5 h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Διαγραφή
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </BlurFade>
 
       {/* Stats Row */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <Skeleton className="h-10 w-10 rounded-lg" />
-                  <div className="space-y-1.5">
-                    <Skeleton className="h-3 w-20" />
-                    <Skeleton className="h-6 w-12" />
+              <BlurFade key={i} delay={0.1 + i * 0.08} inView>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-muted" />
+                    <div className="space-y-1.5">
+                      <div className="h-3 w-20 bg-muted rounded" />
+                      <div className="h-6 w-12 bg-muted rounded" />
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </BlurFade>
             ))
-          : stats.map((stat, i) => (
-              <Card
-                key={i}
-                className={cn(
-                  'transition-all duration-200',
-                  'hover:shadow-md hover:border-primary/15',
-                  'bg-gradient-to-br from-background to-muted/30'
-                )}
-              >
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div
-                    className={cn(
-                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
-                      stat.bgColor
-                    )}
-                  >
-                    <stat.icon className={cn('h-5 w-5', stat.color)} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground">
-                      {stat.label}
-                    </p>
-                    <p className={cn('text-xl font-bold tabular-nums', stat.color)}>
-                      {stat.value}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          : stats.map((stat, i) => {
+              const accentMap: Record<string, string> = {
+                'Compliance Score':
+                  (tender?.complianceScore ?? 0) >= 75
+                    ? '#10B981'
+                    : (tender?.complianceScore ?? 0) >= 50
+                      ? '#F59E0B'
+                      : '#EF4444',
+                'Απαιτήσεις': '#3B82F6',
+                'Εργασίες': '#8B5CF6',
+                'Έγγραφα': '#06B6D4',
+              };
+              const borderMap: Record<string, string> = {
+                'Compliance Score':
+                  (tender?.complianceScore ?? 0) >= 75
+                    ? 'border-l-emerald-500'
+                    : (tender?.complianceScore ?? 0) >= 50
+                      ? 'border-l-amber-500'
+                      : 'border-l-red-500',
+                'Απαιτήσεις': 'border-l-blue-500',
+                'Εργασίες': 'border-l-violet-500',
+                'Έγγραφα': 'border-l-cyan-500',
+              };
+              return (
+                <PremiumStatCard
+                  key={i}
+                  title={stat.label}
+                  value={stat.value}
+                  icon={stat.icon}
+                  accentColor={accentMap[stat.label] ?? '#3B82F6'}
+                  borderColor={borderMap[stat.label] ?? 'border-l-blue-500'}
+                  bgCircle={stat.bgColor}
+                  textCircle={stat.color}
+                  blurFadeDelay={0.1 + i * 0.08}
+                  showNumberTicker={stat.label !== 'Compliance Score'}
+                />
+              );
+            })}
       </div>
 
       {/* Missing Info Panel — always visible above tabs */}
@@ -405,88 +418,104 @@ export default function TenderDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger value="overview" className="gap-1.5 cursor-pointer">
+        <TabsList className="relative flex-wrap h-auto gap-1 p-1">
+          <AnimatedTabsTrigger value="overview" activeValue={activeTab}>
             <Eye className="h-3.5 w-3.5" />
             Επισκόπηση
-          </TabsTrigger>
-          <TabsTrigger value="requirements" className="gap-1.5 cursor-pointer">
+          </AnimatedTabsTrigger>
+          <AnimatedTabsTrigger value="requirements" activeValue={activeTab}>
             <ClipboardList className="h-3.5 w-3.5" />
             Απαιτήσεις
-          </TabsTrigger>
-          <TabsTrigger value="documents" className="gap-1.5 cursor-pointer">
+          </AnimatedTabsTrigger>
+          <AnimatedTabsTrigger value="documents" activeValue={activeTab}>
             <FileText className="h-3.5 w-3.5" />
             Έγγραφα
-          </TabsTrigger>
-          <TabsTrigger value="tasks" className="gap-1.5 cursor-pointer">
+          </AnimatedTabsTrigger>
+          <AnimatedTabsTrigger value="tasks" activeValue={activeTab}>
             <ListTodo className="h-3.5 w-3.5" />
             Εργασίες
-          </TabsTrigger>
-          <TabsTrigger value="legal" className="gap-1.5 cursor-pointer">
+          </AnimatedTabsTrigger>
+          <AnimatedTabsTrigger value="legal" activeValue={activeTab}>
             <Scale className="h-3.5 w-3.5" />
             Νομικά & Σύμβαση
-          </TabsTrigger>
-          <TabsTrigger value="financial" className="gap-1.5 cursor-pointer">
+          </AnimatedTabsTrigger>
+          <AnimatedTabsTrigger value="financial" activeValue={activeTab}>
             <Banknote className="h-3.5 w-3.5" />
             Οικονομικά
-          </TabsTrigger>
-          <TabsTrigger value="technical" className="gap-1.5 cursor-pointer">
+          </AnimatedTabsTrigger>
+          <AnimatedTabsTrigger value="technical" activeValue={activeTab}>
             <Wrench className="h-3.5 w-3.5" />
             Τεχνική Πρόταση
-          </TabsTrigger>
-          <TabsTrigger value="activity" className="gap-1.5 cursor-pointer">
+          </AnimatedTabsTrigger>
+          <AnimatedTabsTrigger value="activity" activeValue={activeTab}>
             <Activity className="h-3.5 w-3.5" />
             Δραστηριότητα
-          </TabsTrigger>
+          </AnimatedTabsTrigger>
         </TabsList>
 
         {/* Overview Tab - Now includes AI Brief + Go/No-Go panels */}
         <TabsContent value="overview">
-          {isLoading ? (
-            <OverviewTabSkeleton />
-          ) : (
-            <div className="space-y-6">
-              {/* AI Panels Row */}
-              <div className="grid gap-4 lg:grid-cols-2">
-                <AIBriefPanel tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
-                <GoNoGoPanel tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
-              </div>
+          <BlurFade key={`tab-overview-${activeTab}`} delay={0.05} inView>
+            {isLoading ? (
+              <OverviewTabSkeleton />
+            ) : (
+              <div className="space-y-6">
+                {/* AI Panels Row */}
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <AIBriefPanel tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
+                  <GoNoGoPanel tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
+                </div>
 
-              {/* Existing Overview Content */}
-              <OverviewTab tender={tender} />
-            </div>
-          )}
+                {/* Existing Overview Content */}
+                <OverviewTab tender={tender} />
+              </div>
+            )}
+          </BlurFade>
         </TabsContent>
 
         <TabsContent value="requirements">
-          <RequirementsTab tenderId={tenderId} />
+          <BlurFade key={`tab-requirements-${activeTab}`} delay={0.05} inView>
+            <RequirementsTab tenderId={tenderId} />
+          </BlurFade>
         </TabsContent>
 
         <TabsContent value="documents">
-          <DocumentsTab tenderId={tenderId} />
+          <BlurFade key={`tab-documents-${activeTab}`} delay={0.05} inView>
+            <DocumentsTab tenderId={tenderId} />
+          </BlurFade>
         </TabsContent>
 
         <TabsContent value="tasks">
-          <TasksTab tenderId={tenderId} />
+          <BlurFade key={`tab-tasks-${activeTab}`} delay={0.05} inView>
+            <TasksTab tenderId={tenderId} />
+          </BlurFade>
         </TabsContent>
 
-        {/* New: Legal & Contract Tab */}
+        {/* Legal & Contract Tab */}
         <TabsContent value="legal">
-          <LegalTab tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
+          <BlurFade key={`tab-legal-${activeTab}`} delay={0.05} inView>
+            <LegalTab tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
+          </BlurFade>
         </TabsContent>
 
-        {/* New: Financial Tab */}
+        {/* Financial Tab */}
         <TabsContent value="financial">
-          <FinancialTab tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
+          <BlurFade key={`tab-financial-${activeTab}`} delay={0.05} inView>
+            <FinancialTab tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
+          </BlurFade>
         </TabsContent>
 
-        {/* New: Enhanced Technical Tab */}
+        {/* Enhanced Technical Tab */}
         <TabsContent value="technical">
-          <TechnicalTabEnhanced tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
+          <BlurFade key={`tab-technical-${activeTab}`} delay={0.05} inView>
+            <TechnicalTabEnhanced tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
+          </BlurFade>
         </TabsContent>
 
         <TabsContent value="activity">
-          <ActivityTab tenderId={tenderId} />
+          <BlurFade key={`tab-activity-${activeTab}`} delay={0.05} inView>
+            <ActivityTab tenderId={tenderId} />
+          </BlurFade>
         </TabsContent>
       </Tabs>
 
