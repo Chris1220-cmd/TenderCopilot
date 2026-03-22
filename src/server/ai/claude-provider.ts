@@ -35,15 +35,24 @@ export class ClaudeProvider implements AIProvider {
       body.temperature = options.temperature;
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify(body),
-    });
+    let response: Response;
+    try {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': this.apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(50_000), // 50s timeout to stay within Vercel's 60s limit
+      });
+    } catch (err: any) {
+      if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
+        throw new Error('Η κλήση AI έληξε λόγω χρονικού ορίου (timeout). Δοκιμάστε με μικρότερο έγγραφο ή ξαναπροσπαθήστε.');
+      }
+      throw err;
+    }
 
     if (!response.ok) {
       const errorText = await response.text();

@@ -510,9 +510,9 @@ class AIBidOrchestrator {
       let documentText = docsWithText
         .map((d) => `\n--- ${d.fileName} ---\n${d.extractedText}`)
         .join('\n');
-      // Limit to 80K chars to avoid Vercel 60s timeout
-      if (documentText.length > 80000) {
-        documentText = documentText.slice(0, 80000) + '\n\n[...κείμενο περικόπηκε λόγω μεγέθους]';
+      // Limit to 50K chars to stay within Vercel 60s timeout
+      if (documentText.length > 50000) {
+        documentText = documentText.slice(0, 50000) + '\n\n[...κείμενο περικόπηκε λόγω μεγέθους]';
       }
       _log(`documents read: ${documentText.length} chars`);
       const fullText = documentText
@@ -532,10 +532,8 @@ class AIBidOrchestrator {
         const chunks = chunkText(fullText);
         console.log(`[BidOrchestrator] Chunking document into ${chunks.length} parts for brief analysis`);
 
-        // Process each chunk and collect partial results
-        const partialResults: TenderBriefData[] = [];
-        for (let i = 0; i < chunks.length; i++) {
-          const chunk = chunks[i];
+        // Process chunks in parallel to stay within Vercel 60s timeout
+        const chunkPromises = chunks.map(async (chunk, i) => {
           const result = await ai().complete({
             messages: [
               { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT + `\n\n${langInstruction}` },
@@ -556,12 +554,15 @@ class AIBidOrchestrator {
           });
 
           try {
-            const partial = parseAIResponse<TenderBriefData>(result.content, ['summaryText', 'keyPoints'], `brief chunk ${i + 1}`);
-            partialResults.push(partial);
+            return parseAIResponse<TenderBriefData>(result.content, ['summaryText', 'keyPoints'], `brief chunk ${i + 1}`);
           } catch (err) {
             console.warn(`[BidOrchestrator] Chunk ${i + 1} parse error, skipping:`, err);
+            return null;
           }
-        }
+        });
+
+        const settled = await Promise.all(chunkPromises);
+        const partialResults = settled.filter((r): r is TenderBriefData => r !== null);
 
         if (partialResults.length === 0) {
           throw new Error('Η AI ανάλυση απέτυχε σε όλα τα τμήματα του εγγράφου.');
