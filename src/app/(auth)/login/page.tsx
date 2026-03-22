@@ -14,6 +14,7 @@ import { LanguageToggle } from '@/components/ui/language-toggle';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
+  Sparkles,
   Mail,
   Lock,
   Eye,
