@@ -80,13 +80,18 @@ export async function POST(req: NextRequest) {
       data: { tenderId, tenantId, role: 'user', content: question },
     });
 
-    // 6. Build context + smart history in parallel
+    // 6. Detect locale from Accept-Language header
+    const acceptLang = req.headers.get('accept-language') || '';
+    const locale = (acceptLang.startsWith('en') ? 'en' : 'el') as 'el' | 'en';
+
+    // 7. Build context + smart history in parallel
     const [context, { summary, recentMessages }] = await Promise.all([
-      buildContext(tenderId, tenantId, question),
+      buildContext(tenderId, tenantId, question, locale),
       getSmartHistory(tenderId, tenantId),
     ]);
 
-    // 7. Assemble messages with optional summary context
+    // 8. Assemble messages with optional summary context
+    const questionLabel = locale === 'en' ? 'QUESTION' : 'ΕΡΩΤΗΣΗ';
     const messages = [
       { role: 'system' as const, content: context.systemPrompt },
       ...(summary ? [
@@ -96,7 +101,7 @@ export async function POST(req: NextRequest) {
       ...recentMessages,
       {
         role: 'user' as const,
-        content: `CONTEXT:\n${context.contextText}\n\nΕΡΩΤΗΣΗ: ${question}`,
+        content: `CONTEXT:\n${context.contextText}\n\n${questionLabel}: ${question}`,
       },
     ];
 

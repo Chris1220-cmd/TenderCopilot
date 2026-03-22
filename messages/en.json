@@ -143,5 +143,32 @@
     "company": "Company",
     "legal": "Legal",
     "poweredByAI": "Powered by AI"
+  },
+  "chat": {
+    "title": "AI Assistant",
+    "subtitle": "Tender Copilot Assistant",
+    "tab_chat": "Chat",
+    "tab_actions": "Actions",
+    "tab_reminders": "Reminders",
+    "placeholder": "Type a question...",
+    "welcome": "Ask anything about this tender",
+    "welcome_sub": "Use quick questions or write your own",
+    "quick_q_missing": "What's missing?",
+    "quick_q_ready": "Are we ready?",
+    "quick_q_delayed": "Which tasks are delayed?",
+    "quick_q_compliance": "What's our compliance status?",
+    "quick_questions_label": "Quick Questions",
+    "confidence_verified": "Verified",
+    "confidence_inferred": "Inferred",
+    "confidence_general": "General",
+    "sources_label": "Sources",
+    "no_actions": "No pending actions",
+    "no_reminders": "No reminders",
+    "actions_title": "Suggested Actions",
+    "reminders_title": "Reminders & Deadlines",
+    "overdue": "Overdue",
+    "in_days": "in {count} days",
+    "error_generic": "An error occurred. Please try again.",
+    "daily_limit": "Daily AI limit reached"
   }
 }

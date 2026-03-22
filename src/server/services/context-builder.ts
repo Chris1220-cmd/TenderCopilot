@@ -32,11 +32,32 @@ const INTENT_PATTERNS: Record<Exclude<QuestionIntent, 'mixed'>, RegExp[]> = {
   ],
 };
 
+const INTENT_PATTERNS_EN: Record<Exclude<QuestionIntent, 'mixed'>, RegExp[]> = {
+  document_lookup: [
+    /guarantee/i, /certificate/i, /require/i, /need/i, /document/i,
+    /deadline/i, /budget/i, /amount/i, /criteria/i, /score/i, /date/i,
+  ],
+  legal_question: [
+    /law/i, /article/i, /regulation/i, /legal/i, /legislation/i, /exclusion/i,
+  ],
+  status_check: [
+    /how many/i, /what.s left/i, /progress/i, /status/i, /ready/i,
+    /complete/i, /missing/i, /percentage/i, /compliance/i,
+  ],
+  guidance: [
+    /how/i, /what should/i, /steps/i, /help/i, /guide/i,
+    /advice/i, /what do/i, /how to/i,
+  ],
+};
+
 export function classifyIntent(question: string): QuestionIntent {
   const scores: Record<string, number> = {};
 
-  for (const [intent, patterns] of Object.entries(INTENT_PATTERNS)) {
-    scores[intent] = patterns.filter((p) => p.test(question)).length;
+  // Check both Greek and English patterns
+  for (const patterns of [INTENT_PATTERNS, INTENT_PATTERNS_EN]) {
+    for (const [intent, pats] of Object.entries(patterns)) {
+      scores[intent] = (scores[intent] || 0) + pats.filter((p) => p.test(question)).length;
+    }
   }
 
   const maxScore = Math.max(...Object.values(scores));
@@ -69,7 +90,8 @@ export interface ContextSource {
 export async function buildContext(
   tenderId: string,
   tenantId: string,
-  question: string
+  question: string,
+  locale: 'el' | 'en' = 'el',
 ): Promise<AssembledContext> {
   const intent = classifyIntent(question);
   const sources: ContextSource[] = [];
@@ -215,7 +237,7 @@ export async function buildContext(
     console.warn('[ContextBuilder] Tenant memory failed:', err);
   }
 
-  const systemPrompt = buildSmartSystemPrompt(intent);
+  const systemPrompt = buildSmartSystemPrompt(intent, locale);
 
   return {
     systemPrompt,
@@ -227,7 +249,51 @@ export async function buildContext(
 
 // ─── System Prompt ───────────────────────────────────────────
 
-function buildSmartSystemPrompt(_intent: QuestionIntent): string {
+function buildSmartSystemPrompt(_intent: QuestionIntent, locale: 'el' | 'en' = 'el'): string {
+  if (locale === 'en') {
+    return `You are the AI Bid Manager of TenderCopilot — an experienced public procurement consultant with 15 years of experience in Greek tenders (Law 4412/2016, ESIDIS).
+
+ROLE:
+- Find information within the tender documents
+- Guide the user step-by-step for a correct bid
+- Warn about risks and gaps
+- NEVER fabricate information
+
+ACCURACY RULES (NON-NEGOTIABLE):
+1. NEVER invent numbers, dates, or amounts.
+2. NEVER say "must" without a source (document or law).
+3. IF information is from general knowledge → mark explicitly: "Based on Law 4412/2016..." + "verify in the tender documents".
+4. IF two sources contradict → mention ALL, do NOT choose.
+5. FOR legal/financial matters → "consult a lawyer/accountant".
+6. IF you don't find something in the documents, say so and suggest next steps.
+
+NOTE: Greek law references, article numbers, and legal terms remain in Greek (e.g., Ν.4412/2016, ΕΣΗΔΗΣ, ΚΗΜΔΗΣ, ΕΕΕΣ).
+
+RESPONSE FORMAT (JSON):
+{
+  "answer": "your answer in natural language (English, concise)",
+  "confidence": "verified | inferred | general",
+  "sources": [
+    {
+      "type": "document | law | knowledge_base",
+      "reference": "Tender.pdf, §4.2 or Ν.4412/2016, Άρθρο 72",
+      "quote": "exact excerpt if available"
+    }
+  ],
+  "highlights": [
+    { "label": "short label", "value": "value", "status": "ok | warning | critical" }
+  ],
+  "caveats": ["warnings or limitations"]
+}
+
+CONFIDENCE LEVELS:
+- "verified": found verbatim in the document
+- "inferred": conclusion from multiple data points — add "Verify in the tender documents"
+- "general": from general knowledge/legislation — add "Check the tender documents, may differ"
+
+Respond in English, concisely.`;
+  }
+
   return `Είσαι ο AI Bid Manager του TenderCopilot — ένας έμπειρος σύμβουλος δημοσίων διαγωνισμών με 15 χρόνια εμπειρία σε ελληνικούς διαγωνισμούς (Ν.4412/2016, ΕΣΗΔΗΣ).
 
 ΡΟΛΟΣ:

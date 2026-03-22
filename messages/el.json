@@ -143,5 +143,32 @@
     "company": "Εταιρεία",
     "legal": "Νομικά",
     "poweredByAI": "Powered by AI"
+  },
+  "chat": {
+    "title": "AI Βοηθός",
+    "subtitle": "Tender Copilot Assistant",
+    "tab_chat": "Συνομιλία",
+    "tab_actions": "Ενέργειες",
+    "tab_reminders": "Υπενθυμίσεις",
+    "placeholder": "Γράψτε μια ερώτηση...",
+    "welcome": "Ρωτήστε οτιδήποτε για τον διαγωνισμό",
+    "welcome_sub": "Χρησιμοποιήστε τα γρήγορα ερωτήματα ή γράψτε δικά σας",
+    "quick_q_missing": "Τι λείπει;",
+    "quick_q_ready": "Είμαστε έτοιμοι;",
+    "quick_q_delayed": "Ποιες εργασίες καθυστερούν;",
+    "quick_q_compliance": "Πόσο compliance έχουμε;",
+    "quick_questions_label": "Γρήγορα Ερωτήματα",
+    "confidence_verified": "Verified",
+    "confidence_inferred": "Inferred",
+    "confidence_general": "General",
+    "sources_label": "Πηγές",
+    "no_actions": "Δεν υπάρχουν εκκρεμείς ενέργειες",
+    "no_reminders": "Δεν υπάρχουν υπενθυμίσεις",
+    "actions_title": "Προτεινόμενες Ενέργειες",
+    "reminders_title": "Υπενθυμίσεις & Προθεσμίες",
+    "overdue": "Εκπρόθεσμο",
+    "in_days": "σε {count} ημέρες",
+    "error_generic": "Σφάλμα κατά την επεξεργασία. Δοκιμάστε ξανά.",
+    "daily_limit": "Ημερήσιο όριο AI εξαντλήθηκε"
   }
 }

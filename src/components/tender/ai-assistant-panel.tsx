@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -207,12 +208,7 @@ async function streamChat(
   }
 }
 
-const quickQuestions = [
-  { text: 'Τι λείπει;', icon: HelpCircle },
-  { text: 'Είμαστε έτοιμοι;', icon: CheckSquare },
-  { text: 'Ποιες εργασίες καθυστερούν;', icon: Timer },
-  { text: 'Πόσο compliance έχουμε;', icon: ShieldCheck },
-];
+// quickQuestions moved inside component for i18n
 
 // ─── Floating Button ──────────────────────────────────────────
 interface AIAssistantButtonProps {
@@ -237,7 +233,7 @@ export function AIAssistantButton({ onClick }: AIAssistantButtonProps) {
         'cursor-pointer',
         'group'
       )}
-      aria-label="AI Βοηθός"
+      aria-label="AI Assistant"
     >
       <Sparkles className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />
 
@@ -260,6 +256,13 @@ interface AIAssistantPanelProps {
 }
 
 export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPanelProps) {
+  const t = useTranslations('chat');
+  const quickQuestions = [
+    { text: t('quick_q_missing'), icon: HelpCircle },
+    { text: t('quick_q_ready'), icon: CheckSquare },
+    { text: t('quick_q_delayed'), icon: Timer },
+    { text: t('quick_q_compliance'), icon: ShieldCheck },
+  ];
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -316,7 +319,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
       const errorMsg: ChatMessage = {
         id: `msg-${Date.now()}`,
         role: 'assistant',
-        content: err?.message ?? 'Σφάλμα κατά την επεξεργασία. Δοκιμάστε ξανά.',
+        content: err?.message ?? t('error_generic'),
         timestamp: new Date(),
       };
       setLocalMessages((prev) => [...prev, errorMsg]);
@@ -382,7 +385,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
         const errorMsg: ChatMessage = {
           id: `msg-${Date.now()}-error`,
           role: 'assistant',
-          content: error || 'Σφάλμα κατά την επεξεργασία. Δοκιμάστε ξανά.',
+          content: error || t('error_generic'),
           timestamp: new Date(),
         };
         setLocalMessages((prev) => [...prev, errorMsg]);
@@ -416,24 +419,24 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
               </div>
               <div>
                 <span className="bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-cyan-300">
-                  AI Βοηθός
+                  {t('title')}
                 </span>
                 <p className="text-[10px] text-muted-foreground font-normal">
-                  Tender Copilot Assistant
+                  {t('subtitle')}
                 </p>
               </div>
             </SheetTitle>
             <SheetDescription className="sr-only">
-              AI Βοηθός για τον διαγωνισμό
+              {t('title')}
             </SheetDescription>
           </SheetHeader>
 
           {/* Tab Bar */}
           <div className="flex gap-1 mt-3 bg-muted/30 rounded-lg p-0.5">
             {[
-              { key: 'chat' as const, label: 'Συνομιλία', icon: MessageCircle },
-              { key: 'actions' as const, label: 'Ενέργειες', icon: Lightbulb },
-              { key: 'reminders' as const, label: 'Υπενθυμίσεις', icon: Bell },
+              { key: 'chat' as const, label: t('tab_chat'), icon: MessageCircle },
+              { key: 'actions' as const, label: t('tab_actions'), icon: Lightbulb },
+              { key: 'reminders' as const, label: t('tab_reminders'), icon: Bell },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -482,10 +485,10 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                         />
                       </div>
                       <p className="text-sm font-medium text-muted-foreground mb-1">
-                        Ρωτήστε οτιδήποτε για τον διαγωνισμό
+                        {t('welcome')}
                       </p>
                       <p className="text-xs text-muted-foreground/60">
-                        Χρησιμοποιήστε τα γρήγορα ερωτήματα ή γράψτε δικά σας
+                        {t('welcome_sub')}
                       </p>
                     </div>
                   )}
@@ -529,9 +532,9 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                             msg.metadata.confidence === 'inferred' && "bg-amber-500/20 text-amber-600 dark:text-amber-300",
                             msg.metadata.confidence === 'general' && "bg-blue-500/20 text-blue-600 dark:text-blue-300",
                           )}>
-                            {msg.metadata.confidence === 'verified' && <><CheckCircle className="w-3 h-3" /> Verified</>}
-                            {msg.metadata.confidence === 'inferred' && <><AlertTriangle className="w-3 h-3" /> Inferred</>}
-                            {msg.metadata.confidence === 'general' && <><BookOpen className="w-3 h-3" /> General</>}
+                            {msg.metadata.confidence === 'verified' && <><CheckCircle className="w-3 h-3" /> {t('confidence_verified')}</>}
+                            {msg.metadata.confidence === 'inferred' && <><AlertTriangle className="w-3 h-3" /> {t('confidence_inferred')}</>}
+                            {msg.metadata.confidence === 'general' && <><BookOpen className="w-3 h-3" /> {t('confidence_general')}</>}
                           </span>
                         )}
 
@@ -539,7 +542,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                         {msg.role === 'assistant' && msg.metadata?.sources && msg.metadata.sources.length > 0 && (
                           <details className="mt-1.5">
                             <summary className="text-[10px] text-muted-foreground/60 cursor-pointer hover:text-muted-foreground transition-colors">
-                              Πηγές ({msg.metadata.sources.length})
+                              {t('sources_label')} ({msg.metadata.sources.length})
                             </summary>
                             <div className="mt-1 space-y-1">
                               {msg.metadata.sources.map((source: any, i: number) => (
@@ -666,7 +669,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                 <BlurFade delay={0.1} inView>
                   <div className="px-4 py-2 border-t border-border/30">
                     <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2">
-                      Γρήγορα Ερωτήματα
+                      {t('quick_questions_label')}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {quickQuestions.map((q) => (
@@ -705,7 +708,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Γράψτε μια ερώτηση..."
+                      placeholder={t('placeholder')}
                       disabled={isStreaming}
                       className={cn(
                         'w-full rounded-xl border px-4 py-2.5 text-xs',
@@ -747,7 +750,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
             <ScrollArea className="flex-1 px-4 py-4">
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Προτεινόμενες Ενέργειες
+                  {t('actions_title')}
                 </p>
                 {actions.map((action) => {
                   const pCfg = priorityConfig[action.priority];
@@ -798,7 +801,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                       <Image src="/images/illustrations/empty-actions.png" alt="" fill className="object-contain opacity-60" aria-hidden="true" />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Δεν υπάρχουν εκκρεμείς ενέργειες
+                      {t('no_actions')}
                     </p>
                   </div>
                 )}
@@ -811,7 +814,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
             <ScrollArea className="flex-1 px-4 py-4">
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Υπενθυμίσεις & Προθεσμίες
+                  {t('reminders_title')}
                 </p>
                 {reminders.map((reminder) => {
                   const pCfg = priorityConfig[reminder.priority];
@@ -865,7 +868,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                             </span>
                             {isOverdue && (
                               <Badge variant="outline" className="text-[9px] bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20">
-                                Εκπρόθεσμο
+                                {t('overdue')}
                               </Badge>
                             )}
                             {isUrgent && !isOverdue && (
@@ -875,7 +878,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                             )}
                             {!isUrgent && !isOverdue && (
                               <span className="text-[10px] text-muted-foreground/60">
-                                σε {daysUntil} ημέρες
+                                {t('in_days', { count: daysUntil })}
                               </span>
                             )}
                           </div>
@@ -897,7 +900,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                       <Image src="/images/illustrations/empty-reminders.png" alt="" fill className="object-contain opacity-60" aria-hidden="true" />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Δεν υπάρχουν υπενθυμίσεις
+                      {t('no_reminders')}
                     </p>
                   </div>
                 )}

@@ -68,13 +68,15 @@ export const chatRouter = router({
         data: { tenderId, tenantId, role: 'user', content: question },
       });
 
-      // Build smart context + history in parallel
+      // Build smart context + history in parallel (default locale 'el' for tRPC)
+      const locale: 'el' | 'en' = 'el';
       const [context, { summary, recentMessages }] = await Promise.all([
-        buildContext(tenderId, tenantId, question),
+        buildContext(tenderId, tenantId, question, locale),
         getSmartHistory(tenderId, tenantId),
       ]);
 
       // Call AI with optional summary context
+      const questionLabel = (locale as string) === 'en' ? 'QUESTION' : 'ΕΡΩΤΗΣΗ';
       const result = await ai().complete({
         messages: [
           { role: 'system', content: context.systemPrompt },
@@ -85,7 +87,7 @@ export const chatRouter = router({
           ...recentMessages,
           {
             role: 'user',
-            content: `CONTEXT:\n${context.contextText}\n\nΕΡΩΤΗΣΗ: ${question}`,
+            content: `CONTEXT:\n${context.contextText}\n\n${questionLabel}: ${question}`,
           },
         ],
         responseFormat: 'json',
