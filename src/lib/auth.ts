@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import { db } from '@/lib/db';
+import { findUserByEmail, findTenantUser } from '@/lib/auth-db';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -16,7 +16,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const password = credentials?.password as string;
           if (!email || !password) return null;
 
-          const user = await db.user.findUnique({ where: { email } });
+          const user = await findUserByEmail(email);
           if (!user?.hashedPassword) return null;
 
           const valid = await bcrypt.compare(password, user.hashedPassword);
@@ -38,12 +38,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
 
-        // Fetch tenant on first login
         try {
-          const tenantUser = await db.tenantUser.findFirst({
-            where: { userId: user.id as string },
-            select: { tenantId: true, role: true },
-          });
+          const tenantUser = await findTenantUser(user.id as string);
           if (tenantUser) {
             token.tenantId = tenantUser.tenantId;
             token.role = tenantUser.role;
