@@ -256,12 +256,16 @@ Centered layout: illustration (max-w-[200px]) + title + subtitle + optional Shim
 ### 5.3 AnimatedTabSystem
 **File:** `src/components/ui/animated-tabs.tsx`
 
-Wrapper around Radix Tabs that adds framer-motion `layoutId` sliding indicator on `TabsList`. Drop-in replacement — same API as current Tabs but with animated active state.
+```tsx
+interface AnimatedTabsListProps {
+  children: React.ReactNode;
+  className?: string;
+  indicatorClassName?: string; // defaults to "bg-gradient-to-r from-blue-500 to-cyan-500 h-[2px]"
+  layoutId?: string;          // defaults to "tab-indicator"
+}
+```
 
-### 5.4 PremiumFilterBar
-**File:** `src/components/ui/premium-filter-bar.tsx`
-
-GlassCard wrapper with search input + filter selects. Used in Tenders list, Tasks page.
+Wrapper around Radix `TabsList` that renders a framer-motion `motion.div` with `layoutId` as a sliding underline indicator. Each `TabsTrigger` child gets wrapped to detect active state and position the indicator. `TabsContent` is unchanged — standard Radix. Uses `mode="wait"` on AnimatePresence for content transitions. Drop-in: replace `<TabsList>` with `<AnimatedTabsList>`, keep everything else the same.
 
 ### 5.5 GradientHeading
 **File:** `src/components/ui/gradient-heading.tsx`
@@ -296,6 +300,7 @@ All images: watercolor/vector hybrid style, brand blue-cyan-indigo palette, tran
 ## 7. Implementation Order (Page-by-Page)
 
 ```
+Step 0: Add prefers-reduced-motion support to BlurFade and NumberTicker
 Step 1: Shared components (PremiumStatCard, PremiumEmptyState, AnimatedTabSystem, GradientHeading)
 Step 2: Generate Nano Banana illustrations (6 images)
 Step 3: Dashboard page rebuild
@@ -315,9 +320,12 @@ Step 10: Build verification + deploy
 - **No new dependencies.** All components (MagicCard, NumberTicker, BlurFade, ShimmerButton, BorderBeam, GlassCard, AnimatedGradientText, SparklesCore) already exist in `src/components/ui/`.
 - **No backend changes.** This is purely frontend styling.
 - **SSR safety.** MagicCard uses `useMotionValue` — already handles SSR via `useEffect` + `mounted` state. All premium components are `'use client'` marked.
-- **Performance.** No looping particles in dashboard (unlike landing page). SparklesCore only in AI chat header (15 particles, contained). BlurFade `inView` ensures animations only fire when visible.
+- **Performance.** No looping particles in dashboard (unlike landing page). SparklesCore only in AI chat header (15 particles, contained). BlurFade `inView` ensures animations only fire when visible. Tab content transitions use short durations (200ms) and `mode="wait"` on AnimatePresence to prevent animation overlap on rapid tab switching.
 - **Dark mode.** All glassmorphism values have explicit dark mode variants. MagicCard auto-detects theme via `useTheme()`.
-- **Bundle size.** Zero increase — all components already imported somewhere. Only new files are the shared wrappers and Nano Banana images (~6 PNGs, ~50-100KB each).
+- **Bundle size.** Zero increase — all components already imported somewhere. Only new files are the shared wrappers and Nano Banana images (~6 PNGs, ~50-100KB each). Images served via `next/image` for automatic optimization.
+- **Accessibility / `prefers-reduced-motion`.** BlurFade and NumberTicker do NOT currently check `prefers-reduced-motion`. Implementation Step 1 must add a `useReducedMotion()` hook (from `motion/react`) to both components so animations are skipped when the user's OS setting requests it. This is a prerequisite before using them extensively.
+- **Import paths.** SparklesCore is exported from `src/components/ui/sparkles.tsx` (not `sparkles-core.tsx`). Import as `@/components/ui/sparkles`. Note: `sparkles.tsx` imports from `framer-motion` while other motion components use `motion/react` — both packages are installed and compatible.
+- **AnimatedGradientText defaults.** The component defaults to orange/purple gradients. The `GradientHeading` wrapper (Section 5.5) must explicitly set `colorFrom="#1D4ED8"` and `colorTo="#0891B2"` to match the brand blue-cyan palette.
 
 ---
 
@@ -332,7 +340,7 @@ Step 10: Build verification + deploy
 7. Zero new runtime dependencies
 8. Build passes (`next build`) with no errors
 9. Dark mode fully functional
-10. `prefers-reduced-motion` respected (BlurFade and NumberTicker disable animations)
+10. `prefers-reduced-motion` respected (BlurFade and NumberTicker patched with `useReducedMotion()` to disable animations)
 
 ---
 
@@ -357,6 +365,7 @@ Step 10: Build verification + deploy
 | `src/components/ui/premium-stat-card.tsx` | **New** |
 | `src/components/ui/premium-empty-state.tsx` | **New** |
 | `src/components/ui/animated-tabs.tsx` | **New** |
-| `src/components/ui/premium-filter-bar.tsx` | **New** |
 | `src/components/ui/gradient-heading.tsx` | **New** |
+| `src/components/ui/blur-fade.tsx` | Patch (add `useReducedMotion`) |
+| `src/components/ui/number-ticker.tsx` | Patch (add `useReducedMotion`) |
 | `public/images/illustrations/*.png` | **New** (6 Nano Banana images) |
