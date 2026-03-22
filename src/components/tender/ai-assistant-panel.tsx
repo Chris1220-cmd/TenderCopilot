@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { BlurFade } from '@/components/ui/blur-fade';
+import { motion } from 'motion/react';
+import Image from 'next/image';
 import {
   GlassCard,
   GlassCardHeader,
@@ -365,14 +368,24 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  'flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-all duration-200 cursor-pointer',
+                  'relative flex-1 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-all duration-200 cursor-pointer',
                   activeTab === tab.key
-                    ? 'bg-background shadow-sm text-foreground'
+                    ? 'text-foreground'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <tab.icon className="h-3.5 w-3.5" />
-                {tab.label}
+                {activeTab === tab.key && (
+                  <motion.div
+                    layoutId="ai-chat-tab-indicator"
+                    className="absolute inset-0 rounded-md bg-background shadow-sm"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    style={{ zIndex: 0 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center justify-center gap-1.5">
+                  <tab.icon className="h-3.5 w-3.5" />
+                  {tab.label}
+                </span>
               </button>
             ))}
           </div>
@@ -388,8 +401,14 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                   {/* Welcome message */}
                   {messages.length === 0 && (
                     <div className="text-center py-6">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 mx-auto mb-3">
-                        <Sparkles className="h-7 w-7 text-blue-500/50" />
+                      <div className="relative h-[120px] w-[120px] mx-auto mb-3">
+                        <Image
+                          src="/images/illustrations/ai-assistant-welcome.png"
+                          alt=""
+                          fill
+                          className="object-contain opacity-70 dark:opacity-50"
+                          aria-hidden="true"
+                        />
                       </div>
                       <p className="text-sm font-medium text-muted-foreground mb-1">
                         Ρωτήστε οτιδήποτε για τον διαγωνισμό
@@ -401,9 +420,11 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                   )}
 
                   {/* Messages */}
-                  {messages.map((msg) => (
+                  {(() => {
+                    const recentIds = new Set(messages.slice(-3).map(m => m.id));
+                    return messages.map((msg) => {
+                      const messageContent = (
                     <div
-                      key={msg.id}
                       className={cn(
                         'flex gap-2.5',
                         msg.role === 'user' ? 'justify-end' : 'justify-start'
@@ -418,8 +439,8 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                         className={cn(
                           'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed',
                           msg.role === 'user'
-                            ? 'bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-br-md'
-                            : 'bg-muted/50 border border-border/50 text-foreground rounded-bl-md'
+                            ? 'bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-br-md shadow-lg shadow-blue-500/10'
+                            : 'bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border border-white/20 dark:border-white/10 text-foreground rounded-bl-md'
                         )}
                       >
                         <div className="whitespace-pre-wrap">
@@ -525,7 +546,12 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                         </div>
                       )}
                     </div>
-                  ))}
+                      );
+                      return recentIds.has(msg.id)
+                        ? <BlurFade key={msg.id} delay={0.03}>{messageContent}</BlurFade>
+                        : <div key={msg.id}>{messageContent}</div>;
+                    });
+                  })()}
 
                   {/* Typing indicator */}
                   {isTyping && (
@@ -533,12 +559,14 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600/20 to-cyan-500/20">
                         <Bot className="h-4 w-4 text-blue-500" />
                       </div>
-                      <div className="rounded-2xl rounded-bl-md bg-muted/50 border border-border/50 px-4 py-3">
-                        <div className="flex gap-1">
-                          <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:0ms]" />
-                          <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:150ms]" />
-                          <span className="h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:300ms]" />
-                        </div>
+                      <div className="rounded-2xl rounded-bl-md bg-white/50 dark:bg-white/[0.04] backdrop-blur-sm border border-white/20 dark:border-white/10 px-4 py-3">
+                        <div
+                          className="h-4 w-24 rounded-full animate-bg-shimmer"
+                          style={{
+                            backgroundSize: '200% 100%',
+                            backgroundImage: 'linear-gradient(90deg, hsl(var(--muted-foreground) / 0.1), hsl(var(--muted-foreground) / 0.3), hsl(var(--muted-foreground) / 0.1))',
+                          }}
+                        />
                       </div>
                     </div>
                   )}
@@ -549,34 +577,36 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
 
               {/* Quick Questions */}
               {messages.length < 3 && (
-                <div className="px-4 py-2 border-t border-border/30">
-                  <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2">
-                    Γρήγορα Ερωτήματα
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {quickQuestions.map((q) => (
-                      <button
-                        key={q.text}
-                        onClick={() => handleSend(q.text)}
-                        disabled={isTyping}
-                        className={cn(
-                          'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium',
-                          'bg-white/50 dark:bg-white/[0.06]',
-                          'border border-white/40 dark:border-white/10',
-                          'backdrop-blur-sm',
-                          'transition-all duration-200',
-                          'hover:bg-blue-50/50 dark:hover:bg-blue-500/10',
-                          'hover:border-blue-300/40 dark:hover:border-blue-500/20',
-                          'disabled:opacity-50 disabled:cursor-not-allowed',
-                          'cursor-pointer'
-                        )}
-                      >
-                        <q.icon className="h-3 w-3 text-blue-500/70" />
-                        {q.text}
-                      </button>
-                    ))}
+                <BlurFade delay={0.1} inView>
+                  <div className="px-4 py-2 border-t border-border/30">
+                    <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2">
+                      Γρήγορα Ερωτήματα
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {quickQuestions.map((q) => (
+                        <button
+                          key={q.text}
+                          onClick={() => handleSend(q.text)}
+                          disabled={isTyping}
+                          className={cn(
+                            'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium',
+                            'bg-white/50 dark:bg-white/[0.06]',
+                            'border border-white/40 dark:border-white/10',
+                            'backdrop-blur-sm',
+                            'transition-all duration-200',
+                            'hover:bg-blue-50/50 dark:hover:bg-blue-500/10',
+                            'hover:border-blue-300/40 dark:hover:border-blue-500/20',
+                            'disabled:opacity-50 disabled:cursor-not-allowed',
+                            'cursor-pointer'
+                          )}
+                        >
+                          <q.icon className="h-3 w-3 text-blue-500/70" />
+                          {q.text}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                </BlurFade>
               )}
 
               {/* Input */}
@@ -596,7 +626,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                         'bg-white/60 dark:bg-white/[0.06]',
                         'border-white/40 dark:border-white/10',
                         'placeholder:text-muted-foreground/50',
-                        'focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30',
+                        'focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30 focus:shadow-[0_0_20px_rgba(59,130,246,0.1)]',
                         'transition-all duration-200',
                         'disabled:opacity-50'
                       )}
@@ -611,7 +641,8 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                       'bg-gradient-to-br from-blue-700 to-blue-500',
                       'hover:from-blue-600 hover:to-blue-400',
                       'border-0 text-white shadow-lg shadow-blue-500/20',
-                      'disabled:opacity-50 disabled:shadow-none'
+                      'disabled:opacity-50 disabled:shadow-none',
+                      'active:scale-95 transition-transform'
                     )}
                   >
                     {isTyping ? (
@@ -677,7 +708,9 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
 
                 {actions.length === 0 && (
                   <div className="text-center py-8">
-                    <Lightbulb className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                    <div className="relative h-[100px] w-[100px] mx-auto mb-2">
+                      <Image src="/images/illustrations/empty-actions.png" alt="" fill className="object-contain opacity-60" aria-hidden="true" />
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       Δεν υπάρχουν εκκρεμείς ενέργειες
                     </p>
@@ -774,7 +807,9 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
 
                 {reminders.length === 0 && (
                   <div className="text-center py-8">
-                    <Bell className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                    <div className="relative h-[100px] w-[100px] mx-auto mb-2">
+                      <Image src="/images/illustrations/empty-reminders.png" alt="" fill className="object-contain opacity-60" aria-hidden="true" />
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       Δεν υπάρχουν υπενθυμίσεις
                     </p>

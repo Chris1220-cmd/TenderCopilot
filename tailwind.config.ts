@@ -129,6 +129,10 @@ const config: Config = {
           '0%, 100%': { transform: 'translate(-50%, -50%) scale(1)' },
           '50%': { transform: 'translate(-50%, -50%) scale(0.9)' },
         },
+        'bg-shimmer': {
+          '0%': { backgroundPosition: '200% 0' },
+          '100%': { backgroundPosition: '-200% 0' },
+        },
         shine: {
           '0%': { backgroundPosition: '0% 0%' },
           '50%': { backgroundPosition: '100% 100%' },
@@ -152,6 +156,7 @@ const config: Config = {
         meteor: 'meteor 5s linear infinite',
         ripple: 'ripple var(--duration, 2s) ease calc(var(--i, 0) * 0.2s) infinite',
         shine: 'shine var(--duration) infinite linear',
+        'bg-shimmer': 'bg-shimmer 1.5s ease-in-out infinite',
       },
     },
   },
