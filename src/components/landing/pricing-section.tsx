@@ -104,8 +104,7 @@ export function PricingSection() {
                     'bg-black/50 border-neutral-800',
                     plan.popular && 'scale-[1.02]'
                   )}
-                  radius={300}
-                  color="#1a1a2e"
+                  gradientColor="#1a1a2e"
                 >
                   {/* Popular badge */}
                   {plan.popular && (
