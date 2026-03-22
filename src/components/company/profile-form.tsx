@@ -76,7 +76,7 @@ function FormField({
 }: {
   label: string;
   error?: string;
-  icon?: React.ElementType;
+  icon?: React.ComponentType<{ className?: string }>;
   children: React.ReactNode;
   className?: string;
 }) {
