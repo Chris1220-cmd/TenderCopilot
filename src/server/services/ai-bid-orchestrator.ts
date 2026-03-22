@@ -317,7 +317,7 @@ const WORK_PLAN_PHASES: WorkPlanTask[] = [
 
 // ─── System Prompts ─────────────────────────────────────────
 
-const SUMMARIZE_SYSTEM_PROMPT = `Είσαι ειδικός σύμβουλος δημοσίων συμβάσεων. Αναλύεις κείμενα διαγωνισμών σύμφωνα με τον Ν.4412/2016 και τον Ν.3130/2003 (στεγάσεις).
+const SUMMARIZE_SYSTEM_PROMPT_EL = `Είσαι ειδικός σύμβουλος δημοσίων συμβάσεων. Αναλύεις κείμενα διαγωνισμών σύμφωνα με τον Ν.4412/2016 και τον Ν.3130/2003 (στεγάσεις).
 
 ${ANALYSIS_RULES}
 
@@ -350,6 +350,60 @@ ${ANALYSIS_RULES}
 }
 
 ΠΡΟΣΟΧΗ: Μην απαντάς "ΔΕΝ ΑΝΑΦΕΡΕΤΑΙ" αν η πληροφορία υπάρχει κάπου στο κείμενο. Ψάξε τα πάντα.`;
+
+const SUMMARIZE_SYSTEM_PROMPT_INTL = `You are an expert public procurement analyst. You analyze tender documents from ANY country and jurisdiction (EU, Dutch, German, French, English, etc.).
+
+${ANALYSIS_RULES}
+
+IMPORTANT: Read the ENTIRE document. Search every paragraph, article, and table regardless of language.
+Auto-detect the document language and extract all information accurately.
+
+Analyze the text and extract information as JSON:
+
+{
+  "summaryText": "Summary 200-300 words (in the response language requested)",
+  "keyPoints": {
+    "contractingAuthority": "full name of contracting authority/organization",
+    "sector": "sector/domain",
+    "mandatoryCriteria": ["criterion 1", "criterion 2"],
+    "awardType": "lowest_price or best_value",
+    "duration": "contract duration — if no specific duration stated, write exactly what the document says",
+    "deadlines": [{"label": "Submission deadline", "date": "ISO date if specific date exists, OTHERWISE write exactly what the document says"}],
+    "estimatedBudget": 50000.00,
+    "budgetPeriod": "monthly or total",
+    "cpvCodes": [],
+    "specialConditions": [],
+    "guaranteeRequired": "description of guarantee/bond if mentioned",
+    "eligibilityCriteria": ["criterion 1"],
+    "technicalSpecs": "brief summary of technical requirements"
+  },
+  "sector": "sector",
+  "awardType": "lowest_price or best_value",
+  "duration": "duration",
+  "missingInfo": ["Not found: field"]
+}
+
+IMPORTANT: Do not answer "NOT FOUND" if the information exists somewhere in the text. Search everything.`;
+
+/**
+ * Detect if document text is primarily in Greek or another language.
+ * Used to select the appropriate system prompt.
+ */
+function detectDocumentLanguage(text: string): 'el' | 'intl' {
+  // Count Greek characters (Unicode range for Greek: 0370-03FF, 1F00-1FFF)
+  const greekChars = (text.match(/[\u0370-\u03FF\u1F00-\u1FFF]/g) || []).length;
+  const totalAlpha = (text.match(/[a-zA-Z\u0370-\u03FF\u1F00-\u1FFF]/g) || []).length;
+  if (totalAlpha === 0) return 'intl';
+  const greekRatio = greekChars / totalAlpha;
+  // If more than 30% Greek characters, treat as Greek
+  return greekRatio > 0.3 ? 'el' : 'intl';
+}
+
+function getSummarizePrompt(documentText: string): string {
+  const lang = detectDocumentLanguage(documentText);
+  console.log(`[BidOrchestrator] Document language detected: ${lang}`);
+  return lang === 'el' ? SUMMARIZE_SYSTEM_PROMPT_EL : SUMMARIZE_SYSTEM_PROMPT_INTL;
+}
 
 const GO_NO_GO_SYSTEM_PROMPT = `Είσαι στρατηγικός σύμβουλος δημοσίων διαγωνισμών (Bid Director) με 20+ χρόνια εμπειρία
 στην Ελλάδα (Ν.4412/2016). Αξιολογείς αν μια εταιρεία πρέπει να συμμετάσχει σε διαγωνισμό.
@@ -524,6 +578,9 @@ class AIBidOrchestrator {
         ? 'Respond entirely in English.'
         : 'Απάντησε εξ ολοκλήρου στα ελληνικά.';
 
+      // ── Select prompt based on document language ──────────────
+      const systemPrompt = getSummarizePrompt(fullText);
+
       // ── AI call (with chunking if text is too long) ───────────
       _log(`AI call starting, fullText=${fullText.length} chars, shouldChunk=${shouldChunk(fullText)}`);
       let briefData: TenderBriefData;
@@ -536,7 +593,7 @@ class AIBidOrchestrator {
         const chunkPromises = chunks.map(async (chunk, i) => {
           const result = await ai().complete({
             messages: [
-              { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT + `\n\n${langInstruction}` },
+              { role: 'system', content: systemPrompt + `\n\n${langInstruction}` },
               {
                 role: 'user',
                 content: `Ανάλυσε το παρακάτω τμήμα (${i + 1}/${chunks.length}) του διαγωνισμού:\n\n${chunk}`,
@@ -614,7 +671,7 @@ class AIBidOrchestrator {
         // Single call for normal-sized documents
         const result = await ai().complete({
           messages: [
-            { role: 'system', content: SUMMARIZE_SYSTEM_PROMPT + `\n\n${langInstruction}` },
+            { role: 'system', content: systemPrompt + `\n\n${langInstruction}` },
             {
               role: 'user',
               content: `Ανάλυσε τον παρακάτω διαγωνισμό και δημιούργησε δομημένη σύνοψη (brief):\n\n${fullText}`,
