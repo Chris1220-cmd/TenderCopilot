@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Check } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import { CardSpotlight } from '@/components/ui/card-spotlight';
+import { MagicCard } from '@/components/ui/magic-card';
 import { BorderBeam } from '@/components/ui/border-beam';
 import { ShimmerButton } from '@/components/ui/shimmer-button';
 import { BlurFade } from '@/components/ui/blur-fade';
@@ -98,7 +98,7 @@ export function PricingSection() {
             const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
             return (
               <BlurFade key={plan.nameKey} delay={0.15 + i * 0.1} inView>
-                <CardSpotlight
+                <MagicCard
                   className={cn(
                     'relative rounded-2xl p-6 transition-all duration-300 h-full',
                     'bg-black/50 border-neutral-800',
@@ -178,7 +178,7 @@ export function PricingSection() {
                       borderWidth={2}
                     />
                   )}
-                </CardSpotlight>
+                </MagicCard>
               </BlurFade>
             );
           })}
