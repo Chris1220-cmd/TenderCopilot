@@ -4,10 +4,10 @@
 
 /*
  * TenderCopilot — Design System
- * Style: Dark Glass Fusion
- * Primary: Blue #3B82F6
- * Accent: Cyan #06B6D4
- * Warning: Amber #F59E0B
+ * Style: Superhuman Premium Dark
+ * Primary: Purple #6C5CE7
+ * Accent: Purple #A855F7
+ * Warning: Amber #FFB020
  * Typography: Inter / JetBrains Mono
  */
 
@@ -43,32 +43,32 @@
   }
 
   .dark {
-    --background: 230 15% 5%;        /* #0B0D14 — deep dark blue-black */
-    --foreground: 220 15% 95%;       /* #F0F2F8 — slightly warm white */
-    --card: 230 15% 7%;              /* #0F1219 — cards slightly lighter than bg */
-    --card-foreground: 220 15% 95%;
-    --popover: 230 15% 8%;
-    --popover-foreground: 220 15% 95%;
-    --primary: 217 91% 60%;          /* keep blue */
-    --primary-foreground: 230 15% 5%;
-    --secondary: 230 12% 12%;        /* #181C27 — subtle surface */
-    --secondary-foreground: 220 15% 85%;
-    --muted: 230 12% 14%;            /* #1D2130 */
-    --muted-foreground: 220 10% 50%; /* #737B8F — better contrast */
-    --accent: 217 91% 60%;           /* single accent = blue, not cyan */
-    --accent-foreground: 220 15% 95%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 220 15% 95%;
-    --success: 142 76% 36%;
-    --success-foreground: 220 15% 95%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 230 15% 5%;
-    --border: 230 12% 14%;           /* subtle, matches muted */
-    --input: 230 12% 14%;
-    --ring: 217 91% 60%;
-    --sidebar: 230 15% 4%;           /* #090B10 — deepest */
-    --sidebar-foreground: 220 15% 85%;
-    --sidebar-accent: 230 12% 10%;
+    --background: 240 20% 6%;        /* #0F0F1A — deep navy */
+    --foreground: 240 10% 96%;       /* #F0F0F5 — warm white */
+    --card: 240 18% 12%;             /* #161627 — surface */
+    --card-foreground: 240 10% 96%;
+    --popover: 240 18% 15%;          /* #1C1C35 — elevated */
+    --popover-foreground: 240 10% 96%;
+    --primary: 258 70% 63%;          /* #6C5CE7 — purple */
+    --primary-foreground: 240 10% 96%;
+    --secondary: 240 18% 12%;        /* same as card */
+    --secondary-foreground: 240 10% 70%;
+    --muted: 240 15% 15%;
+    --muted-foreground: 240 10% 50%; /* #8888A0 — muted lavender */
+    --accent: 270 80% 70%;           /* #A855F7 — purple accent */
+    --accent-foreground: 240 10% 96%;
+    --destructive: 354 70% 55%;      /* #FF4757 */
+    --destructive-foreground: 240 10% 96%;
+    --success: 160 85% 42%;          /* #00D68F */
+    --success-foreground: 240 10% 96%;
+    --warning: 37 100% 56%;          /* #FFB020 */
+    --warning-foreground: 240 20% 6%;
+    --border: 240 10% 14%;           /* subtle */
+    --input: 240 10% 14%;
+    --ring: 258 70% 63%;             /* purple ring */
+    --sidebar: 240 20% 4%;
+    --sidebar-foreground: 240 10% 70%;
+    --sidebar-accent: 240 15% 10%;
   }
 }
 
@@ -171,15 +171,15 @@
     background-clip: text;
   }
 
-  .gradient-text-blue {
-    background: linear-gradient(135deg, #1e40af, #3b82f6, #60a5fa);
+  .gradient-text-purple {
+    background: linear-gradient(135deg, #6C5CE7, #A855F7);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  .gradient-text-cyan {
-    background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  .gradient-text-blue {
+    background: linear-gradient(135deg, #1e40af, #3b82f6, #60a5fa);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -188,6 +188,9 @@
 
 /* ─── Glow effects ──────────────────────────────────────────── */
 @layer utilities {
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.15), 0 0 60px rgba(168, 85, 247, 0.05);
+  }
   .glow-blue {
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.15), 0 0 60px rgba(59, 130, 246, 0.05);
   }
