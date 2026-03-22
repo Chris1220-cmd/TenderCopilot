@@ -19,9 +19,9 @@ export function HeroSection() {
       <div className="relative z-10 mx-auto max-w-[900px] px-6 pt-32 pb-16 text-center">
         {/* Main heading — large serif italic like Superhuman */}
         <motion.h1
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
           className="text-5xl sm:text-6xl md:text-7xl lg:text-[80px] font-semibold leading-[1.05] tracking-[-0.03em] text-[#1a1a2e]"
           style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
         >
@@ -31,9 +31,9 @@ export function HeroSection() {
 
         {/* Subtitle */}
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 1.0, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
           className="mt-6 text-lg sm:text-xl text-[#1a1a2e]/60 max-w-[600px] mx-auto leading-relaxed"
           style={{ fontFamily: "'Inter', sans-serif" }}
         >
@@ -44,7 +44,7 @@ export function HeroSection() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 1.0, delay: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
           className="mt-10"
         >
           <Link
@@ -61,9 +61,9 @@ export function HeroSection() {
 
       {/* Floating product mockups — layered depth like Superhuman */}
       <motion.div
-        initial={{ opacity: 0, y: 40 }}
+        initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 1.4, delay: 0.9, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative z-10 mx-auto w-full max-w-[1200px] px-6 pb-8"
       >
         <div className="relative">
@@ -79,9 +79,9 @@ export function HeroSection() {
 
           {/* Floating AI chat card — left side */}
           <motion.div
-            initial={{ opacity: 0, x: -30, y: 20 }}
+            initial={{ opacity: 0, x: -40, y: 25 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 1.2, delay: 1.5, ease: [0.25, 0.1, 0.25, 1] }}
             className="absolute -left-4 sm:left-4 lg:-left-8 top-[15%] w-[280px] sm:w-[320px] rounded-2xl bg-[#1E1E32]/95 backdrop-blur-xl p-5 shadow-2xl shadow-black/20 border border-white/10"
           >
             <div className="flex items-center gap-2 mb-3">
@@ -105,9 +105,9 @@ export function HeroSection() {
 
           {/* Floating stats card — right side */}
           <motion.div
-            initial={{ opacity: 0, x: 30, y: 20 }}
+            initial={{ opacity: 0, x: 40, y: 25 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.85, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 1.2, delay: 1.8, ease: [0.25, 0.1, 0.25, 1] }}
             className="absolute -right-4 sm:right-4 lg:-right-8 top-[25%] w-[240px] sm:w-[260px] rounded-2xl bg-white/90 backdrop-blur-xl p-5 shadow-2xl shadow-purple-900/10 border border-white/60"
           >
             <div className="text-[11px] uppercase tracking-widest text-[#1a1a2e]/40 font-medium">Win Rate</div>

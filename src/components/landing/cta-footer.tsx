@@ -19,10 +19,10 @@ export function CtaFooter() {
 
         <div className="relative z-10 mx-auto max-w-[800px] px-6 text-center">
           <motion.h2
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 1.0, ease: [0.25, 0.1, 0.25, 1] }}
             className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-[-0.03em] text-[#1a1a2e] leading-[1.1]"
             style={{ fontFamily: "'Georgia', serif" }}
           >
@@ -33,7 +33,7 @@ export function CtaFooter() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.15 }}
+            transition={{ duration: 1.0, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
             className="mt-10"
           >
             <Link

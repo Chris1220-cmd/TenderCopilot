@@ -10,10 +10,10 @@ export function AiShowcase() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left — Image */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 1.0, ease: [0.25, 0.1, 0.25, 1] }}
             className="relative"
           >
             <div className="rounded-2xl overflow-hidden">
@@ -28,10 +28,10 @@ export function AiShowcase() {
 
           {/* Right — Text */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 1.0, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
           >
             <h2
               className="text-3xl sm:text-4xl font-semibold tracking-[-0.03em] text-[#1a1a2e] leading-tight"

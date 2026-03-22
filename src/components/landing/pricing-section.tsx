@@ -94,10 +94,10 @@ export function PricingSection() {
             return (
               <motion.div
                 key={plan.name}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 25 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.08, duration: 0.4 }}
+                transition={{ delay: 0.1 + i * 0.15, duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
                 className={cn(
                   'relative rounded-2xl border p-7 transition-shadow hover:shadow-lg hover:shadow-purple-500/5',
                   plan.popular

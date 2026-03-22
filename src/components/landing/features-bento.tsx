@@ -121,10 +121,10 @@ export function FeaturesBento() {
         <AnimatePresence mode="wait">
           <motion.div
             key={current.id}
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
             className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-12"
           >
             {/* Left — text content */}
@@ -149,9 +149,9 @@ export function FeaturesBento() {
                 {current.bullets.map((bullet, i) => (
                   <motion.li
                     key={i}
-                    initial={{ opacity: 0, x: -8 }}
+                    initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06, duration: 0.3 }}
+                    transition={{ delay: 0.2 + i * 0.1, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
                     className="flex items-start gap-3 text-[14px] text-[#1a1a2e]/70"
                   >
                     <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#1a1a2e]/25 shrink-0" />
