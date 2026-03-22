@@ -108,6 +108,7 @@ export function AIBriefPanel({ tenderId, sourceUrl, platform, className }: AIBri
     setLangModalOpen(false);
     setIsGenerating(true);
     setError(null);
+    setNoDocs(false);
     summarizeMutation.mutate({ tenderId, language: lang });
   };
 
