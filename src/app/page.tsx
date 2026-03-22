@@ -9,7 +9,7 @@ const LandingPage = nextDynamic(
 
 export default function RootPage() {
   return (
-    <div className="dark bg-background text-foreground">
+    <div className="bg-white text-[#1a1a2e]">
       <LandingPage />
     </div>
   );

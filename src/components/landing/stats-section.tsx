@@ -1,58 +1,45 @@
 'use client';
 
-import { useTranslation } from '@/lib/i18n';
-import { NumberTicker } from '@/components/ui/number-ticker';
-import { Ripple } from '@/components/ui/ripple';
-import { BlurFade } from '@/components/ui/blur-fade';
+import { motion } from 'motion/react';
 
-const stats = [
-  { number: 500, suffix: '+', labelKey: 'stats.docs' },
-  { number: 68, suffix: '%', labelKey: 'stats.winRate' },
-  { number: 90, suffix: '%', labelKey: 'stats.timeSaved' },
+const logos = [
+  { name: 'Trusted Company', width: 100 },
+  { name: 'Enterprise Corp', width: 90 },
+  { name: 'Gov Solutions', width: 110 },
+  { name: 'Maritime Inc', width: 95 },
+  { name: 'Tech Partners', width: 100 },
 ];
 
 export function StatsSection() {
-  const { t } = useTranslation();
-
   return (
-    <section id="stats" className="relative py-24 sm:py-32 overflow-hidden">
-      {/* Ripple background effect */}
-      <Ripple
-        mainCircleSize={180}
-        mainCircleOpacity={0.08}
-        numCircles={6}
-        className="opacity-30"
-      />
+    <section className="bg-white py-16">
+      <div className="mx-auto max-w-[1200px] px-6 lg:px-8">
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="text-center text-[14px] text-[#1a1a2e]/35 font-medium"
+        >
+          Trusted by procurement teams at leading organizations
+        </motion.p>
 
-      <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        <BlurFade delay={0} inView>
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm p-8 sm:p-12">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-0">
-              {stats.map((stat, i) => (
-                <div
-                  key={stat.labelKey}
-                  className={`flex flex-col items-center justify-center text-center ${
-                    i < stats.length - 1 ? 'md:border-r md:border-white/[0.06]' : ''
-                  }`}
-                >
-                  <div className="flex items-baseline gap-0.5">
-                    <NumberTicker
-                      value={stat.number}
-                      delay={0.3 + i * 0.2}
-                      className="text-4xl sm:text-5xl font-bold text-foreground tabular-nums"
-                    />
-                    <span className="text-4xl sm:text-5xl font-bold text-foreground">
-                      {stat.suffix}
-                    </span>
-                  </div>
-                  <span className="mt-2 text-sm text-muted-foreground">
-                    {t(stat.labelKey)}
-                  </span>
-                </div>
-              ))}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.1, duration: 0.5 }}
+          className="mt-8 flex items-center justify-center gap-12 sm:gap-16 flex-wrap"
+        >
+          {logos.map((logo, i) => (
+            <div
+              key={i}
+              className="text-[15px] font-semibold tracking-[-0.01em] text-[#1a1a2e]/20 uppercase"
+              style={{ fontFamily: "'Inter', sans-serif" }}
+            >
+              {logo.name}
             </div>
-          </div>
-        </BlurFade>
+          ))}
+        </motion.div>
       </div>
     </section>
   );

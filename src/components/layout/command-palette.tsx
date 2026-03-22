@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
+import type { LucideIcon } from 'lucide-react';
 import {
   Search,
   LayoutDashboard,
@@ -22,7 +23,7 @@ interface CommandItem {
   id: string;
   label: string;
   description?: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   category: 'pages' | 'actions' | 'tenders';
   action: () => void;
 }

@@ -1,69 +1,81 @@
 'use client';
 
-import { ChevronDown } from 'lucide-react';
-import * as AccordionPrimitive from '@radix-ui/react-accordion';
-import { useTranslation } from '@/lib/i18n';
-import { BlurFade } from '@/components/ui/blur-fade';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Plus, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const faqKeys = ['1', '2', '3', '4', '5'];
+const faqs = [
+  {
+    q: 'What file formats does TenderCopilot support?',
+    a: 'We support PDF, DOCX, XLSX, and most common document formats. Our AI can extract and analyze content from documents of any size, including 100+ page tender packages.',
+  },
+  {
+    q: 'How accurate is the eligibility check?',
+    a: 'Our AI achieves 94%+ accuracy on eligibility assessments by cross-referencing tender requirements against your company profile, certifications, and past performance data.',
+  },
+  {
+    q: 'Can I try TenderCopilot for free?',
+    a: 'Yes! Our Starter plan includes a free trial period. No credit card required. You can analyze your first tender documents within minutes of signing up.',
+  },
+  {
+    q: 'How does tender discovery work?',
+    a: 'We monitor 19+ procurement platforms including government portals, EU TED, and private platforms. Our AI matches new opportunities to your company profile and sends real-time alerts.',
+  },
+  {
+    q: 'Is my data secure?',
+    a: 'Absolutely. All data is encrypted at rest and in transit. We are GDPR compliant and offer enterprise-grade security features including SSO, SAML, and on-premise deployment options.',
+  },
+];
 
 export function FaqSection() {
-  const { t } = useTranslation();
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section id="faq" className="relative py-24 sm:py-32 bg-white/[0.01]">
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <BlurFade delay={0} inView>
-          <h2 className="text-3xl font-bold text-foreground text-center mb-12 sm:text-4xl">
-            {t('faq.title')}
-          </h2>
-        </BlurFade>
+    <section id="faq" className="bg-gradient-to-b from-white to-[#F8F6FF] py-24 sm:py-32">
+      <div className="mx-auto max-w-[720px] px-6 lg:px-8">
+        <h2
+          className="text-center text-3xl sm:text-4xl font-semibold tracking-[-0.03em] text-[#1a1a2e] mb-12"
+          style={{ fontFamily: "'Georgia', serif" }}
+        >
+          Frequently asked questions
+        </h2>
 
-        <AccordionPrimitive.Root type="single" collapsible className="space-y-3">
-          {faqKeys.map((key, i) => (
-            <BlurFade key={key} delay={0.1 + i * 0.06} inView>
-              <AccordionPrimitive.Item
-                value={`faq-${key}`}
-                className={cn(
-                  'rounded-2xl border backdrop-blur-sm transition-all duration-300',
-                  'bg-white/[0.03] border-white/[0.06]',
-                  'data-[state=open]:bg-white/[0.05] data-[state=open]:border-white/[0.1]'
-                )}
-              >
-                <AccordionPrimitive.Header className="flex">
-                  <AccordionPrimitive.Trigger
-                    className={cn(
-                      'flex w-full items-center justify-between px-6 py-5 text-left cursor-pointer',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset rounded-2xl',
-                      'group'
-                    )}
-                  >
-                    <span className="text-sm font-medium text-foreground pr-4">
-                      {t(`faq.q${key}`)}
-                    </span>
-                    <ChevronDown
-                      className={cn(
-                        'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300',
-                        'group-data-[state=open]:rotate-180'
-                      )}
-                    />
-                  </AccordionPrimitive.Trigger>
-                </AccordionPrimitive.Header>
-                <AccordionPrimitive.Content
-                  className={cn(
-                    'overflow-hidden transition-all',
-                    'data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up'
-                  )}
+        <div className="space-y-0">
+          {faqs.map((faq, i) => {
+            const isOpen = openIndex === i;
+            return (
+              <div key={i} className="border-b border-[#E8E0F0]">
+                <button
+                  onClick={() => setOpenIndex(isOpen ? null : i)}
+                  className="flex w-full items-center justify-between py-5 text-left cursor-pointer"
                 >
-                  <p className="px-6 pb-5 text-sm text-muted-foreground leading-relaxed">
-                    {t(`faq.a${key}`)}
-                  </p>
-                </AccordionPrimitive.Content>
-              </AccordionPrimitive.Item>
-            </BlurFade>
-          ))}
-        </AccordionPrimitive.Root>
+                  <span className={cn('text-[15px] font-medium pr-4', isOpen ? 'text-[#1a1a2e]' : 'text-[#1a1a2e]/70')}>
+                    {faq.q}
+                  </span>
+                  <span className="shrink-0 text-[#1a1a2e]/30">
+                    {isOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  </span>
+                </button>
+                <AnimatePresence>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <p className="pb-5 text-[14px] text-[#1a1a2e]/50 leading-relaxed">
+                        {faq.a}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
