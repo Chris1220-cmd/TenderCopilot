@@ -54,7 +54,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as const } },
 };
 
 export default function TasksPage() {
@@ -158,7 +158,7 @@ export default function TasksPage() {
               key={task.id}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ delay: i * 0.03, duration: 0.3, ease: [0.16, 1, 0.3, 1] as const }}
               className="group flex items-center gap-4 rounded-xl border border-border/60 bg-card p-4 transition-all duration-200 hover:border-primary/20 hover:bg-card/80 cursor-pointer"
             >
               {/* Status indicator */}
