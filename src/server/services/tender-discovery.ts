@@ -896,21 +896,7 @@ class TenderDiscoveryService {
       return !IRRELEVANT_PATTERNS.some((pattern) => pattern.test(text));
     });
 
-    // ── Filter non-Greek TED tenders unless explicitly requested ──
-    // Keep only tenders that have Greek text, GR country, or Greek-related content
-    if (!showAll) {
-      allTenders = allTenders.filter((t) => {
-        // Always keep non-TED (Greek platforms)
-        if (t.platform !== 'TED') return true;
-        // TED: keep if country is GR or title contains Greek characters
-        if (t.country === 'GR') return true;
-        if (/[\u0370-\u03FF\u1F00-\u1FFF]/.test(t.title)) return true;
-        // TED with Greek CPV match — keep
-        if (t.cpvCodes.length > 0) return true;
-        // Otherwise filter out (foreign languages = irrelevant)
-        return false;
-      });
-    }
+    // TED tenders: keep all — EU tenders are relevant for international bidding
 
     console.log(`[Discovery] After relevance filter: ${allTenders.length} tenders`);
 
@@ -944,9 +930,9 @@ class TenderDiscoveryService {
     });
 
     if (!companyProfile) {
-      // No profile = return Greek tenders only, limited to 20
-      const tenders = await this.searchTenders({ country: 'GR' });
-      return tenders.slice(0, 20).map((t) => ({ ...t, relevanceScore: 0 }));
+      // No profile = return all tenders, limited to 30
+      const tenders = await this.searchTenders();
+      return tenders.slice(0, 30).map((t) => ({ ...t, relevanceScore: 0 }));
     }
 
     const profile: CompanySearchProfile = {
