@@ -12,6 +12,7 @@ import { aiRolesRouter } from '@/server/routers/ai-roles';
 import { privateSourcesRouter } from '@/server/routers/private-sources';
 import { chatRouter } from './routers/chat';
 import { learningRouter } from './routers/learning';
+import { fakelosRouter } from '@/server/routers/fakelos';
 
 export const appRouter = router({
   auth: authRouter,
@@ -27,6 +28,7 @@ export const appRouter = router({
   privateSources: privateSourcesRouter,
   chat: chatRouter,
   learning: learningRouter,
+  fakelos: fakelosRouter,
 });
 
 export type AppRouter = typeof appRouter;
