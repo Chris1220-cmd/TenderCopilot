@@ -8,7 +8,7 @@ export function AiShowcase() {
   const { t } = useTranslation();
 
   return (
-    <section className="relative bg-gradient-to-b from-white via-[#F8F6FF] to-[#F0EAFF] py-24 sm:py-32 overflow-hidden">
+    <section className="relative bg-gradient-to-b from-white to-[#F5FAFE] py-24 sm:py-32 overflow-hidden">
       <div className="mx-auto max-w-[1200px] px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left — Image */}

@@ -19,7 +19,7 @@ export function FaqSection() {
   const { t } = useTranslation();
 
   return (
-    <section id="faq" className="bg-gradient-to-b from-white to-[#F8F6FF] py-24 sm:py-32">
+    <section id="faq" className="bg-gradient-to-b from-white to-[#F5FAFE] py-24 sm:py-32">
       <div className="mx-auto max-w-[720px] px-6 lg:px-8">
         <h2
           className="text-center text-3xl sm:text-4xl font-semibold tracking-[-0.03em] text-[#1a1a2e] mb-12"

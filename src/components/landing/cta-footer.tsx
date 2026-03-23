@@ -32,7 +32,7 @@ export function CtaFooter() {
   return (
     <>
       {/* CTA Section */}
-      <section className="relative bg-gradient-to-b from-[#F0EAFF] via-[#D8C8F8] to-[#C4B0F0] py-24 sm:py-32 overflow-hidden">
+      <section className="relative bg-gradient-to-b from-[#F5FAFE] via-[#E0F0FA] to-[#D0E8F5] py-24 sm:py-32 overflow-hidden">
         {/* Subtle radial glow */}
         <div
           className="pointer-events-none absolute inset-0 opacity-30"

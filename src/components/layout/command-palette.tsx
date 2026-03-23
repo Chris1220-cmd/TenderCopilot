@@ -184,7 +184,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                   }}
                   className="h-12 flex-1 bg-transparent text-sm text-[#1a1a2e] placeholder:text-[#1a1a2e]/30 outline-none"
                 />
-                <kbd className="rounded border border-[#E8E0F0] bg-[#F8F6FF]/60 px-1.5 py-0.5 text-[10px] font-mono text-[#1a1a2e]/30">
+                <kbd className="rounded border border-border bg-muted/60 px-1.5 py-0.5 text-[10px] font-mono text-[#1a1a2e]/30">
                   ESC
                 </kbd>
               </div>
@@ -214,7 +214,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                               className={cn(
                                 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors duration-75 cursor-pointer',
                                 isSelected
-                                  ? 'bg-[#F8F6FF] text-[#1a1a2e]'
+                                  ? 'bg-muted text-[#1a1a2e]'
                                   : 'text-[#1a1a2e]/55 hover:text-[#1a1a2e]'
                               )}
                             >
