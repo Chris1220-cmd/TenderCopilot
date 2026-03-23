@@ -11,13 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { motion } from 'motion/react';
-import Image from 'next/image';
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardContent,
-} from '@/components/ui/glass-card';
+import { EmptyStateIllustration } from '@/components/ui/empty-state';
 import {
   Sheet,
   SheetContent,
@@ -474,15 +468,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
                   {/* Welcome message */}
                   {messages.length === 0 && (
                     <div className="text-center py-6">
-                      <div className="relative h-[120px] w-[120px] mx-auto mb-3">
-                        <Image
-                          src="/images/illustrations/ai-assistant-welcome.png"
-                          alt=""
-                          fill
-                          className="object-contain opacity-70 dark:opacity-50"
-                          aria-hidden="true"
-                        />
-                      </div>
+                      <EmptyStateIllustration variant="general" className="mb-3" />
                       <p className="text-sm font-medium text-muted-foreground mb-1">
                         {t('welcome')}
                       </p>
@@ -796,9 +782,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
 
                 {actions.length === 0 && (
                   <div className="text-center py-8">
-                    <div className="relative h-[100px] w-[100px] mx-auto mb-2">
-                      <Image src="/images/illustrations/empty-actions.png" alt="" fill className="object-contain opacity-60" aria-hidden="true" />
-                    </div>
+                    <EmptyStateIllustration variant="actions" className="mb-2" />
                     <p className="text-xs text-muted-foreground">
                       {t('no_actions')}
                     </p>
@@ -895,9 +879,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
 
                 {reminders.length === 0 && (
                   <div className="text-center py-8">
-                    <div className="relative h-[100px] w-[100px] mx-auto mb-2">
-                      <Image src="/images/illustrations/empty-reminders.png" alt="" fill className="object-contain opacity-60" aria-hidden="true" />
-                    </div>
+                    <EmptyStateIllustration variant="reminders" className="mb-2" />
                     <p className="text-xs text-muted-foreground">
                       {t('no_reminders')}
                     </p>

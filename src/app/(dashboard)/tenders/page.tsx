@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
+import { EmptyStateIllustration } from '@/components/ui/empty-state';
 import { useRouter } from 'next/navigation';
 import { cn, formatDate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
@@ -205,11 +205,7 @@ export default function TendersPage() {
             </div>
           ) : filteredTenders.length === 0 ? (
             <div className="py-16 text-center">
-              <div className="rounded-2xl inline-block">
-                <div className="relative mx-auto mb-4 h-[180px] w-[220px]">
-                  <Image src="/images/illustrations/empty-tenders.png" alt="" fill className="object-contain opacity-70" />
-                </div>
-              </div>
+              <EmptyStateIllustration variant="tenders" className="mb-5" />
               <h3 className="text-title text-foreground">Κανενας διαγωνισμος</h3>
               <p className="text-body text-muted-foreground mt-1">
                 {searchQuery || statusFilter !== 'all' || platformFilter !== 'all'

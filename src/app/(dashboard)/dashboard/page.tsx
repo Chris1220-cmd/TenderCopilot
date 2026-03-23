@@ -156,7 +156,7 @@ export default function DashboardPage() {
               size="sm"
               className="gap-2 border-border text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-full px-5 cursor-pointer"
             >
-              <Link href="/discovery">
+              <Link href="/tenders">
                 <Sparkles className="h-4 w-4" />
                 {t('dashboard.discovery')}
               </Link>
