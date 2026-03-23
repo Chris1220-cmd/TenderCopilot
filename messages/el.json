@@ -203,8 +203,8 @@
     "statWinRate": "Win Rate"
   },
   "chat": {
-    "title": "AI Βοηθός",
-    "subtitle": "Tender Copilot Assistant",
+    "title": "TEC",
+    "subtitle": "Ο έξυπνος βοηθός σου",
     "tab_chat": "Συνομιλία",
     "tab_actions": "Ενέργειες",
     "tab_reminders": "Υπενθυμίσεις",
@@ -280,8 +280,8 @@
     "settingsDesc": "Ρυθμίσεις εφαρμογής",
     "createTender": "Δημιουργία Νέου Διαγωνισμού",
     "createTenderDesc": "Ξεκινήστε νέα υποβολή",
-    "aiAssistant": "AI Βοηθός",
-    "aiAssistantDesc": "Άνοιγμα AI βοηθού",
+    "aiAssistant": "TEC Βοηθός",
+    "aiAssistantDesc": "Άνοιγμα TEC βοηθού",
     "navigate": "πλοήγηση",
     "select": "επιλογή",
     "close": "κλείσιμο"

@@ -203,8 +203,8 @@
     "statWinRate": "Win Rate"
   },
   "chat": {
-    "title": "AI Assistant",
-    "subtitle": "Tender Copilot Assistant",
+    "title": "TEC",
+    "subtitle": "Your smart assistant",
     "tab_chat": "Chat",
     "tab_actions": "Actions",
     "tab_reminders": "Reminders",
@@ -280,8 +280,8 @@
     "settingsDesc": "App settings",
     "createTender": "Create New Tender",
     "createTenderDesc": "Start a new tender submission",
-    "aiAssistant": "AI Assistant",
-    "aiAssistantDesc": "Open AI helper",
+    "aiAssistant": "TEC Assistant",
+    "aiAssistantDesc": "Open TEC helper",
     "navigate": "navigate",
     "select": "select",
     "close": "close"

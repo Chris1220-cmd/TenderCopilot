@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { motion } from 'motion/react';
+import Image from 'next/image';
 import { EmptyStateIllustration } from '@/components/ui/empty-state';
 import {
   Sheet,
@@ -407,9 +408,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
         <div className="px-5 pt-5 pb-3 border-b border-border/50">
           <SheetHeader className="space-y-1">
             <SheetTitle className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
-                <Bot className="h-5 w-5 text-primary" />
-              </div>
+              <Image src="/images/tec-mascot.png" alt="TEC" width={36} height={36} className="rounded-xl" />
               <div>
                 <span className="text-foreground font-semibold">
                   {t('title')}
