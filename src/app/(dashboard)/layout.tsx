@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
+import { motion } from 'motion/react';
 import { Toaster } from '@/components/ui/toaster';
 import { TopNav } from '@/components/layout/top-nav';
 import { CommandPalette } from '@/components/layout/command-palette';
@@ -35,17 +36,22 @@ export default function DashboardLayout({
       <Toaster />
 
       {/* TEC — Global AI Assistant Button */}
-      <button
+      <motion.button
         onClick={() => setTecOpen(true)}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.5 }}
+        whileHover={{ scale: 1.1, y: -3 }}
+        whileTap={{ scale: 0.9 }}
         className={cn(
           'fixed bottom-6 right-6 z-50',
-          'flex h-14 w-14 items-center justify-center',
-          'rounded-2xl shadow-2xl',
-          'bg-card border border-border/60',
-          'transition-all duration-300 ease-out',
-          'hover:scale-105 hover:shadow-primary/20 hover:border-primary/30',
-          'active:scale-95',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+          'flex h-[72px] w-[72px] items-center justify-center',
+          'rounded-full shadow-2xl shadow-primary/25',
+          'bg-gradient-to-br from-primary to-primary/80',
+          'ring-2 ring-primary/20 ring-offset-2 ring-offset-background',
+          'transition-shadow duration-300',
+          'hover:shadow-primary/40 hover:ring-primary/40',
+          'focus-visible:outline-none',
           'cursor-pointer group',
         )}
         aria-label="TEC Assistant"
@@ -53,17 +59,17 @@ export default function DashboardLayout({
         <Image
           src="/images/tec-mascot.png"
           alt="TEC"
-          width={36}
-          height={36}
-          className="rounded-lg group-hover:scale-110 transition-transform duration-200"
+          width={48}
+          height={48}
+          className="rounded-full group-hover:rotate-6 transition-transform duration-300"
         />
-        {/* Pulse */}
-        <span className="absolute inset-0 rounded-2xl bg-primary/10 animate-ping opacity-20" />
-        {/* Label */}
-        <span className="absolute -top-1.5 -right-1.5 flex h-5 items-center justify-center rounded-full bg-primary px-1.5 text-[9px] font-bold text-white shadow-lg">
+        {/* Breathing pulse */}
+        <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+        {/* TEC label */}
+        <span className="absolute -top-1 -right-1 flex h-6 items-center justify-center rounded-full bg-white text-primary px-2 text-[10px] font-extrabold shadow-lg border border-primary/20">
           TEC
         </span>
-      </button>
+      </motion.button>
 
       {/* TEC Panel — only functional on tender pages */}
       {tenderId && (
