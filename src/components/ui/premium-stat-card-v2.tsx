@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NumberTicker } from '@/components/ui/number-ticker';
+import { BorderBeam } from '@/components/ui/border-beam';
 
 interface PremiumStatCardV2Props {
   title: string;
@@ -34,10 +35,13 @@ export function PremiumStatCardV2({
         ease: [0.16, 1, 0.3, 1],
       }}
       whileHover={{ scale: 1.005, transition: { duration: 0.15 } }}
-      className="group relative rounded-xl border border-border/60 bg-card p-5 sm:p-6 transition-colors duration-200 hover:border-primary/20 cursor-default"
+      className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-5 sm:p-6 transition-colors duration-200 hover:border-primary/20 cursor-default"
     >
       {/* Subtle glow on hover */}
       <div className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-gradient-to-br from-primary/[0.03] to-accent/[0.02]" />
+
+      {/* BorderBeam on hover */}
+      <BorderBeam size={80} duration={6} delay={index * 0.5} className="opacity-0 group-hover:opacity-100 transition-opacity" />
 
       <div className="relative">
         <div className="flex items-center justify-between">
