@@ -105,6 +105,20 @@ export const tenderRouter = router({
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
       }
 
+      // Duplicate check: same title + tenant = already exists
+      const existing = await ctx.db.tender.findFirst({
+        where: {
+          tenantId: ctx.tenantId,
+          title: input.title,
+        },
+        select: { id: true },
+      });
+
+      if (existing) {
+        // Return existing instead of creating duplicate
+        return { id: existing.id };
+      }
+
       const tender = await ctx.db.tender.create({
         data: {
           tenantId: ctx.tenantId,

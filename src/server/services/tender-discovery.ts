@@ -875,6 +875,45 @@ class TenderDiscoveryService {
       console.log(`[Discovery] After dedup: ${allTenders.length} tenders`);
     }
 
+    // ── Filter out irrelevant tender types ──────────────────────
+    // Exclude: job postings, auctions, real estate, personnel hiring, scholarships
+    const IRRELEVANT_PATTERNS = [
+      /πρόσληψη|προσλήψεις|πρόσληψ/i,
+      /πλειστηριασμ/i,
+      /ακίνητ|μίσθωση\s+ακινήτ/i,
+      /θέσ[εη]\s+εργασίας|προκήρυξη\s+θέσ/i,
+      /υποτροφ/i,
+      /διορισμ/i,
+      /επιλογή\s+προσωπικού/i,
+      /σύμβαση\s+εργασίας/i,
+      /ΑΣΕΠ|ΣΟΧ|ΣΜΕ/,
+      /personnel|recruitment|hiring|job\s+post/i,
+      /auction|foreclosure/i,
+    ];
+
+    allTenders = allTenders.filter((t) => {
+      const text = `${t.title} ${t.summary || ''}`;
+      return !IRRELEVANT_PATTERNS.some((pattern) => pattern.test(text));
+    });
+
+    // ── Filter non-Greek TED tenders unless explicitly requested ──
+    // Keep only tenders that have Greek text, GR country, or Greek-related content
+    if (!showAll) {
+      allTenders = allTenders.filter((t) => {
+        // Always keep non-TED (Greek platforms)
+        if (t.platform !== 'TED') return true;
+        // TED: keep if country is GR or title contains Greek characters
+        if (t.country === 'GR') return true;
+        if (/[\u0370-\u03FF\u1F00-\u1FFF]/.test(t.title)) return true;
+        // TED with Greek CPV match — keep
+        if (t.cpvCodes.length > 0) return true;
+        // Otherwise filter out (foreign languages = irrelevant)
+        return false;
+      });
+    }
+
+    console.log(`[Discovery] After relevance filter: ${allTenders.length} tenders`);
+
     // Apply keyword filter
     if (keywords && keywords.length > 0) {
       allTenders = allTenders.filter((t) => {
@@ -905,8 +944,9 @@ class TenderDiscoveryService {
     });
 
     if (!companyProfile) {
-      const tenders = await this.searchTenders();
-      return tenders.map((t) => ({ ...t, relevanceScore: 0 }));
+      // No profile = return Greek tenders only, limited to 20
+      const tenders = await this.searchTenders({ country: 'GR' });
+      return tenders.slice(0, 20).map((t) => ({ ...t, relevanceScore: 0 }));
     }
 
     const profile: CompanySearchProfile = {
