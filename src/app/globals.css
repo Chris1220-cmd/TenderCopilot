@@ -4,70 +4,70 @@
 
 /*
  * TenderCopilot — Design System
- * Style: Superhuman Light Premium
- * Primary: Purple #6C5CE7
- * Accent: Purple #A855F7
- * Typography: Inter / Georgia
+ * Style: Superhuman Carbon
+ * 5 shades of gray, Picton Blue accent
+ * Typography: Inter (system)
+ * NO purple, NO gradients, NO glow
  */
 
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 240 15% 10%;
+    --foreground: 0 0% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 240 15% 10%;
+    --card-foreground: 0 0% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 15% 10%;
-    --primary: 258 70% 63%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 204 70% 53%;          /* #3B96D4 — Picton Blue */
     --primary-foreground: 0 0% 100%;
-    --secondary: 252 5% 96%;
-    --secondary-foreground: 240 15% 10%;
-    --muted: 252 5% 96%;
-    --muted-foreground: 240 5% 46%;
-    --accent: 270 80% 70%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 204 70% 53%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --success: 160 85% 36%;
+    --success: 152 69% 41%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
-    --warning-foreground: 240 15% 10%;
-    --border: 252 10% 91%;
-    --input: 252 10% 91%;
-    --ring: 258 70% 63%;
-    --radius: 0.75rem;
-    --sidebar: 252 5% 97%;
-    --sidebar-foreground: 240 15% 10%;
-    --sidebar-accent: 252 5% 94%;
+    --warning-foreground: 0 0% 9%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 204 70% 53%;
+    --radius: 0.5rem;
+    --sidebar: 0 0% 97%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-accent: 0 0% 94%;
   }
 
   .dark {
-    --background: 240 20% 6%;        /* #0F0F1A — deep navy */
-    --foreground: 240 10% 96%;       /* #F0F0F5 — warm white */
-    --card: 240 18% 12%;             /* #161627 — surface */
-    --card-foreground: 240 10% 96%;
-    --popover: 240 18% 15%;          /* #1C1C35 — elevated */
-    --popover-foreground: 240 10% 96%;
-    --primary: 258 70% 63%;          /* #6C5CE7 — purple */
-    --primary-foreground: 240 10% 96%;
-    --secondary: 240 18% 12%;        /* same as card */
-    --secondary-foreground: 240 10% 70%;
-    --muted: 240 15% 15%;
-    --muted-foreground: 240 10% 50%; /* #8888A0 — muted lavender */
-    --accent: 270 80% 70%;           /* #A855F7 — purple accent */
-    --accent-foreground: 240 10% 96%;
-    --destructive: 354 70% 55%;      /* #FF4757 */
-    --destructive-foreground: 240 10% 96%;
-    --success: 160 85% 42%;          /* #00D68F */
-    --success-foreground: 240 10% 96%;
-    --warning: 37 100% 56%;          /* #FFB020 */
-    --warning-foreground: 240 20% 6%;
-    --border: 240 10% 14%;           /* subtle */
-    --input: 240 10% 14%;
-    --ring: 258 70% 63%;             /* purple ring */
-    --sidebar: 240 20% 4%;
-    --sidebar-foreground: 240 10% 70%;
-    --sidebar-accent: 240 15% 10%;
+    --background: 0 0% 7%;           /* #121212 — deepest surface */
+    --foreground: 0 0% 90%;          /* rgba(255,255,255,0.90) */
+    --card: 0 0% 11%;               /* #1C1C1C — surface 1 */
+    --card-foreground: 0 0% 90%;
+    --popover: 0 0% 14%;            /* #242424 — elevated */
+    --popover-foreground: 0 0% 90%;
+    --primary: 204 70% 56%;          /* #48A4D6 — Picton Blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 11%;
+    --secondary-foreground: 0 0% 65%;
+    --muted: 0 0% 15%;              /* #262626 — surface 2 */
+    --muted-foreground: 0 0% 50%;   /* rgba(255,255,255,0.50) */
+    --accent: 204 70% 56%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 54%;       /* #D44 muted red */
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 60% 42%;         /* muted green */
+    --success-foreground: 0 0% 100%;
+    --warning: 38 80% 52%;          /* muted amber */
+    --warning-foreground: 0 0% 9%;
+    --border: 0 0% 16%;             /* rgba(255,255,255,0.08) */
+    --input: 0 0% 16%;
+    --ring: 204 70% 56%;
+    --sidebar: 0 0% 5%;             /* #0D0D0D */
+    --sidebar-foreground: 0 0% 65%;
+    --sidebar-accent: 0 0% 9%;
   }
 }
 
@@ -161,48 +161,7 @@
   }
 }
 
-/* ─── Gradient text ─────────────────────────────────────────── */
-@layer utilities {
-  .gradient-text {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .gradient-text-purple {
-    background: linear-gradient(135deg, #6C5CE7, #A855F7);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .gradient-text-blue {
-    background: linear-gradient(135deg, #1e40af, #3b82f6, #60a5fa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-}
-
-/* ─── Glow effects ──────────────────────────────────────────── */
-@layer utilities {
-  .glow-purple {
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.15), 0 0 60px rgba(168, 85, 247, 0.05);
-  }
-  .glow-blue {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.15), 0 0 60px rgba(59, 130, 246, 0.05);
-  }
-  .glow-amber {
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.15), 0 0 60px rgba(245, 158, 11, 0.05);
-  }
-  .glow-green {
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.15), 0 0 60px rgba(34, 197, 94, 0.05);
-  }
-  .glow-cyan {
-    box-shadow: 0 0 24px rgba(6, 182, 212, 0.12), 0 0 60px rgba(6, 182, 212, 0.04);
-  }
-}
+/* ─── No gradient text or glow effects — Superhuman is clean ─── */
 
 /* ─── Background patterns ───────────────────────────────────── */
 @layer utilities {
@@ -249,23 +208,7 @@
   }
 }
 
-/* ─── Auth page animated gradient orbs ──────────────────────── */
-@keyframes float-slow {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.05); }
-  66% { transform: translate(-20px, 30px) scale(0.95); }
-}
-@keyframes float-medium {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-40px, -30px) scale(1.1); }
-}
-
-.animate-float-slow {
-  animation: float-slow 20s ease-in-out infinite;
-}
-.animate-float-medium {
-  animation: float-medium 15s ease-in-out infinite;
-}
+/* ─── No floating orbs — clean design ───────────────────────── */
 
 /* ─── Premium surface system (Linear-inspired) ──────────────── */
 @layer utilities {

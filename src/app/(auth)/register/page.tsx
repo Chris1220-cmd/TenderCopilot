@@ -122,11 +122,6 @@ export default function RegisterPage() {
       >
         {/* Card */}
         <div className="rounded-2xl border border-border bg-card shadow-2xl shadow-black/40 relative overflow-hidden">
-          {/* Top border glow line */}
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-
-          {/* Inner gradient overlay */}
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.05] to-transparent" />
 
           <div className="relative space-y-6 p-8 sm:p-10">
             {/* Language Toggle */}
@@ -136,15 +131,8 @@ export default function RegisterPage() {
 
             {/* Logo & Title */}
             <div className="flex flex-col items-center space-y-3">
-              <div
-                className={cn(
-                  'flex h-12 w-12 items-center justify-center rounded-xl',
-                  'bg-gradient-to-br from-primary to-accent',
-                  'shadow-lg shadow-primary/25',
-                  'ring-1 ring-white/10'
-                )}
-              >
-                <span className="text-sm font-bold text-foreground tracking-tight">TC</span>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+                <span className="text-base font-bold text-white tracking-tight">TC</span>
               </div>
               <div className="space-y-1 text-center">
                 <h1 className="text-xl font-semibold tracking-tight text-foreground">
@@ -311,7 +299,7 @@ export default function RegisterPage() {
               <Button
                 type="submit"
                 disabled={isLoading || !termsAccepted}
-                className="h-11 w-full rounded-xl bg-gradient-to-r from-primary to-accent text-foreground hover:opacity-90 cursor-pointer font-medium"
+                className="h-11 w-full rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer font-medium"
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

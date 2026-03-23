@@ -6,12 +6,12 @@ import { ArrowRight } from 'lucide-react';
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#F8F6FF] via-[#EDE4FF] to-[#D8C8F8]">
+    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#FAFAFA] via-[#F5F5F5] to-[#EEEEEE]">
       {/* Subtle radial glow */}
       <div
         className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[800px] opacity-40"
         style={{
-          background: 'radial-gradient(ellipse at center, rgba(168,85,247,0.15), transparent 70%)',
+          background: 'radial-gradient(ellipse at center, rgba(72,164,214,0.08), transparent 70%)',
         }}
       />
 
@@ -37,7 +37,7 @@ export function HeroSection() {
           className="mt-6 text-lg sm:text-xl text-[#1a1a2e]/60 max-w-[600px] mx-auto leading-relaxed"
           style={{ fontFamily: "'Inter', sans-serif" }}
         >
-          AI-powered document analysis, eligibility checks, and proposal generation that saves you 90% of your time
+          Smart document analysis, eligibility checks, and proposal generation that saves you 90% of your time
         </motion.p>
 
         {/* CTA Button — Superhuman style: dark pill with arrow */}
@@ -49,7 +49,7 @@ export function HeroSection() {
         >
           <Link
             href="/register"
-            className="group inline-flex items-center gap-3 rounded-full bg-[#1a1a2e] px-7 py-4 text-[15px] font-medium text-white transition-all hover:bg-[#2a2a3e] hover:shadow-xl hover:shadow-purple-500/10 cursor-pointer"
+            className="group inline-flex items-center gap-3 rounded-full bg-[#121212] px-7 py-4 text-[15px] font-medium text-white transition-all hover:bg-[#1C1C1C] hover:shadow-xl cursor-pointer"
           >
             Get TenderCopilot
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 transition-colors group-hover:bg-white/30">
@@ -68,7 +68,7 @@ export function HeroSection() {
       >
         <div className="relative">
           {/* Main dashboard mockup — center */}
-          <div className="relative mx-auto max-w-[900px] rounded-2xl bg-white/80 backdrop-blur-sm shadow-2xl shadow-purple-900/10 border border-white/60 overflow-hidden">
+          <div className="relative mx-auto max-w-[900px] rounded-2xl bg-white/80 backdrop-blur-sm shadow-2xl shadow-black/5 border border-white/60 overflow-hidden">
             <img
               src="/images/dashboard-mockup.png"
               alt="TenderCopilot Dashboard"
@@ -82,10 +82,10 @@ export function HeroSection() {
             initial={{ opacity: 0, x: -40, y: 25 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ duration: 1.2, delay: 1.5, ease: [0.25, 0.1, 0.25, 1] }}
-            className="absolute -left-4 sm:left-4 lg:-left-8 top-[15%] w-[280px] sm:w-[320px] rounded-2xl bg-[#1E1E32]/95 backdrop-blur-xl p-5 shadow-2xl shadow-black/20 border border-white/10"
+            className="absolute -left-4 sm:left-4 lg:-left-8 top-[15%] w-[280px] sm:w-[320px] rounded-2xl bg-[#1C1C1C]/95 backdrop-blur-xl p-5 shadow-2xl shadow-black/20 border border-white/10"
           >
             <div className="flex items-center gap-2 mb-3">
-              <div className="h-6 w-6 rounded-full bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
+              <div className="h-6 w-6 rounded-full bg-[#48A4D6] flex items-center justify-center">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7L12 12L22 7L12 2Z"/></svg>
               </div>
               <span className="text-[13px] text-white/80 font-medium">TenderCopilot AI</span>
@@ -97,7 +97,7 @@ export function HeroSection() {
               <div className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
                 <span className="text-[12px] text-white/30">Ask about requirements...</span>
               </div>
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center cursor-pointer">
+              <div className="h-8 w-8 rounded-lg bg-[#48A4D6] flex items-center justify-center cursor-pointer">
                 <ArrowRight className="h-3.5 w-3.5 text-white" />
               </div>
             </div>
@@ -108,7 +108,7 @@ export function HeroSection() {
             initial={{ opacity: 0, x: 40, y: 25 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ duration: 1.2, delay: 1.8, ease: [0.25, 0.1, 0.25, 1] }}
-            className="absolute -right-4 sm:right-4 lg:-right-8 top-[25%] w-[240px] sm:w-[260px] rounded-2xl bg-white/90 backdrop-blur-xl p-5 shadow-2xl shadow-purple-900/10 border border-white/60"
+            className="absolute -right-4 sm:right-4 lg:-right-8 top-[25%] w-[240px] sm:w-[260px] rounded-2xl bg-white/90 backdrop-blur-xl p-5 shadow-2xl shadow-black/10 border border-white/60"
           >
             <div className="text-[11px] uppercase tracking-widest text-[#1a1a2e]/40 font-medium">Win Rate</div>
             <div className="mt-2 text-[36px] font-semibold tracking-[-0.02em] text-[#1a1a2e]" style={{ fontFamily: "'Georgia', serif" }}>
@@ -129,8 +129,8 @@ export function HeroSection() {
               />
               <defs>
                 <linearGradient id="sparkGrad" x1="0" y1="0" x2="200" y2="0">
-                  <stop offset="0%" stopColor="#6C5CE7" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="#A855F7" stopOpacity="0.6" />
+                  <stop offset="0%" stopColor="#48A4D6" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#48A4D6" stopOpacity="0.6" />
                 </linearGradient>
               </defs>
             </svg>

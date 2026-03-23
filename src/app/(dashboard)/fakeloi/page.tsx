@@ -178,7 +178,7 @@ export default function FakeloiPage() {
             </p>
             <Button
               asChild
-              className="mt-5 gap-2 bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 rounded-full px-5 cursor-pointer shadow-sm"
+              className="mt-5 gap-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-5 cursor-pointer shadow-sm"
             >
               <Link href="/tenders/new">
                 <Plus className="h-4 w-4" />

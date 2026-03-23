@@ -26,7 +26,6 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CardSpotlight } from '@/components/ui/card-spotlight';
 import { BlurFade } from '@/components/ui/blur-fade';
 import {
   Plus,
@@ -133,7 +132,7 @@ export default function TendersPage() {
           </div>
           <Button
             asChild
-            className="gap-2 bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 rounded-full px-5 cursor-pointer shadow-sm"
+            className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-5 cursor-pointer shadow-sm"
           >
             <Link href="/tenders/new">
               <Plus className="h-4 w-4" />
@@ -206,7 +205,7 @@ export default function TendersPage() {
             </div>
           ) : filteredTenders.length === 0 ? (
             <div className="py-16 text-center">
-              <div className="glow-purple rounded-2xl inline-block">
+              <div className="rounded-2xl inline-block">
                 <div className="relative mx-auto mb-4 h-[180px] w-[220px]">
                   <Image src="/images/illustrations/empty-tenders.png" alt="" fill className="object-contain opacity-70" />
                 </div>
@@ -229,7 +228,7 @@ export default function TendersPage() {
               )}
             </div>
           ) : (
-            <CardSpotlight className="rounded-xl border border-border/60 bg-card overflow-hidden p-0" color="rgba(108, 92, 231, 0.06)" radius={300}>
+            <div className="rounded-xl border border-border/60 bg-card overflow-hidden transition-colors hover:border-primary/20">
               {/* Table Header */}
               <div className="flex items-center gap-4 px-6 py-2.5 border-b border-border/40 bg-muted/30">
                 <span className="text-overline w-24 shrink-0">Κατασταση</span>
@@ -312,7 +311,7 @@ export default function TendersPage() {
                   </motion.div>
                 );
               })}
-            </CardSpotlight>
+            </div>
           )}
         </motion.div>
       </BlurFade>

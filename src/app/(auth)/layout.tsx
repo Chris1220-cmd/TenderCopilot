@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { motion } from 'motion/react';
 import { useTranslation } from '@/lib/i18n';
 
@@ -35,72 +34,46 @@ export default function AuthLayout({
 
   return (
     <div className="relative flex min-h-screen overflow-hidden bg-background dark">
-      {/* Background gradient glows */}
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top_center,rgba(108,92,231,0.12),transparent_60%)]" />
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(168,85,247,0.06),transparent_50%)]" />
-
-      {/* Dot pattern */}
-      <div
-        className="pointer-events-none fixed inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: 'radial-gradient(rgba(255,255,255,0.5) 1px, transparent 1px)',
-          backgroundSize: '24px 24px',
-        }}
-      />
-
       {/* Two-column layout */}
       <div className="relative z-10 grid w-full grid-cols-1 lg:grid-cols-2">
-        {/* Left: Hero illustration + stats */}
-        <div className="hidden lg:flex flex-col items-center justify-center p-12 relative">
+        {/* Left: Clean brand panel */}
+        <div className="hidden lg:flex flex-col items-center justify-center p-12 relative border-r border-border">
           <motion.div
-            className="max-w-xl space-y-8"
+            className="max-w-md space-y-8"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
           >
-            {/* Floating hero illustration */}
-            <motion.div
-              variants={itemVariants}
-              className="relative"
-            >
-              <motion.div
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <Image
-                  src="/images/illustrations/login-hero.png"
-                  alt=""
-                  width={560}
-                  height={420}
-                  className="w-full max-w-[560px] drop-shadow-[0_20px_60px_rgba(108,92,231,0.3)]"
-                  priority
-                />
-              </motion.div>
+            {/* Logo mark */}
+            <motion.div variants={itemVariants}>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+                <span className="text-base font-bold text-white tracking-tight">TC</span>
+              </div>
             </motion.div>
 
             {/* Title */}
             <motion.h2
-              className="text-3xl font-bold tracking-tight bg-gradient-to-r from-[#6C5CE7] via-[#A855F7] to-[#6C5CE7] bg-clip-text text-transparent"
+              className="text-3xl font-semibold tracking-tight text-foreground"
               variants={itemVariants}
             >
               {t('auth.showcaseTitle')}
             </motion.h2>
 
             <motion.p
-              className="text-base text-[#8888A0] leading-relaxed"
+              className="text-base text-muted-foreground leading-relaxed"
               variants={itemVariants}
             >
               {t('auth.showcaseSubtitle')}
             </motion.p>
 
             {/* Stats */}
-            <motion.div className="flex gap-10 pt-2" variants={itemVariants}>
+            <motion.div className="flex gap-10 pt-4" variants={itemVariants}>
               {stats.map((stat) => (
                 <div key={stat.key}>
-                  <div className="text-2xl font-bold text-white tabular-nums">
+                  <div className="text-2xl font-semibold text-foreground tabular-nums">
                     {stat.value}
                   </div>
-                  <div className="text-xs text-[#55556A] mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     {t(stat.key)}
                   </div>
                 </div>

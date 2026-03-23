@@ -237,7 +237,7 @@ export default function TenderDetailPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 size="sm"
-                className="gap-2 bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 cursor-pointer shadow-sm"
+                className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-sm"
                 disabled={!!analysisStep}
                 onClick={handleRunFullAnalysis}
               >

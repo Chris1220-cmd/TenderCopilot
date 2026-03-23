@@ -46,7 +46,7 @@ const roleLabels: Record<string, string> = {
 };
 
 const roleColors: Record<string, string> = {
-  ADMIN: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+  ADMIN: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary',
   MEMBER: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
   EXTERNAL_COLLABORATOR: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
 };
@@ -129,7 +129,7 @@ export default function SettingsPage() {
                     </div>
                     <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
                       <DialogTrigger asChild>
-                        <Button className="gap-2 bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 cursor-pointer">
+                        <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
                           <UserPlus className="h-4 w-4" />
                           Πρόσκληση
                         </Button>

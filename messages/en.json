@@ -23,8 +23,8 @@
     "analytics": "Analytics"
   },
   "hero": {
-    "badge": "AI-Powered",
-    "title": "The AI that wins public tenders",
+    "badge": "Smart Platform",
+    "title": "Win more public tenders",
     "subtitle": "Analyze documents, check eligibility, and create proposals 90% faster",
     "trustedBy": "Trusted by companies in:"
   },
@@ -87,7 +87,7 @@
   "faq": {
     "title": "Frequently Asked Questions",
     "q1": "What is TenderCopilot?",
-    "a1": "TenderCopilot is an AI-powered platform that helps companies prepare tender participation files faster and more effectively.",
+    "a1": "TenderCopilot is a smart platform that helps companies prepare tender participation files faster and more effectively.",
     "q2": "How does the AI analysis work?",
     "a2": "The platform automatically analyzes tender documents, extracts requirements, checks eligibility, and suggests pricing strategies.",
     "q3": "Is my data secure?",
