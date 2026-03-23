@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import Image from 'next/image';
 import Link from 'next/link';
 import { getInitials } from '@/lib/utils';
 
@@ -216,7 +217,9 @@ export default function TasksPage() {
       ) : (
         <motion.div variants={itemVariants}>
           <div className="rounded-xl border border-border/60 bg-card p-12 text-center">
-            <CheckSquare className="mx-auto h-12 w-12 text-muted-foreground/30" />
+            <div className="relative mx-auto mb-4 h-[140px] w-[180px]">
+              <Image src="/images/illustrations/empty-tasks.png" alt="" fill className="object-contain opacity-70" />
+            </div>
             <h3 className="mt-4 text-title text-foreground">Καμία εργασία</h3>
             <p className="mt-2 text-body text-muted-foreground">
               Δεν έχετε εκκρεμείς εργασίες αυτή τη στιγμή

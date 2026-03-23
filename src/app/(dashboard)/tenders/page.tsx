@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn, formatDate } from '@/lib/utils';
@@ -195,9 +196,9 @@ export default function TendersPage() {
             </div>
           </div>
         ) : filteredTenders.length === 0 ? (
-          <div className="py-20 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-              <FileText className="h-6 w-6 text-primary/40" />
+          <div className="py-16 text-center">
+            <div className="relative mx-auto mb-4 h-[140px] w-[180px]">
+              <Image src="/images/illustrations/empty-tenders.png" alt="" fill className="object-contain opacity-70" />
             </div>
             <h3 className="text-title text-foreground">Κανενας διαγωνισμος</h3>
             <p className="text-body text-muted-foreground mt-1">

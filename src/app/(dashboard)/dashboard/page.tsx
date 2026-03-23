@@ -20,6 +20,7 @@ import {
   Clock,
   AlertTriangle,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 /* ------------------------------------------------------------------ */
@@ -198,9 +199,9 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : recentTenders.length === 0 ? (
-                <div className="py-16 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                    <FileText className="h-5 w-5 text-primary/40" />
+                <div className="py-12 text-center">
+                  <div className="relative mx-auto mb-4 h-[120px] w-[160px]">
+                    <Image src="/images/illustrations/empty-tenders.png" alt="" fill className="object-contain opacity-70" />
                   </div>
                   <p className="text-body text-muted-foreground">No tenders yet</p>
                   <Button asChild variant="outline" size="sm" className="mt-4 rounded-full border-border cursor-pointer">
@@ -255,9 +256,9 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : upcomingDeadlines.length === 0 ? (
-                <div className="py-16 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                    <Calendar className="h-5 w-5 text-primary/40" />
+                <div className="py-12 text-center">
+                  <div className="relative mx-auto mb-4 h-[120px] w-[160px]">
+                    <Image src="/images/illustrations/empty-deadlines.png" alt="" fill className="object-contain opacity-70" />
                   </div>
                   <p className="text-body text-muted-foreground">No upcoming deadlines</p>
                 </div>
