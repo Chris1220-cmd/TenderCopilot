@@ -8,6 +8,7 @@ import { trpc } from '@/lib/trpc';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PremiumStatCardV2 } from '@/components/ui/premium-stat-card-v2';
 import {
   FileText,
   CheckSquare,
@@ -18,7 +19,6 @@ import {
   ArrowRight,
   Clock,
   AlertTriangle,
-  TrendingUp,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,10 +30,33 @@ const statusMap: Record<
   { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' }
 > = {
   DRAFT: { label: 'Draft', variant: 'secondary' },
+  DISCOVERY: { label: 'Discovery', variant: 'default' },
+  GO_NO_GO: { label: 'Go/No-Go', variant: 'default' },
   IN_PROGRESS: { label: 'In Progress', variant: 'warning' },
+  REVIEW: { label: 'Review', variant: 'default' },
   SUBMITTED: { label: 'Submitted', variant: 'success' },
   WON: { label: 'Won', variant: 'success' },
   LOST: { label: 'Lost', variant: 'destructive' },
+};
+
+/* ------------------------------------------------------------------ */
+/*  Stagger container                                                  */
+/* ------------------------------------------------------------------ */
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.04 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as const },
+  },
 };
 
 /* ------------------------------------------------------------------ */
@@ -77,40 +100,49 @@ export default function DashboardPage() {
   }, [recentTenders]);
 
   const statsCards = [
-    { title: 'Active Tenders', value: activeTenders, icon: FileText },
-    { title: 'Pending Tasks', value: pendingTasks, icon: CheckSquare },
-    { title: 'Compliance', value: complianceScore, suffix: '%', icon: Target },
-    { title: 'Upcoming Deadlines', value: upcomingDeadlinesCount, icon: Calendar },
+    { title: 'Active Tenders', value: activeTenders, subtitle: 'Currently in progress', icon: FileText },
+    { title: 'Pending Tasks', value: pendingTasks, subtitle: 'Awaiting completion', icon: CheckSquare },
+    { title: 'Compliance', value: complianceScore, suffix: '%', subtitle: 'Average score', icon: Target },
+    { title: 'Upcoming Deadlines', value: upcomingDeadlinesCount, subtitle: 'Next 30 days', icon: Calendar },
   ];
 
   return (
-    <div className="space-y-8">
-      {/* Welcome */}
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-8"
+    >
+      {/* Welcome Header */}
       <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
+        variants={itemVariants}
         className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
       >
         <div>
-          <h1
-            className="text-[28px] font-semibold tracking-[-0.03em] text-[#1a1a2e]"
-            style={{ fontFamily: "'Georgia', serif" }}
-          >
+          <h1 className="text-display text-foreground">
             Welcome back, {firstName}
           </h1>
-          <p className="mt-1 text-[14px] text-[#1a1a2e]/45">
+          <p className="mt-1 text-body text-muted-foreground">
             Here&apos;s your tender overview
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild size="sm" className="gap-2 bg-[#1a1a2e] text-white hover:bg-[#2a2a3e] rounded-full px-5 cursor-pointer">
+          <Button
+            asChild
+            size="sm"
+            className="gap-2 bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 rounded-full px-5 cursor-pointer shadow-sm"
+          >
             <Link href="/tenders/new">
               <Plus className="h-4 w-4" />
               New Tender
             </Link>
           </Button>
-          <Button asChild variant="outline" size="sm" className="gap-2 border-[#E8E0F0] text-[#1a1a2e]/60 hover:text-[#1a1a2e] hover:bg-[#F8F6FF] rounded-full px-5 cursor-pointer">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="gap-2 border-border text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-full px-5 cursor-pointer"
+          >
             <Link href="/discovery">
               <Sparkles className="h-4 w-4" />
               Discovery
@@ -119,77 +151,46 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid — PremiumStatCardV2 with NumberTicker */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.06, duration: 0.6 }}
-              >
-                <div className="rounded-xl border border-[#E8E0F0] bg-white p-6 animate-pulse">
-                  <div className="h-3 w-20 bg-[#E8E0F0] rounded mb-4" />
-                  <div className="h-8 w-14 bg-[#E8E0F0] rounded mb-2" />
-                  <div className="h-3 w-28 bg-[#E8E0F0] rounded" />
+              <motion.div key={i} variants={itemVariants}>
+                <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 animate-pulse">
+                  <div className="h-3 w-20 bg-muted rounded mb-4" />
+                  <div className="h-8 w-14 bg-muted rounded mb-2" />
+                  <div className="h-3 w-28 bg-muted rounded" />
                 </div>
               </motion.div>
             ))
-          : statsCards.map((card, i) => {
-              const Icon = card.icon;
-              return (
-                <motion.div
-                  key={card.title}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + i * 0.06, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-                  className="group rounded-xl border border-[#E8E0F0] bg-white p-6 transition-all duration-200 hover:border-[#D0C4E8] hover:shadow-sm cursor-default"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-medium uppercase tracking-[0.05em] text-[#1a1a2e]/35">
-                      {card.title}
-                    </span>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F8F6FF] text-[#6C5CE7]/60 transition-colors group-hover:bg-[#6C5CE7]/10 group-hover:text-[#6C5CE7]">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-baseline gap-0.5">
-                    <span
-                      className="text-[32px] font-semibold tracking-[-0.02em] text-[#1a1a2e]"
-                      style={{ fontFamily: "'Georgia', serif" }}
-                    >
-                      {card.value}
-                    </span>
-                    {card.suffix && (
-                      <span className="text-[20px] font-medium text-[#1a1a2e]/35">{card.suffix}</span>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
+          : statsCards.map((card, i) => (
+              <PremiumStatCardV2
+                key={card.title}
+                title={card.title}
+                value={card.value}
+                suffix={card.suffix}
+                subtitle={card.subtitle}
+                icon={card.icon}
+                index={i}
+              />
+            ))}
       </div>
 
       {/* Recent Tenders + Upcoming Deadlines */}
       <div className="grid gap-6 lg:grid-cols-5">
         {/* Recent Tenders */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
-          className="lg:col-span-3"
-        >
-          <div className="rounded-xl border border-[#E8E0F0] bg-white">
+        <motion.div variants={itemVariants} className="lg:col-span-3">
+          <div className="group rounded-xl border border-border/60 bg-card transition-colors hover:border-primary/20">
             <div className="flex items-center justify-between px-6 py-4">
-              <h2 className="text-[14px] font-semibold text-[#1a1a2e]">Recent Tenders</h2>
+              <h2 className="text-title text-foreground">Recent Tenders</h2>
               <Link
                 href="/tenders"
-                className="flex items-center gap-1 text-[13px] text-[#1a1a2e]/35 hover:text-[#1a1a2e]/60 transition-colors cursor-pointer"
+                className="flex items-center gap-1 text-caption text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
                 View all <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
-            <div className="border-t border-[#E8E0F0]/60">
+            <div className="border-t border-border/40">
               {isLoading ? (
                 <div className="space-y-1 p-4">
                   {Array.from({ length: 4 }).map((_, i) => (
@@ -198,11 +199,11 @@ export default function DashboardPage() {
                 </div>
               ) : recentTenders.length === 0 ? (
                 <div className="py-16 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[#F8F6FF]">
-                    <FileText className="h-5 w-5 text-[#6C5CE7]/40" />
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                    <FileText className="h-5 w-5 text-primary/40" />
                   </div>
-                  <p className="text-[14px] text-[#1a1a2e]/40">No tenders yet</p>
-                  <Button asChild variant="outline" size="sm" className="mt-4 rounded-full border-[#E8E0F0] cursor-pointer">
+                  <p className="text-body text-muted-foreground">No tenders yet</p>
+                  <Button asChild variant="outline" size="sm" className="mt-4 rounded-full border-border cursor-pointer">
                     <Link href="/tenders/new">
                       <Plus className="mr-1.5 h-3.5 w-3.5" /> New Tender
                     </Link>
@@ -210,19 +211,19 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div>
-                  {recentTenders.map((tender: any, i: number) => {
+                  {recentTenders.map((tender: any) => {
                     const status = statusMap[tender.status] || statusMap.DRAFT;
                     return (
                       <Link
                         key={tender.id}
                         href={`/tenders/${tender.id}`}
-                        className="flex items-center justify-between px-6 py-3.5 transition-colors hover:bg-[#F8F6FF]/60 cursor-pointer border-b border-[#E8E0F0]/40 last:border-0"
+                        className="flex items-center justify-between px-6 py-3.5 transition-colors hover:bg-muted/50 cursor-pointer border-b border-border/30 last:border-0"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[14px] font-medium text-[#1a1a2e]">
+                          <p className="truncate text-body font-medium text-foreground">
                             {tender.title}
                           </p>
-                          <p className="text-[12px] text-[#1a1a2e]/35 mt-0.5">
+                          <p className="text-caption mt-0.5">
                             {tender.referenceNumber}
                             {tender.submissionDeadline && <> &middot; {formatDate(tender.submissionDeadline)}</>}
                           </p>
@@ -240,18 +241,13 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Upcoming Deadlines */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
-          className="lg:col-span-2"
-        >
-          <div className="rounded-xl border border-[#E8E0F0] bg-white">
+        <motion.div variants={itemVariants} className="lg:col-span-2">
+          <div className="group rounded-xl border border-border/60 bg-card transition-colors hover:border-primary/20">
             <div className="flex items-center justify-between px-6 py-4">
-              <h2 className="text-[14px] font-semibold text-[#1a1a2e]">Upcoming Deadlines</h2>
-              <Clock className="h-4 w-4 text-[#1a1a2e]/25" />
+              <h2 className="text-title text-foreground">Upcoming Deadlines</h2>
+              <Clock className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className="border-t border-[#E8E0F0]/60">
+            <div className="border-t border-border/40">
               {isLoading ? (
                 <div className="space-y-1 p-4">
                   {Array.from({ length: 3 }).map((_, i) => (
@@ -260,10 +256,10 @@ export default function DashboardPage() {
                 </div>
               ) : upcomingDeadlines.length === 0 ? (
                 <div className="py-16 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[#F8F6FF]">
-                    <Calendar className="h-5 w-5 text-[#6C5CE7]/40" />
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                    <Calendar className="h-5 w-5 text-primary/40" />
                   </div>
-                  <p className="text-[14px] text-[#1a1a2e]/40">No upcoming deadlines</p>
+                  <p className="text-body text-muted-foreground">No upcoming deadlines</p>
                 </div>
               ) : (
                 <div>
@@ -271,22 +267,22 @@ export default function DashboardPage() {
                     <Link
                       key={dl.id}
                       href={`/tenders/${dl.id}`}
-                      className="flex items-center justify-between px-6 py-3.5 transition-colors hover:bg-[#F8F6FF]/60 cursor-pointer border-b border-[#E8E0F0]/40 last:border-0"
+                      className="flex items-center justify-between px-6 py-3.5 transition-colors hover:bg-muted/50 cursor-pointer border-b border-border/30 last:border-0"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14px] font-medium text-[#1a1a2e]">{dl.title}</p>
-                        <p className="text-[12px] text-[#1a1a2e]/35 mt-0.5">{formatDate(dl.deadline)}</p>
+                        <p className="truncate text-body font-medium text-foreground">{dl.title}</p>
+                        <p className="text-caption mt-0.5">{formatDate(dl.deadline)}</p>
                       </div>
                       <div className="flex items-center gap-1.5 ml-3 shrink-0">
-                        {dl.daysLeft <= 7 && <AlertTriangle className="h-3 w-3 text-red-500" />}
+                        {dl.daysLeft <= 7 && <AlertTriangle className="h-3 w-3 text-destructive" />}
                         <span
                           className={cn(
                             'text-[12px] font-semibold tabular-nums',
                             dl.daysLeft <= 7
-                              ? 'text-red-500'
+                              ? 'text-destructive'
                               : dl.daysLeft <= 30
-                                ? 'text-amber-500'
-                                : 'text-[#1a1a2e]/35'
+                                ? 'text-warning'
+                                : 'text-muted-foreground'
                           )}
                         >
                           {dl.daysLeft}d
@@ -300,6 +296,6 @@ export default function DashboardPage() {
           </div>
         </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

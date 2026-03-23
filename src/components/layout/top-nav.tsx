@@ -16,7 +16,10 @@ import {
   Settings,
   Building2,
   CheckSquare,
+  Sun,
+  Moon,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -40,7 +43,11 @@ const navItems = [
 export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => void }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -71,9 +78,9 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
     <header
       className={cn(
         'sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b px-6',
-        'bg-white/80 backdrop-blur-xl backdrop-saturate-[180%]',
-        'border-[#E8E0F0]/60 transition-shadow duration-300',
-        scrolled && 'shadow-[0_1px_3px_rgba(0,0,0,0.06)]'
+        'bg-background/80 backdrop-blur-xl backdrop-saturate-[180%]',
+        'border-border/60 transition-shadow duration-300',
+        scrolled && 'shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3)]'
       )}
     >
       {/* Left: Logo + Nav Tabs */}
@@ -82,14 +89,14 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
           href="/dashboard"
           className="group mr-6 flex items-center gap-2.5 cursor-pointer"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1a1a2e]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" opacity="0.9"/>
               <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span className="hidden text-[14px] font-semibold text-[#1a1a2e] tracking-[-0.01em] md:block">
+          <span className="hidden text-[14px] font-semibold text-foreground tracking-[-0.01em] md:block">
             TenderCopilot
           </span>
         </Link>
@@ -106,15 +113,15 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
                 className={cn(
                   'relative flex items-center gap-2 px-3.5 py-2 text-[13px] font-medium transition-colors duration-150 cursor-pointer rounded-md',
                   isActive
-                    ? 'text-[#1a1a2e]'
-                    : 'text-[#1a1a2e]/45 hover:text-[#1a1a2e]/70'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground hover:text-foreground/70'
                 )}
               >
                 <span>{item.label}</span>
                 {isActive && (
                   <motion.div
                     layoutId="nav-indicator"
-                    className="absolute inset-x-2 -bottom-[11px] h-[2px] rounded-full bg-[#1a1a2e]"
+                    className="absolute inset-x-2 -bottom-[11px] h-[2px] rounded-full bg-gradient-to-r from-primary to-accent"
                     transition={{
                       type: 'spring',
                       stiffness: 500,
@@ -128,27 +135,44 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
         </nav>
       </div>
 
-      {/* Right: Search trigger + Notifications + User */}
+      {/* Right: Search trigger + Theme toggle + Notifications + User */}
       <div className="flex items-center gap-1.5">
         <Button
           variant="ghost"
           size="sm"
-          className="gap-2 text-[#1a1a2e]/40 hover:text-[#1a1a2e]/70 hover:bg-[#1a1a2e]/[0.04] cursor-pointer h-8 px-2.5"
+          className="gap-2 text-muted-foreground hover:text-foreground/70 hover:bg-foreground/[0.04] cursor-pointer h-8 px-2.5"
           onClick={onOpenCommandPalette}
         >
           <Search className="h-[15px] w-[15px]" />
-          <kbd className="pointer-events-none hidden rounded-[4px] border border-[#E8E0F0] bg-[#F8F6FF]/60 px-1.5 py-0.5 text-[10px] font-mono text-[#1a1a2e]/30 md:inline">
+          <kbd className="pointer-events-none hidden rounded-[4px] border border-border bg-muted/60 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground md:inline">
             Ctrl K
           </kbd>
         </Button>
 
+        {/* Theme Toggle */}
+        {mounted && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground/70 hover:bg-foreground/[0.04] cursor-pointer h-8 w-8"
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {resolvedTheme === 'dark' ? (
+              <Sun className="h-[15px] w-[15px]" />
+            ) : (
+              <Moon className="h-[15px] w-[15px]" />
+            )}
+          </Button>
+        )}
+
         <Button
           variant="ghost"
           size="icon"
-          className="relative text-[#1a1a2e]/40 hover:text-[#1a1a2e]/70 hover:bg-[#1a1a2e]/[0.04] cursor-pointer h-8 w-8"
+          className="relative text-muted-foreground hover:text-foreground/70 hover:bg-foreground/[0.04] cursor-pointer h-8 w-8"
         >
           <Bell className="h-[15px] w-[15px]" />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#6C5CE7]" />
+          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
         </Button>
 
         <DropdownMenu>
@@ -162,7 +186,7 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
                   src={session?.user?.image || undefined}
                   alt={session?.user?.name || ''}
                 />
-                <AvatarFallback className="bg-[#6C5CE7] text-[10px] font-semibold text-white">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-[10px] font-semibold text-white">
                   {getInitials(session?.user?.name || 'U')}
                 </AvatarFallback>
               </Avatar>

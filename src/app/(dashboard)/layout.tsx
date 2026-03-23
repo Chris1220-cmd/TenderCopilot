@@ -14,7 +14,7 @@ export default function DashboardLayout({
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#FAFAFA]">
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
       <TopNav onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
       <main className="relative flex-1 overflow-y-auto scrollbar-thin">
         <div className="mx-auto max-w-[1400px] px-6 py-8">
