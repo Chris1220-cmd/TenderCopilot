@@ -9,10 +9,11 @@ import {
   Trophy,
   XCircle,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { NumberTicker } from '@/components/ui/number-ticker';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   BarChart,
   Bar,
@@ -45,6 +46,21 @@ const STATUS_LABELS: Record<string, string> = {
   SUBMITTED: 'Υποβληθέν',
   WON: 'Κερδισμένος',
   LOST: 'Χαμένος',
+};
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.04 } },
+};
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } },
+};
+
+const chartTooltipStyle = {
+  backgroundColor: 'hsl(var(--card))',
+  border: '1px solid hsl(var(--border))',
+  borderRadius: '8px',
 };
 
 export default function AnalyticsPage() {
@@ -90,47 +106,53 @@ export default function AnalyticsPage() {
     : [];
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Αναλυτικά</h1>
+      <motion.div variants={itemVariants}>
+        <h1 className="text-headline text-foreground">Αναλυτικά</h1>
         <p className="text-muted-foreground">
           Στατιστικά και επιδόσεις διαγωνισμών
         </p>
-      </div>
+      </motion.div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="glass glass-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+      <motion.div variants={itemVariants} className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-border/60 bg-card p-5 transition-colors hover:border-primary/20">
+          <div className="flex flex-row items-center justify-between pb-2">
+            <p className="text-sm font-medium text-muted-foreground">
               Σύνολο Διαγωνισμών
-            </CardTitle>
+            </p>
             <BarChart3 className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div>
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-3xl font-bold">{tenderStats?.totalTenders || 0}</div>
+              <NumberTicker value={tenderStats?.totalTenders || 0} className="text-3xl font-bold tabular-nums" />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="glass glass-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+        <div className="rounded-xl border border-border/60 bg-card p-5 transition-colors hover:border-primary/20">
+          <div className="flex flex-row items-center justify-between pb-2">
+            <p className="text-sm font-medium text-muted-foreground">
               Μέσο Compliance
-            </CardTitle>
+            </p>
             <Target className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div>
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
               <>
-                <div className="text-3xl font-bold">
-                  {(tenderStats?.avgComplianceScore || 0).toFixed(0)}%
+                <div className="flex items-baseline gap-0.5">
+                  <NumberTicker value={Math.round(tenderStats?.avgComplianceScore || 0)} className="text-3xl font-bold tabular-nums" />
+                  <span className="text-3xl font-bold">%</span>
                 </div>
                 <Progress
                   value={tenderStats?.avgComplianceScore || 0}
@@ -138,134 +160,121 @@ export default function AnalyticsPage() {
                 />
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="glass glass-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+        <div className="rounded-xl border border-border/60 bg-card p-5 transition-colors hover:border-primary/20">
+          <div className="flex flex-row items-center justify-between pb-2">
+            <p className="text-sm font-medium text-muted-foreground">
               Κερδισμένοι
-            </CardTitle>
+            </p>
             <Trophy className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div>
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-3xl font-bold text-green-600">
-                {companyStats?.won || 0}
-              </div>
+              <NumberTicker value={companyStats?.won || 0} className="text-3xl font-bold tabular-nums text-green-600" />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="glass glass-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+        <div className="rounded-xl border border-border/60 bg-card p-5 transition-colors hover:border-primary/20">
+          <div className="flex flex-row items-center justify-between pb-2">
+            <p className="text-sm font-medium text-muted-foreground">
               Προσεχείς Deadlines
-            </CardTitle>
+            </p>
             <Calendar className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div>
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <div className="text-3xl font-bold text-orange-600">
-                {tenderStats?.upcomingDeadlines || 0}
-              </div>
+              <NumberTicker value={tenderStats?.upcomingDeadlines || 0} className="text-3xl font-bold tabular-nums text-orange-600" />
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Charts Row */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <motion.div variants={itemVariants} className="grid gap-6 lg:grid-cols-2">
         {/* Status Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Κατανομή Κατάστασης</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-[300px] w-full" />
-            ) : statusData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={4}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
-                    {statusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                Δεν υπάρχουν δεδομένα
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="rounded-xl border border-border/60 bg-card p-6">
+          <h3 className="text-title text-foreground mb-4">Κατανομή Κατάστασης</h3>
+          {isLoading ? (
+            <Skeleton className="h-[300px] w-full" />
+          ) : statusData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={4}
+                  dataKey="value"
+                  label={({ name, value }) => `${name}: ${value}`}
+                >
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={chartTooltipStyle} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+              Δεν υπάρχουν δεδομένα
+            </div>
+          )}
+        </div>
 
         {/* Win/Loss */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Αποτελέσματα</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-[300px] w-full" />
-            ) : winLossData.some((d) => d.value > 0) ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={winLossData}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="name" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                    {winLossData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                Δεν υπάρχουν δεδομένα
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+        <div className="rounded-xl border border-border/60 bg-card p-6">
+          <h3 className="text-title text-foreground mb-4">Αποτελέσματα</h3>
+          {isLoading ? (
+            <Skeleton className="h-[300px] w-full" />
+          ) : winLossData.some((d) => d.value > 0) ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={winLossData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis allowDecimals={false} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                <Tooltip contentStyle={chartTooltipStyle} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {winLossData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+              Δεν υπάρχουν δεδομένα
+            </div>
+          )}
+        </div>
+      </motion.div>
 
       {/* Compliance Comparison */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">
+      <motion.div variants={itemVariants}>
+        <div className="rounded-xl border border-border/60 bg-card p-6">
+          <h3 className="text-title text-foreground mb-4">
             Μέσο Compliance Score: Κερδισμένοι vs Χαμένοι
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
           {isLoading ? (
             <Skeleton className="h-[250px] w-full" />
           ) : complianceData.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={complianceData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis type="number" domain={[0, 100]} />
-                <YAxis type="category" dataKey="name" width={100} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis type="number" domain={[0, 100]} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis type="category" dataKey="name" width={100} tick={{ fill: 'hsl(var(--muted-foreground))' }} />
                 <Tooltip
                   formatter={(value: number) => `${value.toFixed(1)}%`}
+                  contentStyle={chartTooltipStyle}
                 />
                 <Bar dataKey="score" radius={[0, 6, 6, 0]} fill="#3b82f6" />
               </BarChart>
@@ -275,8 +284,8 @@ export default function AnalyticsPage() {
               Δεν υπάρχουν αρκετά δεδομένα για σύγκριση
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { motion, AnimatePresence } from 'motion/react';
+import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
+import { AnimatedTabsTrigger } from '@/components/ui/animated-tabs';
 import { ProfileForm } from '@/components/company/profile-form';
 import { CertificatesList } from '@/components/company/certificates-list';
 import { LegalDocsList } from '@/components/company/legal-docs-list';
@@ -24,61 +25,74 @@ const tabs = [
   { value: 'library', label: 'Βιβλιοθήκη Κειμένων', icon: BookOpen },
 ] as const;
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.04 } },
+};
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as const } },
+};
+
 export default function CompanyPage() {
   const [activeTab, setActiveTab] = useState('profile');
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Εταιρεία</h1>
+      <motion.div variants={itemVariants}>
+        <h1 className="text-headline text-foreground">Εταιρεία</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Διαχειριστείτε το προφίλ, τα πιστοποιητικά και τη βιβλιοθήκη της εταιρείας σας
         </p>
-      </div>
+      </motion.div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList
-          className={cn(
-            'grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5',
-            'h-auto gap-1 bg-muted/50 p-1.5 backdrop-blur-sm',
-            'rounded-xl border border-white/10'
-          )}
-        >
-          {tabs.map(({ value, label, icon: Icon }) => (
-            <TabsTrigger
-              key={value}
-              value={value}
-              className={cn(
-                'flex items-center gap-2 px-3 py-2.5 text-xs sm:text-sm',
-                'data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600/10 data-[state=active]:to-violet-600/10',
-                'data-[state=active]:border data-[state=active]:border-indigo-500/20',
-                'data-[state=active]:shadow-sm'
-              )}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline">{label}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <motion.div variants={itemVariants}>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="border-b border-border/50 bg-transparent p-0 h-auto rounded-none flex-wrap gap-0">
+            {tabs.map(({ value, label, icon: Icon }) => (
+              <AnimatedTabsTrigger key={value} value={value} activeValue={activeTab}>
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </AnimatedTabsTrigger>
+            ))}
+          </TabsList>
 
-        <TabsContent value="profile" className="mt-6">
-          <ProfileForm />
-        </TabsContent>
-        <TabsContent value="certificates" className="mt-6">
-          <CertificatesList />
-        </TabsContent>
-        <TabsContent value="legal" className="mt-6">
-          <LegalDocsList />
-        </TabsContent>
-        <TabsContent value="projects" className="mt-6">
-          <ProjectsList />
-        </TabsContent>
-        <TabsContent value="library" className="mt-6">
-          <ContentLibrary />
-        </TabsContent>
-      </Tabs>
-    </div>
+          <div className="mt-6">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <TabsContent value="profile" forceMount={activeTab === 'profile' ? true : undefined}>
+                  <ProfileForm />
+                </TabsContent>
+                <TabsContent value="certificates" forceMount={activeTab === 'certificates' ? true : undefined}>
+                  <CertificatesList />
+                </TabsContent>
+                <TabsContent value="legal" forceMount={activeTab === 'legal' ? true : undefined}>
+                  <LegalDocsList />
+                </TabsContent>
+                <TabsContent value="projects" forceMount={activeTab === 'projects' ? true : undefined}>
+                  <ProjectsList />
+                </TabsContent>
+                <TabsContent value="library" forceMount={activeTab === 'library' ? true : undefined}>
+                  <ContentLibrary />
+                </TabsContent>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </Tabs>
+      </motion.div>
+    </motion.div>
   );
 }
