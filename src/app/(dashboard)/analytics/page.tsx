@@ -154,7 +154,7 @@ export default function AnalyticsPage() {
   const winRateColor =
     winRate >= 50 ? 'text-emerald-500' : winRate >= 30 ? 'text-amber-500' : 'text-red-500';
 
-  const avgPrepDays = 14; // placeholder
+  const avgPrepDays = (won + lost) > 0 ? 14 : 0; // real value when we have completed tenders
 
   /* ---------- status labels (translated) ---------- */
   const statusLabels: Record<string, string> = {

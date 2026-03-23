@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
 import { cn, formatCurrency, fileSize } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -85,6 +86,7 @@ const modes: { id: IntakeMode; icon: typeof Radar; title: string; subtitle: stri
 
 export default function NewTenderPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [activeMode, setActiveMode] = useState<IntakeMode>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -150,6 +152,7 @@ export default function NewTenderPage() {
 
     try {
       const result = await importFromUrl.mutateAsync({ url });
+      toast({ title: 'Επιτυχής εισαγωγή', description: 'Ο διαγωνισμός δημιουργήθηκε.' });
       router.push(`/tenders/${result.tenderId}`);
     } catch (err: any) {
       setUrlImporting(false);
@@ -263,6 +266,7 @@ export default function NewTenderPage() {
       const result = await importFromFiles.mutateAsync({
         files: uploadedFiles,
       });
+      toast({ title: 'Επιτυχής εισαγωγή', description: 'Ο διαγωνισμός δημιουργήθηκε.' });
       router.push(`/tenders/${result.tenderId}`);
     } catch (err: any) {
       setFileImporting(false);
@@ -297,6 +301,7 @@ export default function NewTenderPage() {
         });
       }
 
+      toast({ title: 'Επιτυχής εισαγωγή', description: 'Ο διαγωνισμός δημιουργήθηκε.' });
       router.push(`/tenders/${result.id}`);
     } catch (err: any) {
       console.error('Import failed:', err);
