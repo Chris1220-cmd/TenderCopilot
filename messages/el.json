@@ -16,7 +16,11 @@
     "features": "Χαρακτηριστικά",
     "pricing": "Τιμολόγηση",
     "about": "Σχετικά",
-    "faq": "FAQ"
+    "faq": "FAQ",
+    "dashboard": "Πίνακας Ελέγχου",
+    "tenders": "Διαγωνισμοί",
+    "dossiers": "Φάκελοι",
+    "analytics": "Αναλυτικά"
   },
   "hero": {
     "badge": "AI-Powered",

@@ -16,7 +16,11 @@
     "features": "Features",
     "pricing": "Pricing",
     "about": "About",
-    "faq": "FAQ"
+    "faq": "FAQ",
+    "dashboard": "Dashboard",
+    "tenders": "Tenders",
+    "dossiers": "Dossiers",
+    "analytics": "Analytics"
   },
   "hero": {
     "badge": "AI-Powered",

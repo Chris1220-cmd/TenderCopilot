@@ -114,7 +114,7 @@ export default function LoginPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
-        className="rounded-2xl border border-border/60 bg-card shadow-2xl shadow-black/20 relative overflow-hidden"
+        className="rounded-2xl border border-white/[0.08] bg-[#12122a] shadow-2xl shadow-black/40 relative overflow-hidden"
       >
         {/* Top border glow line */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
@@ -134,10 +134,10 @@ export default function LoginPage() {
               <span className="text-lg font-bold text-white tracking-tight">TC</span>
             </div>
             <div className="space-y-1.5 text-center">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              <h1 className="text-2xl font-bold tracking-tight text-white">
                 {t('auth.loginTitle')}
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-[#8888A0]">
                 {t('auth.loginSubtitle')}
               </p>
             </div>
@@ -161,18 +161,18 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-foreground/80">
+              <Label htmlFor="email" className="text-sm font-medium text-[#e0e0f0]/80">
                 {t('auth.email')}
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8888A0]/60 z-10" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="you@company.gr"
                   autoComplete="email"
                   className={cn(
-                    'h-11 rounded-xl bg-background border-border/60 pl-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
+                    'h-11 rounded-xl bg-[#0a0a1a] border-white/[0.08] pl-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
                     errors.email && 'border-red-500/50 focus:ring-red-500/20'
                   )}
                   {...register('email')}
@@ -185,18 +185,18 @@ export default function LoginPage() {
 
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-foreground/80">
+              <Label htmlFor="password" className="text-sm font-medium text-[#e0e0f0]/80">
                 {t('auth.password')}
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8888A0]/60 z-10" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="********"
                   autoComplete="current-password"
                   className={cn(
-                    'h-11 rounded-xl bg-background border-border/60 pl-10 pr-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
+                    'h-11 rounded-xl bg-[#0a0a1a] border-white/[0.08] pl-10 pr-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
                     errors.password && 'border-red-500/50 focus:ring-red-500/20'
                   )}
                   {...register('password')}
@@ -204,7 +204,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground/60 transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 rounded-sm z-10"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-[#8888A0]/60 transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 rounded-sm z-10"
                   tabIndex={0}
                   aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                 >
@@ -226,7 +226,7 @@ export default function LoginPage() {
             <div className="flex justify-end">
               <Link
                 href="/forgot-password"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:underline"
+                className="text-xs text-[#8888A0] hover:text-white transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:underline"
               >
                 {t('auth.forgotPassword')}
               </Link>
@@ -255,7 +255,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-white/[0.08]" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-card px-4 text-muted-foreground backdrop-blur-sm">
+              <span className="bg-[#12122a] px-4 text-[#8888A0] backdrop-blur-sm">
                 {t('auth.or')}
               </span>
             </div>
@@ -270,7 +270,7 @@ export default function LoginPage() {
             className={cn(
               'h-11 w-full cursor-pointer rounded-xl',
               'border-white/[0.08] bg-white/[0.04]',
-              'text-muted-foreground hover:bg-white/[0.08] hover:text-foreground',
+              'text-[#8888A0] hover:bg-white/[0.08] hover:text-white',
               'transition-all duration-200',
               'focus-visible:ring-2 focus-visible:ring-ring'
             )}
@@ -310,7 +310,7 @@ export default function LoginPage() {
             disabled={isMagicLinkLoading}
             className={cn(
               'h-10 w-full cursor-pointer rounded-xl',
-              'text-muted-foreground hover:text-foreground hover:bg-white/[0.04]',
+              'text-[#8888A0] hover:text-white hover:bg-white/[0.04]',
               'transition-all duration-200',
               'focus-visible:ring-2 focus-visible:ring-ring'
             )}
@@ -326,7 +326,7 @@ export default function LoginPage() {
           </Button>
 
           {/* Register link */}
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-sm text-[#8888A0]">
             {t('auth.noAccount')}{' '}
             <Link
               href="/register"

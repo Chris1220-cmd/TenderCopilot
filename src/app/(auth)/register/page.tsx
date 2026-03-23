@@ -121,7 +121,7 @@ export default function RegisterPage() {
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
       >
         {/* Card */}
-        <div className="rounded-2xl border border-border/60 bg-card shadow-2xl shadow-black/20 relative overflow-hidden">
+        <div className="rounded-2xl border border-white/[0.08] bg-[#12122a] shadow-2xl shadow-black/40 relative overflow-hidden">
           {/* Top border glow line */}
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
@@ -147,10 +147,10 @@ export default function RegisterPage() {
                 <span className="text-sm font-bold text-white tracking-tight">TC</span>
               </div>
               <div className="space-y-1 text-center">
-                <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                <h1 className="text-xl font-semibold tracking-tight text-white">
                   {t('auth.registerTitle')}
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-[#8888A0]">
                   {t('auth.registerSubtitle')}
                 </p>
               </div>
@@ -167,17 +167,17 @@ export default function RegisterPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {/* Name */}
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm text-foreground/80">
+                <Label htmlFor="name" className="text-sm text-[#e0e0f0]/80">
                   {t('auth.name')}
                 </Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8888A0]/60 z-10" />
                   <Input
                     id="name"
                     type="text"
                     placeholder="John Doe"
                     className={cn(
-                      'h-11 rounded-xl bg-background border-border/60 pl-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
+                      'h-11 rounded-xl bg-[#0a0a1a] border-white/[0.08] pl-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
                       errors.name && 'border-red-500/50'
                     )}
                     {...register('name')}
@@ -190,17 +190,17 @@ export default function RegisterPage() {
 
               {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm text-foreground/80">
+                <Label htmlFor="email" className="text-sm text-[#e0e0f0]/80">
                   {t('auth.email')}
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8888A0]/60 z-10" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="you@company.gr"
                     className={cn(
-                      'h-11 rounded-xl bg-background border-border/60 pl-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
+                      'h-11 rounded-xl bg-[#0a0a1a] border-white/[0.08] pl-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
                       errors.email && 'border-red-500/50'
                     )}
                     {...register('email')}
@@ -213,17 +213,17 @@ export default function RegisterPage() {
 
               {/* Password */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm text-foreground/80">
+                <Label htmlFor="password" className="text-sm text-[#e0e0f0]/80">
                   {t('auth.password')}
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8888A0]/60 z-10" />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="********"
                     className={cn(
-                      'h-11 rounded-xl bg-background border-border/60 pl-10 pr-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
+                      'h-11 rounded-xl bg-[#0a0a1a] border-white/[0.08] pl-10 pr-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
                       errors.password && 'border-red-500/50'
                     )}
                     {...register('password')}
@@ -231,7 +231,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground/60 transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 rounded-sm z-10"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-[#8888A0]/60 transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 rounded-sm z-10"
                     tabIndex={0}
                     aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                   >
@@ -250,17 +250,17 @@ export default function RegisterPage() {
 
               {/* Company Name */}
               <div className="space-y-2">
-                <Label htmlFor="companyName" className="text-sm text-foreground/80">
+                <Label htmlFor="companyName" className="text-sm text-[#e0e0f0]/80">
                   {t('auth.company')}
                 </Label>
                 <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                  <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8888A0]/60 z-10" />
                   <Input
                     id="companyName"
                     type="text"
                     placeholder="Acme Corp"
                     className={cn(
-                      'h-11 rounded-xl bg-background border-border/60 pl-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
+                      'h-11 rounded-xl bg-[#0a0a1a] border-white/[0.08] pl-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
                       errors.companyName && 'border-red-500/50'
                     )}
                     {...register('companyName')}
@@ -296,7 +296,7 @@ export default function RegisterPage() {
                     )}
                   </div>
                 </div>
-                <span className="text-xs text-muted-foreground leading-relaxed">
+                <span className="text-xs text-[#8888A0] leading-relaxed">
                   {t('auth.termsAgree')}{' '}
                   <Link
                     href="/terms"
@@ -325,7 +325,7 @@ export default function RegisterPage() {
             </form>
 
             {/* Login link */}
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-sm text-[#8888A0]">
               {t('auth.hasAccount')}{' '}
               <Link
                 href="/login"

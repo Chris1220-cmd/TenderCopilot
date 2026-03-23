@@ -31,18 +31,20 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 import { useState, useEffect, useCallback } from 'react';
 
 const navItems = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Tenders', href: '/tenders', icon: FileText },
-  { label: 'Φάκελοι', href: '/fakeloi', icon: FolderCheck },
-  { label: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { labelKey: 'nav.dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { labelKey: 'nav.tenders', href: '/tenders', icon: FileText },
+  { labelKey: 'nav.dossiers', href: '/fakeloi', icon: FolderCheck },
+  { labelKey: 'nav.analytics', href: '/analytics', icon: BarChart3 },
 ];
 
 export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => void }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { t } = useTranslation();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -117,7 +119,7 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
                     : 'text-muted-foreground hover:text-foreground/70'
                 )}
               >
-                <span>{item.label}</span>
+                <span>{t(item.labelKey)}</span>
                 {isActive && (
                   <motion.div
                     layoutId="nav-indicator"
