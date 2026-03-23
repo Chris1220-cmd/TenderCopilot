@@ -301,6 +301,10 @@ model Tender {
 
   analysisLanguage  String  @default("el")
 
+  // Fakelos Checker
+  fakelosReport     Json?
+  fakelosCheckedAt  DateTime?
+
   // Smart AI Assistant
   documentChunks   DocumentChunk[]
   chatMessages     ChatMessage[]
@@ -400,6 +404,7 @@ enum CoverageStatus {
   UNMAPPED
   COVERED
   GAP
+  IN_PROGRESS
   MANUAL_OVERRIDE
 }
 
