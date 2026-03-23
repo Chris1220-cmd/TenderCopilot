@@ -65,7 +65,7 @@ const categories = [
 
 const categoryColors: Record<string, string> = {
   COMPANY_PROFILE: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  METHODOLOGY: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  METHODOLOGY: 'bg-primary/10 text-primary',
   QA_PLAN: 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
   HSE_PLAN: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   TEAM_DESCRIPTION: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -190,7 +190,7 @@ export function ContentLibrary() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-indigo-500" />
+            <BookOpen className="h-5 w-5 text-primary" />
             Βιβλιοθήκη Κειμένων
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -201,10 +201,9 @@ export function ContentLibrary() {
           onClick={openCreate}
           className={cn(
             'cursor-pointer',
-            'bg-gradient-to-r from-indigo-600 to-violet-600',
-            'hover:from-indigo-500 hover:to-violet-500',
-            'shadow-lg shadow-indigo-500/25',
-            'border-0 text-white'
+            'bg-primary text-primary-foreground hover:bg-primary/90',
+            'shadow-lg shadow-primary/25',
+            'border-0'
           )}
         >
           <Plus className="h-4 w-4" />
@@ -282,7 +281,7 @@ export function ContentLibrary() {
                 <CardContent className="p-5">
                   <div className="flex flex-col sm:flex-row gap-4">
                     {/* Icon */}
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <FileText className="h-5 w-5" />
                     </div>
 
@@ -406,7 +405,7 @@ export function ContentLibrary() {
                 {...register('content')}
                 placeholder="Εισάγετε το κείμενο εδώ..."
                 rows={12}
-                className="resize-y min-h-[200px] transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                className="resize-y min-h-[200px] transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
               {errors.content && (
                 <p className="text-xs text-destructive">{errors.content.message}</p>
@@ -438,9 +437,8 @@ export function ContentLibrary() {
                 disabled={createMutation.isPending}
                 className={cn(
                   'cursor-pointer',
-                  'bg-gradient-to-r from-indigo-600 to-violet-600',
-                  'hover:from-indigo-500 hover:to-violet-500',
-                  'border-0 text-white'
+                  'bg-primary text-primary-foreground hover:bg-primary/90',
+                  'border-0'
                 )}
               >
                 {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}

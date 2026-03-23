@@ -222,7 +222,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                                 className={cn(
                                   'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors',
                                   isSelected
-                                    ? 'bg-[#6C5CE7]/10 text-[#6C5CE7]'
+                                    ? 'bg-primary/10 text-primary'
                                     : 'bg-[#1a1a2e]/[0.04] text-[#1a1a2e]/40'
                                 )}
                               >
@@ -237,7 +237,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                                 )}
                               </div>
                               {isSelected && (
-                                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#6C5CE7]/50" />
+                                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-primary/50" />
                               )}
                             </button>
                           );

@@ -373,9 +373,8 @@ export function OverviewTab({ tender }: OverviewTabProps) {
               disabled={updateMutation.isPending}
               className={cn(
                 'cursor-pointer',
-                'bg-gradient-to-r from-indigo-600 to-violet-600',
-                'hover:from-indigo-500 hover:to-violet-500',
-                'border-0 text-white'
+                'bg-primary text-primary-foreground hover:bg-primary/90',
+                'border-0'
               )}
             >
               Αποθήκευση

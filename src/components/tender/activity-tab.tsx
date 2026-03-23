@@ -31,8 +31,8 @@ const actionIconMap: Record<string, { icon: typeof FileText; color: string; bgCo
   },
   requirement_mapped: {
     icon: Link2,
-    color: 'text-violet-600 dark:text-violet-400',
-    bgColor: 'bg-violet-500/10',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
   },
   task_completed: {
     icon: CheckCircle2,
@@ -56,8 +56,8 @@ const actionIconMap: Record<string, { icon: typeof FileText; color: string; bgCo
   },
   member_added: {
     icon: UserPlus,
-    color: 'text-indigo-600 dark:text-indigo-400',
-    bgColor: 'bg-indigo-500/10',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
   },
   compliance_check: {
     icon: AlertCircle,

@@ -60,7 +60,7 @@ function ExtractionBadge({ doc }: { doc: any }) {
   const config: Record<string, { label: string; icon: any; color: string }> = {
     pdf_parse: { label: 'PDF Parse', icon: FileText, color: 'text-blue-400' },
     document_ai: { label: 'Document AI', icon: Brain, color: 'text-emerald-400' },
-    gemini_vision: { label: 'Gemini OCR', icon: Sparkles, color: 'text-purple-400' },
+    gemini_vision: { label: 'Gemini OCR', icon: Sparkles, color: 'text-primary' },
   };
 
   const c = config[method] || { label: method, icon: FileText, color: 'text-gray-400' };
@@ -378,10 +378,9 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
               disabled={generateMutation.isPending}
               className={cn(
                 'cursor-pointer gap-2',
-                'bg-gradient-to-r from-indigo-600 to-violet-600',
-                'hover:from-indigo-500 hover:to-violet-500',
-                'shadow-lg shadow-indigo-500/25',
-                'border-0 text-white'
+                'bg-primary text-primary-foreground hover:bg-primary/90',
+                'shadow-lg',
+                'border-0'
               )}
             >
               <Sparkles className="h-4 w-4" />
@@ -455,8 +454,8 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                   )}
                 >
                   <GlassCardContent className="flex items-center gap-4 p-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-500/10">
-                      <DocIcon className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <DocIcon className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">

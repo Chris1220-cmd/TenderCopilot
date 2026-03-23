@@ -48,7 +48,7 @@ export function AiShowcase() {
             </p>
             <Link
               href="/register"
-              className="mt-8 inline-flex items-center gap-2 text-[14px] font-medium text-[#6C5CE7] hover:text-[#5B4BD6] transition-colors cursor-pointer"
+              className="mt-8 inline-flex items-center gap-2 text-[14px] font-medium text-[#48A4D6] hover:text-[#3B8EBF] transition-colors cursor-pointer"
             >
               {t('aiShowcase.cta')}
               <span className="text-[12px]">&rarr;</span>

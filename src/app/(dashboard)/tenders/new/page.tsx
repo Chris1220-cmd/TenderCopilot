@@ -46,9 +46,9 @@ interface ProgressStep {
 const platformPatterns: { pattern: RegExp; label: string; key: string; color: string }[] = [
   { pattern: /promitheas\.gov\.gr/i, label: 'ΠΡΟΜΗΘΕΥΣ', key: 'PROMITHEUS', color: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20' },
   { pattern: /esidis|isupplies\.gr/i, label: 'ΕΣΗΔΗΣ', key: 'ESIDIS', color: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20' },
-  { pattern: /cosmo-one\.gr|cosmoone/i, label: 'cosmoONE', key: 'COSMOONE', color: 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20' },
+  { pattern: /cosmo-one\.gr|cosmoone/i, label: 'cosmoONE', key: 'COSMOONE', color: 'bg-primary/15 text-primary border-primary/20' },
   { pattern: /diavgeia\.gov\.gr/i, label: 'ΔΙΑΥΓΕΙΑ', key: 'DIAVGEIA', color: 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20' },
-  { pattern: /ted\.europa\.eu/i, label: 'TED Europa', key: 'TED', color: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/20' },
+  { pattern: /ted\.europa\.eu/i, label: 'TED Europa', key: 'TED', color: 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/20' },
 ];
 
 function detectPlatform(url: string) {

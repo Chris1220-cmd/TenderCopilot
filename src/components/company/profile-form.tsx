@@ -197,7 +197,7 @@ export function ProfileForm() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-indigo-500" />
+              <Building2 className="h-5 w-5 text-primary" />
               Στοιχεία Εταιρείας
             </CardTitle>
             <CardDescription>
@@ -209,10 +209,9 @@ export function ProfileForm() {
             disabled={!isDirty || updateMutation.isPending}
             className={cn(
               'cursor-pointer',
-              'bg-gradient-to-r from-indigo-600 to-violet-600',
-              'hover:from-indigo-500 hover:to-violet-500',
-              'shadow-lg shadow-indigo-500/25',
-              'border-0 text-white',
+              'bg-primary text-primary-foreground hover:bg-primary/90',
+              'shadow-lg shadow-primary/25',
+              'border-0',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
           >
@@ -236,7 +235,7 @@ export function ProfileForm() {
               <Input
                 {...register('legalName')}
                 placeholder="π.χ. ΕΤΑΙΡΕΙΑ Α.Ε."
-                className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </FormField>
 
@@ -244,7 +243,7 @@ export function ProfileForm() {
               <Input
                 {...register('tradeName')}
                 placeholder="π.χ. BRAND NAME"
-                className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </FormField>
 
@@ -257,7 +256,7 @@ export function ProfileForm() {
                 {...register('taxId')}
                 placeholder="123456789"
                 maxLength={9}
-                className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </FormField>
 
@@ -265,7 +264,7 @@ export function ProfileForm() {
               <Input
                 {...register('taxOffice')}
                 placeholder="π.χ. ΦΑΕ Αθηνών"
-                className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </FormField>
 
@@ -273,7 +272,7 @@ export function ProfileForm() {
               <Input
                 {...register('registrationNumber')}
                 placeholder="π.χ. 123456789000"
-                className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </FormField>
           </div>
@@ -293,7 +292,7 @@ export function ProfileForm() {
                 <Input
                   {...register('address')}
                   placeholder="π.χ. Λεωφ. Αλεξάνδρας 15"
-                  className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                  className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
 
@@ -301,7 +300,7 @@ export function ProfileForm() {
                 <Input
                   {...register('city')}
                   placeholder="π.χ. Αθήνα"
-                  className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                  className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
 
@@ -310,7 +309,7 @@ export function ProfileForm() {
                   {...register('postalCode')}
                   placeholder="π.χ. 11527"
                   maxLength={5}
-                  className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                  className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
             </div>
@@ -331,7 +330,7 @@ export function ProfileForm() {
                 <Input
                   {...register('phone')}
                   placeholder="π.χ. 210 1234567"
-                  className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                  className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
 
@@ -344,7 +343,7 @@ export function ProfileForm() {
                   {...register('email')}
                   type="email"
                   placeholder="info@company.gr"
-                  className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                  className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
 
@@ -356,7 +355,7 @@ export function ProfileForm() {
                 <Input
                   {...register('website')}
                   placeholder="https://www.company.gr"
-                  className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                  className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
             </div>
@@ -376,7 +375,7 @@ export function ProfileForm() {
                 <Input
                   {...register('legalRepName')}
                   placeholder="π.χ. Ιωάννης Παπαδόπουλος"
-                  className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                  className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
 
@@ -387,7 +386,7 @@ export function ProfileForm() {
                 <Input
                   {...register('legalRepTitle')}
                   placeholder="π.χ. Διευθύνων Σύμβουλος"
-                  className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                  className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
 
@@ -398,7 +397,7 @@ export function ProfileForm() {
                 <Input
                   {...register('legalRepIdNumber')}
                   placeholder="π.χ. ΑΕ 123456"
-                  className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                  className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
             </div>
@@ -413,7 +412,7 @@ export function ProfileForm() {
               <Input
                 {...register('kadCodes')}
                 placeholder="π.χ. 62.01, 62.02, 63.11 (χωρισμένοι με κόμμα)"
-                className="transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </FormField>
 
@@ -425,7 +424,7 @@ export function ProfileForm() {
                 {...register('description')}
                 placeholder="Σύντομη περιγραφή δραστηριοτήτων και εμπειρίας..."
                 rows={4}
-                className="resize-none transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20"
+                className="resize-none transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </FormField>
           </div>

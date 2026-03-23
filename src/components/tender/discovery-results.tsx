@@ -43,9 +43,9 @@ interface DiscoveryResultsProps {
 const platformColors: Record<string, string> = {
   ESIDIS: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20',
   PROMITHEUS: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
-  COSMOONE: 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20',
+  COSMOONE: 'bg-primary/15 text-primary border-primary/20',
   DIAVGEIA: 'bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20',
-  TED: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/20',
+  TED: 'bg-primary/15 text-primary border-primary/20',
   KIMDIS: 'bg-teal-500/15 text-teal-700 dark:text-teal-400 border-teal-500/20',
   PRIVATE: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20',
   GOOGLE: 'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20',

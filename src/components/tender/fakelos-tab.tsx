@@ -121,7 +121,7 @@ function formatDeadlineCountdown(dateStr: string) {
 }
 
 const envelopeConfig: Record<string, { letter: string; gradient: string; ring: string }> = {
-  A: { letter: 'Α', gradient: 'from-violet-600 to-purple-500', ring: 'ring-purple-500/30' },
+  A: { letter: 'Α', gradient: 'bg-primary', ring: 'ring-primary/30' },
   B: { letter: 'Β', gradient: 'from-blue-600 to-cyan-500', ring: 'ring-blue-500/30' },
   C: { letter: 'Γ', gradient: 'from-emerald-600 to-green-500', ring: 'ring-emerald-500/30' },
 };
@@ -223,7 +223,7 @@ function CriticalItem({ item, onMarkStatus, isPending }: {
       <div className="flex items-center gap-2 pl-10">
         <Button
           size="sm"
-          className="cursor-pointer gap-1.5 h-8 text-xs bg-gradient-to-r from-violet-600 to-purple-500 hover:from-violet-500 hover:to-purple-400 text-white border-0 shadow-lg shadow-purple-500/20"
+          className="cursor-pointer gap-1.5 h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg border-0"
           disabled={isPending}
           onClick={() => onMarkStatus(item.requirementId, 'IN_PROGRESS')}
         >
@@ -484,11 +484,11 @@ export function FakelosTab({ tenderId }: { tenderId: string }) {
     return (
       <BlurFade delay={0.1} inView>
         <GlassCard className="overflow-hidden">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-400" />
+          <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
           <GlassCardContent className="py-12">
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 mb-4 ring-1 ring-purple-500/20">
-                <FolderCheck className="h-8 w-8 text-purple-500/60" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4 ring-1 ring-primary/20">
+                <FolderCheck className="h-8 w-8 text-primary/60" />
               </div>
               <p className="text-base font-semibold text-foreground mb-1.5">
                 Έλεγχος Πληρότητας Φακέλου
@@ -529,7 +529,7 @@ export function FakelosTab({ tenderId }: { tenderId: string }) {
       {/* ── Top Section: Score + Status + Actions ── */}
       <motion.div variants={itemVariants}>
         <GlassCard className="overflow-hidden">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-400" />
+          <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
           <GlassCardContent className="pt-6">
             <div className="flex flex-col sm:flex-row items-start gap-6 sm:gap-8">
               {/* Circular Score */}

@@ -121,14 +121,14 @@ export function AIBriefPanel({ tenderId, sourceUrl, platform, className }: AIBri
     <BlurFade delay={0.1} inView>
     <GlassCard className={cn('overflow-hidden', className)}>
       {/* Header Gradient Accent */}
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400" />
+      <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
 
       <GlassCardHeader className="pt-2">
         <GlassCardTitle className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600/20 to-cyan-500/20 ring-1 ring-blue-500/20">
-            <Sparkles className="h-4 w-4 text-blue-500" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20">
+            <Sparkles className="h-4 w-4 text-primary" />
           </div>
-          <span className="bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-cyan-300">
+          <span className="text-foreground font-semibold">
             AI Tender Brief
           </span>
         </GlassCardTitle>
@@ -227,7 +227,7 @@ export function AIBriefPanel({ tenderId, sourceUrl, platform, className }: AIBri
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-6 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 mb-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 mb-3">
               <Sparkles className="h-6 w-6 text-blue-500/50" />
             </div>
             <p className="text-sm font-medium text-muted-foreground mb-1">
@@ -246,9 +246,8 @@ export function AIBriefPanel({ tenderId, sourceUrl, platform, className }: AIBri
           disabled={isGenerating}
           className={cn(
             'cursor-pointer gap-2 h-9',
-            'bg-gradient-to-r from-blue-700 to-blue-500',
-            'hover:from-blue-600 hover:to-blue-400',
-            'border-0 text-white shadow-lg shadow-blue-500/25',
+            'bg-primary hover:bg-primary/90',
+            'border-0 text-primary-foreground shadow-lg',
             'transition-all duration-300'
           )}
         >

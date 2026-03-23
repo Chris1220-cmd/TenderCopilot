@@ -256,14 +256,14 @@ export function GoNoGoPanel({ tenderId, sourceUrl, platform, className }: GoNoGo
     <BlurFade delay={0.15} inView>
     <GlassCard className={cn('overflow-hidden', className)}>
       {/* Header Gradient Accent */}
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-400" />
+      <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
 
       <GlassCardHeader className="pt-2">
         <GlassCardTitle className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600/20 to-purple-500/20 ring-1 ring-purple-500/20">
-            <Scale className="h-4 w-4 text-purple-500" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20">
+            <Scale className="h-4 w-4 text-primary" />
           </div>
-          <span className="bg-gradient-to-r from-violet-700 to-purple-600 bg-clip-text text-transparent dark:from-violet-400 dark:to-purple-300">
+          <span className="text-foreground font-semibold">
             Go / No-Go Ανάλυση
           </span>
         </GlassCardTitle>
@@ -435,8 +435,8 @@ export function GoNoGoPanel({ tenderId, sourceUrl, platform, className }: GoNoGo
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-6 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 mb-3">
-              <Scale className="h-6 w-6 text-purple-500/50" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 mb-3">
+              <Scale className="h-6 w-6 text-primary/50" />
             </div>
             <p className="text-sm font-medium text-muted-foreground mb-1">
               Δεν έχει εκτελεστεί ανάλυση

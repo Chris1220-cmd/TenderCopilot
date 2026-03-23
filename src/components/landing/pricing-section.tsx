@@ -66,7 +66,7 @@ export function PricingSection() {
             onClick={() => setIsYearly(!isYearly)}
             className={cn(
               'relative h-7 w-12 rounded-full transition-colors duration-200 cursor-pointer',
-              isYearly ? 'bg-[#6C5CE7]' : 'bg-[#1a1a2e]/10'
+              isYearly ? 'bg-[#48A4D6]' : 'bg-[#1a1a2e]/10'
             )}
           >
             <motion.div
@@ -101,15 +101,15 @@ export function PricingSection() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.1 + i * 0.15, duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
                 className={cn(
-                  'relative rounded-2xl border p-7 transition-shadow hover:shadow-lg hover:shadow-purple-500/5',
+                  'relative rounded-2xl border p-7 transition-shadow hover:shadow-lg',
                   plan.popular
-                    ? 'border-[#6C5CE7]/30 bg-gradient-to-b from-[#F8F6FF] to-white shadow-lg shadow-purple-500/5'
+                    ? 'border-[#48A4D6]/30 bg-[#F5FAFE] shadow-lg'
                     : 'border-[#E8E0F0] bg-white'
                 )}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="rounded-full bg-[#6C5CE7] px-3.5 py-1 text-[12px] font-semibold text-white">
+                    <span className="rounded-full bg-[#48A4D6] px-3.5 py-1 text-[12px] font-semibold text-white">
                       {t('pricing.mostPopular')}
                     </span>
                   </div>
@@ -136,7 +136,7 @@ export function PricingSection() {
                 <ul className="space-y-3 mb-8">
                   {plan.featureKeys.map((fKey) => (
                     <li key={fKey} className="flex items-start gap-2.5">
-                      <Check className="h-4 w-4 mt-0.5 shrink-0 text-[#6C5CE7]" />
+                      <Check className="h-4 w-4 mt-0.5 shrink-0 text-[#48A4D6]" />
                       <span className="text-[14px] text-[#1a1a2e]/65">{t(fKey)}</span>
                     </li>
                   ))}

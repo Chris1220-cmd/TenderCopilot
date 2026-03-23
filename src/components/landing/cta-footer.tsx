@@ -62,7 +62,7 @@ export function CtaFooter() {
           >
             <Link
               href="/register"
-              className="group inline-flex items-center gap-3 rounded-full border border-[#1a1a2e]/15 bg-white/80 backdrop-blur-sm px-7 py-4 text-[15px] font-medium text-[#1a1a2e] transition-all hover:bg-white hover:shadow-lg hover:shadow-purple-500/10 cursor-pointer"
+              className="group inline-flex items-center gap-3 rounded-full border border-[#1a1a2e]/15 bg-white/80 backdrop-blur-sm px-7 py-4 text-[15px] font-medium text-[#1a1a2e] transition-all hover:bg-white hover:shadow-lg cursor-pointer"
             >
               {t('cta.button')}
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1a1a2e]/10 transition-colors group-hover:bg-[#1a1a2e]/15">

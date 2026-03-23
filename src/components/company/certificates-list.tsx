@@ -196,7 +196,7 @@ export function CertificatesList() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-indigo-500" />
+            <ShieldCheck className="h-5 w-5 text-primary" />
             Πιστοποιητικά
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -207,10 +207,9 @@ export function CertificatesList() {
           onClick={openCreate}
           className={cn(
             'cursor-pointer',
-            'bg-gradient-to-r from-indigo-600 to-violet-600',
-            'hover:from-indigo-500 hover:to-violet-500',
-            'shadow-lg shadow-indigo-500/25',
-            'border-0 text-white'
+            'bg-primary text-primary-foreground hover:bg-primary/90',
+            'shadow-lg shadow-primary/25',
+            'border-0'
           )}
         >
           <Plus className="h-4 w-4" />
@@ -254,7 +253,7 @@ export function CertificatesList() {
                         'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
                         expired
                           ? 'bg-destructive/10 text-destructive'
-                          : 'bg-indigo-500/10 text-indigo-500'
+                          : 'bg-primary/10 text-primary'
                       )}
                     >
                       <ShieldCheck className="h-5 w-5" />
@@ -438,9 +437,8 @@ export function CertificatesList() {
                 disabled={createMutation.isPending || updateMutation.isPending}
                 className={cn(
                   'cursor-pointer',
-                  'bg-gradient-to-r from-indigo-600 to-violet-600',
-                  'hover:from-indigo-500 hover:to-violet-500',
-                  'border-0 text-white'
+                  'bg-primary text-primary-foreground hover:bg-primary/90',
+                  'border-0'
                 )}
               >
                 {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}

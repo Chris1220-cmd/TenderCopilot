@@ -111,21 +111,21 @@ const eligibilityConfig = {
 
 const scenarioConfig = {
   CONSERVATIVE: {
-    gradient: 'from-emerald-600/10 to-teal-600/10',
+    bg: 'bg-emerald-500/10',
     border: 'border-emerald-500/20 hover:border-emerald-500/40',
     icon: Shield,
     iconColor: 'text-emerald-500',
     accent: 'bg-emerald-500',
   },
   BALANCED: {
-    gradient: 'from-blue-600/10 to-indigo-600/10',
+    bg: 'bg-primary/10',
     border: 'border-blue-500/20 hover:border-blue-500/40',
     icon: Scale,
     iconColor: 'text-blue-500',
     accent: 'bg-blue-500',
   },
   AGGRESSIVE: {
-    gradient: 'from-amber-600/10 to-orange-600/10',
+    bg: 'bg-amber-500/10',
     border: 'border-amber-500/20 hover:border-amber-500/40',
     icon: Zap,
     iconColor: 'text-amber-500',
@@ -319,7 +319,7 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
       {/* Eligibility Card */}
       <BlurFade delay={0.05} inView>
       <GlassCard>
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-600 via-blue-500 to-amber-400" />
+        <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
         <GlassCardHeader className="pt-2">
           <GlassCardTitle className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-blue-500" />
@@ -446,13 +446,13 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
                     !isSelected && 'hover:shadow-lg'
                   )}
                 >
-                  {/* Gradient Background */}
-                  <div className={cn('absolute inset-0 bg-gradient-to-br opacity-40', cfg.gradient)} />
+                  {/* Background */}
+                  <div className={cn('absolute inset-0', cfg.bg)} />
 
                   <GlassCardContent className="relative space-y-4">
                     {/* Title */}
                     <div className="flex items-center gap-2.5">
-                      <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', cfg.gradient.replace('from-', 'bg-').split(' ')[0])}>
+                      <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', cfg.bg)}>
                         <ScenarioIcon className={cn('h-4.5 w-4.5', cfg.iconColor)} />
                       </div>
                       <div>
@@ -511,7 +511,7 @@ export function FinancialTab({ tenderId, sourceUrl, platform }: FinancialTabProp
                       size="sm"
                       className={cn(
                         'w-full cursor-pointer h-8 text-xs',
-                        isSelected && 'bg-gradient-to-r from-blue-700 to-blue-500 border-0 text-white'
+                        isSelected && 'bg-primary text-primary-foreground border-0'
                       )}
                     >
                       {isSelected ? 'Επιλεγμένο' : 'Επιλογή'}

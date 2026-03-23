@@ -129,7 +129,7 @@ export function OutcomePanel({ tenderId, currentStatus }: OutcomePanelProps) {
                   )}
                 </div>
                 <Button onClick={handleSubmit} disabled={recordMutation.isPending} size="sm"
-                  className="w-full cursor-pointer text-xs bg-gradient-to-r from-blue-600 to-blue-500 text-white">
+                  className="w-full cursor-pointer text-xs bg-primary text-primary-foreground hover:bg-primary/90">
                   {recordMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Καταγραφη & Μαθηση'}
                 </Button>
               </div>

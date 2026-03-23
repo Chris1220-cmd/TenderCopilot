@@ -29,7 +29,7 @@ import {
 /* ------------------------------------------------------------------ */
 const STATUS_COLORS: Record<string, string> = {
   DISCOVERY: '#3B82F6',
-  GO_NO_GO: '#8B5CF6',
+  GO_NO_GO: '#48A4D6',
   IN_PROGRESS: '#F59E0B',
   SUBMITTED: '#06B6D4',
   WON: '#22C55E',

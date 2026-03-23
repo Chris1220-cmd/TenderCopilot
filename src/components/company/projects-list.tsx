@@ -51,7 +51,7 @@ type ProjectFormValues = z.infer<typeof projectSchema>;
 
 const categoryColors: Record<string, string> = {
   'Πληροφορική': 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  'Συμβουλευτική': 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  'Συμβουλευτική': 'bg-primary/10 text-primary',
   'Προμήθειες': 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
   'Κατασκευές': 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   'Υπηρεσίες': 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -195,7 +195,7 @@ export function ProjectsList() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-indigo-500" />
+            <Briefcase className="h-5 w-5 text-primary" />
             Έργα Εμπειρίας
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -206,10 +206,9 @@ export function ProjectsList() {
           onClick={openCreate}
           className={cn(
             'cursor-pointer',
-            'bg-gradient-to-r from-indigo-600 to-violet-600',
-            'hover:from-indigo-500 hover:to-violet-500',
-            'shadow-lg shadow-indigo-500/25',
-            'border-0 text-white'
+            'bg-primary text-primary-foreground hover:bg-primary/90',
+            'shadow-lg shadow-primary/25',
+            'border-0'
           )}
         >
           <Plus className="h-4 w-4" />
@@ -416,9 +415,8 @@ export function ProjectsList() {
                 disabled={createMutation.isPending || updateMutation.isPending}
                 className={cn(
                   'cursor-pointer',
-                  'bg-gradient-to-r from-indigo-600 to-violet-600',
-                  'hover:from-indigo-500 hover:to-violet-500',
-                  'border-0 text-white'
+                  'bg-primary text-primary-foreground hover:bg-primary/90',
+                  'border-0'
                 )}
               >
                 {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}

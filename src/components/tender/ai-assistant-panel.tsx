@@ -223,11 +223,10 @@ export function AIAssistantButton({ onClick }: AIAssistantButtonProps) {
         'fixed bottom-6 right-6 z-50',
         'flex h-14 w-14 items-center justify-center',
         'rounded-2xl shadow-2xl',
-        'bg-gradient-to-br from-blue-700 to-blue-500',
-        'hover:from-blue-600 hover:to-blue-400',
-        'text-white',
+        'bg-primary hover:bg-primary/90',
+        'text-primary-foreground',
         'transition-all duration-300 ease-out',
-        'hover:scale-105 hover:shadow-blue-500/30',
+        'hover:scale-105',
         'active:scale-95',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
         'cursor-pointer',
@@ -414,11 +413,11 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
         <div className="px-5 pt-5 pb-3 border-b border-border/50">
           <SheetHeader className="space-y-1">
             <SheetTitle className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600/20 to-cyan-500/20 ring-1 ring-blue-500/20">
-                <Bot className="h-5 w-5 text-blue-500" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
+                <Bot className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <span className="bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-cyan-300">
+                <span className="text-foreground font-semibold">
                   {t('title')}
                 </span>
                 <p className="text-[10px] text-muted-foreground font-normal">

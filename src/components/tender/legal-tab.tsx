@@ -360,7 +360,7 @@ export function LegalTab({ tenderId, sourceUrl, platform }: LegalTabProps) {
       {/* Legal Risk Summary */}
       <BlurFade delay={0.05} inView>
       <GlassCard>
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-700 via-blue-500 to-amber-400" />
+        <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
         <GlassCardHeader className="pt-2">
           <GlassCardTitle className="flex items-center gap-2">
             <Scale className="h-4 w-4 text-blue-500" />

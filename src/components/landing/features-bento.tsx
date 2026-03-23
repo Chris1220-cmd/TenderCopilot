@@ -138,7 +138,7 @@ export function FeaturesBento() {
               </p>
               <Link
                 href={current.learnMore}
-                className="mt-6 inline-flex items-center gap-1.5 text-[14px] font-medium text-[#6C5CE7] hover:text-[#5B4BD6] transition-colors cursor-pointer"
+                className="mt-6 inline-flex items-center gap-1.5 text-[14px] font-medium text-[#48A4D6] hover:text-[#3B8EBF] transition-colors cursor-pointer"
               >
                 {t(current.ctaKey)}
                 <ArrowRight className="h-3.5 w-3.5" />

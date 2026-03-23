@@ -66,7 +66,7 @@ const docTypes = [
 const docTypeColors: Record<string, string> = {
   TAX_CLEARANCE: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
   SOCIAL_SECURITY_CLEARANCE: 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
-  GEMI_CERTIFICATE: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  GEMI_CERTIFICATE: 'bg-primary/10 text-primary',
   CRIMINAL_RECORD: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
   JUDICIAL_CERTIFICATE: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   OTHER: 'bg-gray-500/10 text-gray-600 dark:text-gray-400',
@@ -202,7 +202,7 @@ export function LegalDocsList() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <FileCheck className="h-5 w-5 text-indigo-500" />
+            <FileCheck className="h-5 w-5 text-primary" />
             Νομικά Έγγραφα
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -213,10 +213,9 @@ export function LegalDocsList() {
           onClick={openCreate}
           className={cn(
             'cursor-pointer',
-            'bg-gradient-to-r from-indigo-600 to-violet-600',
-            'hover:from-indigo-500 hover:to-violet-500',
-            'shadow-lg shadow-indigo-500/25',
-            'border-0 text-white'
+            'bg-primary text-primary-foreground hover:bg-primary/90',
+            'shadow-lg shadow-primary/25',
+            'border-0'
           )}
         >
           <Plus className="h-4 w-4" />
@@ -261,7 +260,7 @@ export function LegalDocsList() {
                         'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
                         expired
                           ? 'bg-destructive/10 text-destructive'
-                          : 'bg-indigo-500/10 text-indigo-500'
+                          : 'bg-primary/10 text-primary'
                       )}
                     >
                       <FileText className="h-5 w-5" />
@@ -435,9 +434,8 @@ export function LegalDocsList() {
                 disabled={createMutation.isPending || updateMutation.isPending}
                 className={cn(
                   'cursor-pointer',
-                  'bg-gradient-to-r from-indigo-600 to-violet-600',
-                  'hover:from-indigo-500 hover:to-violet-500',
-                  'border-0 text-white'
+                  'bg-primary text-primary-foreground hover:bg-primary/90',
+                  'border-0'
                 )}
               >
                 {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}

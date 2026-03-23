@@ -389,7 +389,7 @@ export function RequirementsTab({ tenderId }: RequirementsTabProps) {
                 <div>
                   <Label className="text-xs text-muted-foreground">AI Confidence</Label>
                   <div className="mt-1 flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-violet-500" />
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
                     <span className="text-sm font-medium tabular-nums">
                       {detail.aiConfidence != null
                         ? `${Math.round(detail.aiConfidence * 100)}%`
@@ -539,9 +539,8 @@ export function RequirementsTab({ tenderId }: RequirementsTabProps) {
               disabled={bulkUpdateStatus.isPending}
               className={cn(
                 'cursor-pointer',
-                'bg-gradient-to-r from-indigo-600 to-violet-600',
-                'hover:from-indigo-500 hover:to-violet-500',
-                'border-0 text-white'
+                'bg-primary text-primary-foreground hover:bg-primary/90',
+                'border-0'
               )}
             >
               Εφαρμογή

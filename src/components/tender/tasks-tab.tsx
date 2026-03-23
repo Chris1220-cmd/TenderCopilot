@@ -133,10 +133,8 @@ export function TasksTab({ tenderId }: TasksTabProps) {
             <Button
               className={cn(
                 'cursor-pointer gap-2',
-                'bg-gradient-to-r from-indigo-600 to-violet-600',
-                'hover:from-indigo-500 hover:to-violet-500',
-                'shadow-lg shadow-indigo-500/25',
-                'border-0 text-white'
+                'bg-primary text-primary-foreground hover:bg-primary/90',
+                'shadow-lg'
               )}
             >
               <Plus className="h-4 w-4" />
@@ -204,9 +202,7 @@ export function TasksTab({ tenderId }: TasksTabProps) {
                 disabled={!formTitle.trim() || createTask.isPending}
                 className={cn(
                   'cursor-pointer',
-                  'bg-gradient-to-r from-indigo-600 to-violet-600',
-                  'hover:from-indigo-500 hover:to-violet-500',
-                  'border-0 text-white'
+                  'bg-primary text-primary-foreground hover:bg-primary/90'
                 )}
               >
                 Δημιουργία
@@ -422,9 +418,7 @@ export function TasksTab({ tenderId }: TasksTabProps) {
               disabled={!formTitle.trim() || updateTask.isPending}
               className={cn(
                 'cursor-pointer',
-                'bg-gradient-to-r from-indigo-600 to-violet-600',
-                'hover:from-indigo-500 hover:to-violet-500',
-                'border-0 text-white'
+                'bg-primary text-primary-foreground hover:bg-primary/90'
               )}
             >
               Αποθήκευση

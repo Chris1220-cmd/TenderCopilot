@@ -94,9 +94,9 @@ const sectionStatusConfig: Record<SectionStatus, { label: string; bg: string; te
   },
   REVIEWED: {
     label: 'Ελεγμένο',
-    bg: 'bg-purple-500/15',
-    text: 'text-purple-700 dark:text-purple-400',
-    border: 'border-purple-500/20',
+    bg: 'bg-primary/15',
+    text: 'text-primary',
+    border: 'border-primary/20',
   },
   APPROVED: {
     label: 'Εγκρίθηκε',
@@ -379,7 +379,7 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
       {/* Proposal Sections */}
       <BlurFade delay={0.05} inView>
       <GlassCard>
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-700 via-indigo-500 to-violet-400" />
+        <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
         <GlassCardHeader className="pt-2">
           <GlassCardTitle className="flex items-center gap-2">
             <FileCode2 className="h-4 w-4 text-blue-500" />
