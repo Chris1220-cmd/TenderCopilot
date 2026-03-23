@@ -34,7 +34,7 @@ export default function AuthLayout({
   const { t } = useTranslation();
 
   return (
-    <div className="relative flex min-h-screen overflow-hidden bg-[#0a0a14]">
+    <div className="relative flex min-h-screen overflow-hidden bg-background dark">
       {/* Background gradient glows */}
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top_center,rgba(108,92,231,0.12),transparent_60%)]" />
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(168,85,247,0.06),transparent_50%)]" />
