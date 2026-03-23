@@ -4,32 +4,19 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 
-const faqs = [
-  {
-    q: 'What file formats does TenderCopilot support?',
-    a: 'We support PDF, DOCX, XLSX, and most common document formats. Our AI can extract and analyze content from documents of any size, including 100+ page tender packages.',
-  },
-  {
-    q: 'How accurate is the eligibility check?',
-    a: 'Our AI achieves 94%+ accuracy on eligibility assessments by cross-referencing tender requirements against your company profile, certifications, and past performance data.',
-  },
-  {
-    q: 'Can I try TenderCopilot for free?',
-    a: 'Yes! Our Starter plan includes a free trial period. No credit card required. You can analyze your first tender documents within minutes of signing up.',
-  },
-  {
-    q: 'How does tender discovery work?',
-    a: 'We monitor 19+ procurement platforms including government portals, EU TED, and private platforms. Our AI matches new opportunities to your company profile and sends real-time alerts.',
-  },
-  {
-    q: 'Is my data secure?',
-    a: 'Absolutely. All data is encrypted at rest and in transit. We are GDPR compliant and offer enterprise-grade security features including SSO, SAML, and on-premise deployment options.',
-  },
+const faqKeys = [
+  { qKey: 'faq.q1', aKey: 'faq.a1' },
+  { qKey: 'faq.q2', aKey: 'faq.a2' },
+  { qKey: 'faq.q3', aKey: 'faq.a3' },
+  { qKey: 'faq.q4', aKey: 'faq.a4' },
+  { qKey: 'faq.q5', aKey: 'faq.a5' },
 ];
 
 export function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const { t } = useTranslation();
 
   return (
     <section id="faq" className="bg-gradient-to-b from-white to-[#F8F6FF] py-24 sm:py-32">
@@ -38,11 +25,11 @@ export function FaqSection() {
           className="text-center text-3xl sm:text-4xl font-semibold tracking-[-0.03em] text-[#1a1a2e] mb-12"
           style={{ fontFamily: "'Georgia', serif" }}
         >
-          Frequently asked questions
+          {t('faq.title')}
         </h2>
 
         <div className="space-y-0">
-          {faqs.map((faq, i) => {
+          {faqKeys.map((faq, i) => {
             const isOpen = openIndex === i;
             return (
               <div key={i} className="border-b border-[#E8E0F0]">
@@ -51,7 +38,7 @@ export function FaqSection() {
                   className="flex w-full items-center justify-between py-5 text-left cursor-pointer"
                 >
                   <span className={cn('text-[15px] font-medium pr-4', isOpen ? 'text-[#1a1a2e]' : 'text-[#1a1a2e]/70')}>
-                    {faq.q}
+                    {t(faq.qKey)}
                   </span>
                   <span className="shrink-0 text-[#1a1a2e]/30">
                     {isOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
@@ -67,7 +54,7 @@ export function FaqSection() {
                       className="overflow-hidden"
                     >
                       <p className="pb-5 text-[14px] text-[#1a1a2e]/50 leading-relaxed">
-                        {faq.a}
+                        {t(faq.aKey)}
                       </p>
                     </motion.div>
                   )}

@@ -5,9 +5,18 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
+import { LanguageToggle } from '@/components/ui/language-toggle';
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useTranslation();
+
+  const navLinks = [
+    { label: t('nav.product'), href: '#features' },
+    { label: t('nav.pricing'), href: '#pricing' },
+    { label: t('nav.faq'), href: '#faq' },
+  ];
 
   const handleNavClick = (href: string) => {
     setMobileOpen(false);
@@ -34,41 +43,33 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop nav links — NO icons, just text like Superhuman */}
+        {/* Desktop nav links */}
         <div className="hidden md:flex items-center gap-1">
-          <button
-            onClick={() => handleNavClick('#features')}
-            className="px-4 py-2 text-[14px] font-medium text-[#1a1a2e]/70 hover:text-[#1a1a2e] transition-colors cursor-pointer"
-          >
-            Product
-          </button>
-          <button
-            onClick={() => handleNavClick('#pricing')}
-            className="px-4 py-2 text-[14px] font-medium text-[#1a1a2e]/70 hover:text-[#1a1a2e] transition-colors cursor-pointer"
-          >
-            Pricing
-          </button>
-          <button
-            onClick={() => handleNavClick('#faq')}
-            className="px-4 py-2 text-[14px] font-medium text-[#1a1a2e]/70 hover:text-[#1a1a2e] transition-colors cursor-pointer"
-          >
-            FAQ
-          </button>
+          {navLinks.map((link) => (
+            <button
+              key={link.href}
+              onClick={() => handleNavClick(link.href)}
+              className="px-4 py-2 text-[14px] font-medium text-[#1a1a2e]/70 hover:text-[#1a1a2e] transition-colors cursor-pointer"
+            >
+              {link.label}
+            </button>
+          ))}
         </div>
 
         {/* Desktop right side */}
         <div className="hidden md:flex items-center gap-2">
+          <LanguageToggle className="mr-2 bg-[#1a1a2e]/[0.04] border-[#1a1a2e]/10 [&_button[aria-checked=true]]:bg-[#1a1a2e] [&_button[aria-checked=true]]:text-white [&_button]:text-[#1a1a2e]/50" />
           <Link
             href="/login"
             className="px-4 py-2 text-[14px] font-medium text-[#1a1a2e]/70 hover:text-[#1a1a2e] transition-colors cursor-pointer"
           >
-            Log in
+            {t('common.login')}
           </Link>
           <Link
             href="/register"
             className="rounded-full border border-[#1a1a2e] bg-[#1a1a2e] px-5 py-2 text-[14px] font-medium text-white hover:bg-[#2a2a3e] transition-colors cursor-pointer"
           >
-            Sign up
+            {t('common.register')}
           </Link>
         </div>
 
@@ -93,21 +94,24 @@ export function Navbar() {
             className="md:hidden bg-white/95 backdrop-blur-xl border-b border-[#E8E0F0]/60"
           >
             <div className="flex flex-col gap-1 px-6 py-4">
-              {['Product', 'Pricing', 'FAQ'].map((label) => (
+              {navLinks.map((link) => (
                 <button
-                  key={label}
-                  onClick={() => handleNavClick(`#${label.toLowerCase()}`)}
+                  key={link.href}
+                  onClick={() => handleNavClick(link.href)}
                   className="py-3 text-left text-[15px] font-medium text-[#1a1a2e]/70 hover:text-[#1a1a2e] cursor-pointer"
                 >
-                  {label}
+                  {link.label}
                 </button>
               ))}
+              <div className="flex items-center justify-center py-2">
+                <LanguageToggle className="bg-[#1a1a2e]/[0.04] border-[#1a1a2e]/10 [&_button[aria-checked=true]]:bg-[#1a1a2e] [&_button[aria-checked=true]]:text-white [&_button]:text-[#1a1a2e]/50" />
+              </div>
               <div className="flex items-center gap-3 pt-4 mt-2 border-t border-[#E8E0F0]">
                 <Link href="/login" className="flex-1 text-center rounded-lg border border-[#1a1a2e]/20 py-2.5 text-[14px] font-medium text-[#1a1a2e] cursor-pointer">
-                  Log in
+                  {t('common.login')}
                 </Link>
                 <Link href="/register" className="flex-1 text-center rounded-lg bg-[#1a1a2e] py-2.5 text-[14px] font-medium text-white cursor-pointer">
-                  Sign up
+                  {t('common.register')}
                 </Link>
               </div>
             </div>

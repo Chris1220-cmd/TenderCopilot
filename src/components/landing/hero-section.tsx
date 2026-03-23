@@ -3,8 +3,11 @@
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 export function HeroSection() {
+  const { t } = useTranslation();
+
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#FAFAFA] via-[#F5F5F5] to-[#EEEEEE]">
       {/* Subtle radial glow */}
@@ -17,7 +20,7 @@ export function HeroSection() {
 
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-[900px] px-6 pt-32 pb-16 text-center">
-        {/* Main heading — large serif italic like Superhuman */}
+        {/* Main heading */}
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -25,8 +28,8 @@ export function HeroSection() {
           className="text-5xl sm:text-6xl md:text-7xl lg:text-[80px] font-semibold leading-[1.05] tracking-[-0.03em] text-[#1a1a2e]"
           style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
         >
-          Win every tender,{' '}
-          <span className="italic">effortlessly</span>
+          {t('hero.title')}{' '}
+          <span className="italic">{t('hero.titleEmphasis')}</span>
         </motion.h1>
 
         {/* Subtitle */}
@@ -37,10 +40,10 @@ export function HeroSection() {
           className="mt-6 text-lg sm:text-xl text-[#1a1a2e]/60 max-w-[600px] mx-auto leading-relaxed"
           style={{ fontFamily: "'Inter', sans-serif" }}
         >
-          Smart document analysis, eligibility checks, and proposal generation that saves you 90% of your time
+          {t('hero.subtitle')}
         </motion.p>
 
-        {/* CTA Button — Superhuman style: dark pill with arrow */}
+        {/* CTA Button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -51,7 +54,7 @@ export function HeroSection() {
             href="/register"
             className="group inline-flex items-center gap-3 rounded-full bg-[#121212] px-7 py-4 text-[15px] font-medium text-white transition-all hover:bg-[#1C1C1C] hover:shadow-xl cursor-pointer"
           >
-            Get TenderCopilot
+            {t('hero.cta')}
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 transition-colors group-hover:bg-white/30">
               <ArrowRight className="h-4 w-4" />
             </span>
@@ -59,7 +62,7 @@ export function HeroSection() {
         </motion.div>
       </div>
 
-      {/* Floating product mockups — layered depth like Superhuman */}
+      {/* Floating product mockups */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -67,7 +70,7 @@ export function HeroSection() {
         className="relative z-10 mx-auto w-full max-w-[1200px] px-6 pb-8"
       >
         <div className="relative">
-          {/* Main dashboard mockup — center */}
+          {/* Main dashboard mockup */}
           <div className="relative mx-auto max-w-[900px] rounded-2xl bg-white/80 backdrop-blur-sm shadow-2xl shadow-black/5 border border-white/60 overflow-hidden">
             <img
               src="/images/dashboard-mockup.png"
@@ -88,14 +91,14 @@ export function HeroSection() {
               <div className="h-6 w-6 rounded-full bg-[#48A4D6] flex items-center justify-center">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7L12 12L22 7L12 2Z"/></svg>
               </div>
-              <span className="text-[13px] text-white/80 font-medium">TenderCopilot AI</span>
+              <span className="text-[13px] text-white/80 font-medium">{t('hero.aiChat')}</span>
             </div>
             <p className="text-[13px] text-white/60 leading-relaxed">
-              This tender requires ISO 9001 certification. Your company profile shows compliance. Eligibility score: <span className="text-emerald-400 font-semibold">94%</span>
+              {t('hero.aiMessage')} <span className="text-emerald-400 font-semibold">94%</span>
             </p>
             <div className="mt-3 flex items-center gap-2">
               <div className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
-                <span className="text-[12px] text-white/30">Ask about requirements...</span>
+                <span className="text-[12px] text-white/30">{t('hero.aiPlaceholder')}</span>
               </div>
               <div className="h-8 w-8 rounded-lg bg-[#48A4D6] flex items-center justify-center cursor-pointer">
                 <ArrowRight className="h-3.5 w-3.5 text-white" />
@@ -110,13 +113,13 @@ export function HeroSection() {
             transition={{ duration: 1.2, delay: 1.8, ease: [0.25, 0.1, 0.25, 1] }}
             className="absolute -right-4 sm:right-4 lg:-right-8 top-[25%] w-[240px] sm:w-[260px] rounded-2xl bg-white/90 backdrop-blur-xl p-5 shadow-2xl shadow-black/10 border border-white/60"
           >
-            <div className="text-[11px] uppercase tracking-widest text-[#1a1a2e]/40 font-medium">Win Rate</div>
+            <div className="text-[11px] uppercase tracking-widest text-[#1a1a2e]/40 font-medium">{t('hero.winRate')}</div>
             <div className="mt-2 text-[36px] font-semibold tracking-[-0.02em] text-[#1a1a2e]" style={{ fontFamily: "'Georgia', serif" }}>
               68<span className="text-[24px] text-[#1a1a2e]/40">%</span>
             </div>
             <div className="mt-1 flex items-center gap-1.5">
               <span className="text-[12px] font-medium text-emerald-600">+12%</span>
-              <span className="text-[12px] text-[#1a1a2e]/40">vs last quarter</span>
+              <span className="text-[12px] text-[#1a1a2e]/40">{t('hero.vsLastQuarter')}</span>
             </div>
             {/* Mini sparkline */}
             <svg className="mt-3 w-full h-[32px]" viewBox="0 0 200 32" fill="none">

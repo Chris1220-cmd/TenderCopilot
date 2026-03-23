@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
+import { useTranslation } from '@/lib/i18n';
 
 const logos = [
   { name: 'Trusted Company', width: 100 },
@@ -11,6 +12,8 @@ const logos = [
 ];
 
 export function StatsSection() {
+  const { t } = useTranslation();
+
   return (
     <section className="bg-white py-16">
       <div className="mx-auto max-w-[1200px] px-6 lg:px-8">
@@ -20,7 +23,7 @@ export function StatsSection() {
           viewport={{ once: true }}
           className="text-center text-[14px] text-[#1a1a2e]/35 font-medium"
         >
-          Trusted by procurement teams at leading organizations
+          {t('stats.trusted')}
         </motion.p>
 
         <motion.div

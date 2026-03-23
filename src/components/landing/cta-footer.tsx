@@ -3,11 +3,35 @@
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 export function CtaFooter() {
+  const { t } = useTranslation();
+
+  const productLinks = [
+    { key: 'footer.docAnalysis' },
+    { key: 'footer.eligibilityCheck' },
+    { key: 'footer.tenderDiscovery' },
+    { key: 'footer.aiAssistant' },
+  ];
+
+  const companyLinks = [
+    { key: 'footer.about' },
+    { key: 'footer.pricing' },
+    { key: 'footer.contact' },
+    { key: 'footer.blog' },
+  ];
+
+  const legalLinks = [
+    { key: 'footer.terms' },
+    { key: 'footer.privacyPolicy' },
+    { key: 'footer.gdpr' },
+    { key: 'footer.security' },
+  ];
+
   return (
     <>
-      {/* CTA Section — gradient like Superhuman bottom */}
+      {/* CTA Section */}
       <section className="relative bg-gradient-to-b from-[#F0EAFF] via-[#D8C8F8] to-[#C4B0F0] py-24 sm:py-32 overflow-hidden">
         {/* Subtle radial glow */}
         <div
@@ -26,7 +50,7 @@ export function CtaFooter() {
             className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-[-0.03em] text-[#1a1a2e] leading-[1.1]"
             style={{ fontFamily: "'Georgia', serif" }}
           >
-            AI that works everywhere you compete
+            {t('cta.title')}
           </motion.h2>
 
           <motion.div
@@ -40,7 +64,7 @@ export function CtaFooter() {
               href="/register"
               className="group inline-flex items-center gap-3 rounded-full border border-[#1a1a2e]/15 bg-white/80 backdrop-blur-sm px-7 py-4 text-[15px] font-medium text-[#1a1a2e] transition-all hover:bg-white hover:shadow-lg hover:shadow-purple-500/10 cursor-pointer"
             >
-              Get TenderCopilot
+              {t('cta.button')}
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1a1a2e]/10 transition-colors group-hover:bg-[#1a1a2e]/15">
                 <ArrowRight className="h-4 w-4" />
               </span>
@@ -66,17 +90,17 @@ export function CtaFooter() {
                 <span className="text-[14px] font-semibold text-white/90 uppercase tracking-wide">TenderCopilot</span>
               </div>
               <p className="text-[13px] text-white/40 leading-relaxed">
-                AI-powered tender management for procurement teams
+                {t('footer.description')}
               </p>
             </div>
 
             {/* Products */}
             <div>
-              <h3 className="text-[13px] font-semibold text-white/60 mb-4">Product</h3>
+              <h3 className="text-[13px] font-semibold text-white/60 mb-4">{t('footer.product')}</h3>
               <ul className="space-y-2.5">
-                {['Document Analysis', 'Eligibility Check', 'Tender Discovery', 'AI Assistant'].map((item) => (
-                  <li key={item}>
-                    <span className="text-[13px] text-white/35 hover:text-white/60 transition-colors cursor-pointer">{item}</span>
+                {productLinks.map((item) => (
+                  <li key={item.key}>
+                    <span className="text-[13px] text-white/35 hover:text-white/60 transition-colors cursor-pointer">{t(item.key)}</span>
                   </li>
                 ))}
               </ul>
@@ -84,11 +108,11 @@ export function CtaFooter() {
 
             {/* Company */}
             <div>
-              <h3 className="text-[13px] font-semibold text-white/60 mb-4">Company</h3>
+              <h3 className="text-[13px] font-semibold text-white/60 mb-4">{t('footer.company')}</h3>
               <ul className="space-y-2.5">
-                {['About', 'Pricing', 'Contact', 'Blog'].map((item) => (
-                  <li key={item}>
-                    <span className="text-[13px] text-white/35 hover:text-white/60 transition-colors cursor-pointer">{item}</span>
+                {companyLinks.map((item) => (
+                  <li key={item.key}>
+                    <span className="text-[13px] text-white/35 hover:text-white/60 transition-colors cursor-pointer">{t(item.key)}</span>
                   </li>
                 ))}
               </ul>
@@ -96,11 +120,11 @@ export function CtaFooter() {
 
             {/* Legal */}
             <div>
-              <h3 className="text-[13px] font-semibold text-white/60 mb-4">Legal</h3>
+              <h3 className="text-[13px] font-semibold text-white/60 mb-4">{t('footer.legal')}</h3>
               <ul className="space-y-2.5">
-                {['Terms', 'Privacy Policy', 'GDPR', 'Security'].map((item) => (
-                  <li key={item}>
-                    <span className="text-[13px] text-white/35 hover:text-white/60 transition-colors cursor-pointer">{item}</span>
+                {legalLinks.map((item) => (
+                  <li key={item.key}>
+                    <span className="text-[13px] text-white/35 hover:text-white/60 transition-colors cursor-pointer">{t(item.key)}</span>
                   </li>
                 ))}
               </ul>
