@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 interface CommandItem {
   id: string;
@@ -34,6 +35,7 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,18 +53,18 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const allItems: CommandItem[] = useMemo(
     () => [
       // Pages
-      { id: 'dashboard', label: 'Dashboard', description: 'Overview & stats', icon: LayoutDashboard, category: 'pages', action: () => navigate('/dashboard') },
-      { id: 'tenders', label: 'Tenders', description: 'View all tenders', icon: FileText, category: 'pages', action: () => navigate('/tenders') },
-      { id: 'discovery', label: 'Discovery', description: 'Find new opportunities', icon: Compass, category: 'pages', action: () => navigate('/discovery') },
-      { id: 'analytics', label: 'Analytics', description: 'Charts & insights', icon: BarChart3, category: 'pages', action: () => navigate('/analytics') },
-      { id: 'company', label: 'Company', description: 'Company profile', icon: Building2, category: 'pages', action: () => navigate('/company') },
-      { id: 'tasks', label: 'Tasks', description: 'Task management', icon: CheckSquare, category: 'pages', action: () => navigate('/tasks') },
-      { id: 'settings', label: 'Settings', description: 'App settings', icon: Settings, category: 'pages', action: () => navigate('/settings') },
+      { id: 'dashboard', label: t('commandPalette.dashboard'), description: t('commandPalette.dashboardDesc'), icon: LayoutDashboard, category: 'pages', action: () => navigate('/dashboard') },
+      { id: 'tenders', label: t('commandPalette.tenders'), description: t('commandPalette.tendersDesc'), icon: FileText, category: 'pages', action: () => navigate('/tenders') },
+      { id: 'discovery', label: t('commandPalette.discoveryLabel'), description: t('commandPalette.discoveryDesc'), icon: Compass, category: 'pages', action: () => navigate('/discovery') },
+      { id: 'analytics', label: t('commandPalette.analytics'), description: t('commandPalette.analyticsDesc'), icon: BarChart3, category: 'pages', action: () => navigate('/analytics') },
+      { id: 'company', label: t('commandPalette.company'), description: t('commandPalette.companyDesc'), icon: Building2, category: 'pages', action: () => navigate('/company') },
+      { id: 'tasks', label: t('commandPalette.tasks'), description: t('commandPalette.tasksDesc'), icon: CheckSquare, category: 'pages', action: () => navigate('/tasks') },
+      { id: 'settings', label: t('commandPalette.settings'), description: t('commandPalette.settingsDesc'), icon: Settings, category: 'pages', action: () => navigate('/settings') },
       // Actions
-      { id: 'new-tender', label: 'Create New Tender', description: 'Start a new tender submission', icon: Plus, category: 'actions', action: () => navigate('/tenders/new') },
-      { id: 'ai-assistant', label: 'AI Assistant', description: 'Open AI helper', icon: Sparkles, category: 'actions', action: () => navigate('/dashboard') },
+      { id: 'new-tender', label: t('commandPalette.createTender'), description: t('commandPalette.createTenderDesc'), icon: Plus, category: 'actions', action: () => navigate('/tenders/new') },
+      { id: 'ai-assistant', label: t('commandPalette.aiAssistant'), description: t('commandPalette.aiAssistantDesc'), icon: Sparkles, category: 'actions', action: () => navigate('/dashboard') },
     ],
-    [navigate]
+    [navigate, t]
   );
 
   const filtered = useMemo(() => {
@@ -139,9 +141,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   }, [selectedIndex]);
 
   const categoryLabels: Record<string, string> = {
-    pages: 'Pages',
-    actions: 'Actions',
-    tenders: 'Recent Tenders',
+    pages: t('commandPalette.pages'),
+    actions: t('commandPalette.actions'),
+    tenders: t('commandPalette.recentTenders'),
   };
 
   return (
@@ -176,7 +178,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder="Search pages, actions, tenders..."
+                  placeholder={t('commandPalette.searchPlaceholder')}
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
@@ -193,7 +195,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               <div ref={listRef} className="max-h-[320px] overflow-y-auto p-2">
                 {flatItems.length === 0 ? (
                   <div className="py-8 text-center text-sm text-[#1a1a2e]/40">
-                    No results found
+                    {t('commandPalette.noResults')}
                   </div>
                 ) : (
                   Array.from(grouped.entries()).map(([category, items]) => {
@@ -250,9 +252,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
               {/* Footer */}
               <div className="flex items-center gap-4 border-t border-[#E8E0F0] px-4 py-2 text-[11px] text-[#1a1a2e]/25">
-                <span><kbd className="font-mono">↑↓</kbd> navigate</span>
-                <span><kbd className="font-mono">↵</kbd> select</span>
-                <span><kbd className="font-mono">esc</kbd> close</span>
+                <span><kbd className="font-mono">↑↓</kbd> {t('commandPalette.navigate')}</span>
+                <span><kbd className="font-mono">↵</kbd> {t('commandPalette.select')}</span>
+                <span><kbd className="font-mono">esc</kbd> {t('commandPalette.close')}</span>
               </div>
             </div>
           </motion.div>

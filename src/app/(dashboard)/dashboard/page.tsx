@@ -23,22 +23,31 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { BlurFade } from '@/components/ui/blur-fade';
+import { useTranslation } from '@/lib/i18n';
 
 /* ------------------------------------------------------------------ */
 /*  Status map                                                         */
 /* ------------------------------------------------------------------ */
-const statusMap: Record<
-  string,
-  { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' }
-> = {
-  DRAFT: { label: 'Draft', variant: 'secondary' },
-  DISCOVERY: { label: 'Discovery', variant: 'default' },
-  GO_NO_GO: { label: 'Go/No-Go', variant: 'default' },
-  IN_PROGRESS: { label: 'In Progress', variant: 'warning' },
-  REVIEW: { label: 'Review', variant: 'default' },
-  SUBMITTED: { label: 'Submitted', variant: 'success' },
-  WON: { label: 'Won', variant: 'success' },
-  LOST: { label: 'Lost', variant: 'destructive' },
+const statusVariants: Record<string, 'default' | 'secondary' | 'success' | 'warning' | 'destructive'> = {
+  DRAFT: 'secondary',
+  DISCOVERY: 'default',
+  GO_NO_GO: 'default',
+  IN_PROGRESS: 'warning',
+  REVIEW: 'default',
+  SUBMITTED: 'success',
+  WON: 'success',
+  LOST: 'destructive',
+};
+
+const statusKeys: Record<string, string> = {
+  DRAFT: 'dashboard.statusDraft',
+  DISCOVERY: 'dashboard.statusDiscovery',
+  GO_NO_GO: 'dashboard.statusGoNoGo',
+  IN_PROGRESS: 'dashboard.statusInProgress',
+  REVIEW: 'dashboard.statusReview',
+  SUBMITTED: 'dashboard.statusSubmitted',
+  WON: 'dashboard.statusWon',
+  LOST: 'dashboard.statusLost',
 };
 
 /* ------------------------------------------------------------------ */
@@ -65,8 +74,9 @@ const itemVariants = {
 /*  Main dashboard                                                     */
 /* ------------------------------------------------------------------ */
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { data: session } = useSession();
-  const firstName = session?.user?.name?.split(' ')[0] || 'there';
+  const firstName = session?.user?.name?.split(' ')[0] || '';
 
   const tenderStats = trpc.analytics.getTenderStats.useQuery(undefined, { retry: false });
   const companyStats = trpc.analytics.getCompanyStats.useQuery(undefined, { retry: false });
@@ -102,10 +112,10 @@ export default function DashboardPage() {
   }, [recentTenders]);
 
   const statsCards = [
-    { title: 'Active Tenders', value: activeTenders, subtitle: 'Currently in progress', icon: FileText },
-    { title: 'Pending Tasks', value: pendingTasks, subtitle: 'Awaiting completion', icon: CheckSquare },
-    { title: 'Compliance', value: complianceScore, suffix: '%', subtitle: 'Average score', icon: Target },
-    { title: 'Upcoming Deadlines', value: upcomingDeadlinesCount, subtitle: 'Next 30 days', icon: Calendar },
+    { title: t('dashboard.activeTenders'), value: activeTenders, subtitle: t('dashboard.activeTendersSub'), icon: FileText },
+    { title: t('dashboard.pendingTasks'), value: pendingTasks, subtitle: t('dashboard.pendingTasksSub'), icon: CheckSquare },
+    { title: t('dashboard.compliance'), value: complianceScore, suffix: '%', subtitle: t('dashboard.complianceSub'), icon: Target },
+    { title: t('dashboard.upcomingDeadlines'), value: upcomingDeadlinesCount, subtitle: t('dashboard.upcomingDeadlinesSub'), icon: Calendar },
   ];
 
   return (
@@ -123,10 +133,10 @@ export default function DashboardPage() {
         >
           <div>
             <h1 className="text-display text-foreground">
-              Welcome back, {firstName}
+              {t('dashboard.welcome').replace('{name}', firstName)}
             </h1>
             <p className="mt-1 text-body text-muted-foreground">
-              Here&apos;s your tender overview
+              {t('dashboard.subtitle')}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -137,7 +147,7 @@ export default function DashboardPage() {
             >
               <Link href="/tenders/new">
                 <Plus className="h-4 w-4" />
-                New Tender
+                {t('dashboard.newTender')}
               </Link>
             </Button>
             <Button
@@ -148,7 +158,7 @@ export default function DashboardPage() {
             >
               <Link href="/discovery">
                 <Sparkles className="h-4 w-4" />
-                Discovery
+                {t('dashboard.discovery')}
               </Link>
             </Button>
           </div>
@@ -189,12 +199,12 @@ export default function DashboardPage() {
         <motion.div variants={itemVariants} className="lg:col-span-3">
           <div className="group rounded-xl border border-border/60 bg-card transition-colors hover:border-primary/20">
             <div className="flex items-center justify-between px-6 py-4">
-              <h2 className="text-title text-foreground">Recent Tenders</h2>
+              <h2 className="text-title text-foreground">{t('dashboard.recentTenders')}</h2>
               <Link
                 href="/tenders"
                 className="flex items-center gap-1 text-caption text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
-                View all <ArrowRight className="h-3 w-3" />
+                {t('dashboard.viewAll')} <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
             <div className="border-t border-border/40">
@@ -209,17 +219,18 @@ export default function DashboardPage() {
                   <div className="relative mx-auto mb-4 h-[120px] w-[160px]">
                     <Image src="/images/illustrations/empty-tenders.png" alt="" fill className="object-contain opacity-70" />
                   </div>
-                  <p className="text-body text-muted-foreground">No tenders yet</p>
+                  <p className="text-body text-muted-foreground">{t('dashboard.noTenders')}</p>
                   <Button asChild variant="outline" size="sm" className="mt-4 rounded-full border-border cursor-pointer">
                     <Link href="/tenders/new">
-                      <Plus className="mr-1.5 h-3.5 w-3.5" /> New Tender
+                      <Plus className="mr-1.5 h-3.5 w-3.5" /> {t('dashboard.newTender')}
                     </Link>
                   </Button>
                 </div>
               ) : (
                 <div>
                   {recentTenders.map((tender: any) => {
-                    const status = statusMap[tender.status] || statusMap.DRAFT;
+                    const variant = statusVariants[tender.status] || statusVariants.DRAFT;
+                    const statusLabel = t(statusKeys[tender.status] || statusKeys.DRAFT);
                     return (
                       <Link
                         key={tender.id}
@@ -235,8 +246,8 @@ export default function DashboardPage() {
                             {tender.submissionDeadline && <> &middot; {formatDate(tender.submissionDeadline)}</>}
                           </p>
                         </div>
-                        <Badge variant={status.variant} className="ml-3 shrink-0">
-                          {status.label}
+                        <Badge variant={variant} className="ml-3 shrink-0">
+                          {statusLabel}
                         </Badge>
                       </Link>
                     );
@@ -251,7 +262,7 @@ export default function DashboardPage() {
         <motion.div variants={itemVariants} className="lg:col-span-2">
           <div className="group rounded-xl border border-border/60 bg-card transition-colors hover:border-primary/20">
             <div className="flex items-center justify-between px-6 py-4">
-              <h2 className="text-title text-foreground">Upcoming Deadlines</h2>
+              <h2 className="text-title text-foreground">{t('dashboard.upcomingDeadlines')}</h2>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="border-t border-border/40">
@@ -266,7 +277,7 @@ export default function DashboardPage() {
                   <div className="relative mx-auto mb-4 h-[120px] w-[160px]">
                     <Image src="/images/illustrations/empty-deadlines.png" alt="" fill className="object-contain opacity-70" />
                   </div>
-                  <p className="text-body text-muted-foreground">No upcoming deadlines</p>
+                  <p className="text-body text-muted-foreground">{t('dashboard.noDeadlines')}</p>
                 </div>
               ) : (
                 <div>
