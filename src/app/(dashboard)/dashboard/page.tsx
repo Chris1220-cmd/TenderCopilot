@@ -20,8 +20,8 @@ import {
   Clock,
   AlertTriangle,
 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
+import { EmptyStateIllustration } from '@/components/ui/empty-state';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { useTranslation } from '@/lib/i18n';
 
@@ -216,9 +216,7 @@ export default function DashboardPage() {
                 </div>
               ) : recentTenders.length === 0 ? (
                 <div className="py-12 text-center">
-                  <div className="relative mx-auto mb-4 h-[120px] w-[160px]">
-                    <Image src="/images/illustrations/empty-tenders.png" alt="" fill className="object-contain opacity-70" />
-                  </div>
+                  <EmptyStateIllustration variant="tenders" className="mb-4" />
                   <p className="text-body text-muted-foreground">{t('dashboard.noTenders')}</p>
                   <Button asChild variant="outline" size="sm" className="mt-4 rounded-full border-border cursor-pointer">
                     <Link href="/tenders/new">
@@ -274,9 +272,7 @@ export default function DashboardPage() {
                 </div>
               ) : upcomingDeadlines.length === 0 ? (
                 <div className="py-12 text-center">
-                  <div className="relative mx-auto mb-4 h-[120px] w-[160px]">
-                    <Image src="/images/illustrations/empty-deadlines.png" alt="" fill className="object-contain opacity-70" />
-                  </div>
+                  <EmptyStateIllustration variant="deadlines" className="mb-4" />
                   <p className="text-body text-muted-foreground">{t('dashboard.noDeadlines')}</p>
                 </div>
               ) : (

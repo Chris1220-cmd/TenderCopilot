@@ -255,6 +255,9 @@
     "statusWon": "Κερδισμένος",
     "statusLost": "Χαμένος"
   },
+  "topNav": {
+    "signOut": "Αποσύνδεση"
+  },
   "commandPalette": {
     "searchPlaceholder": "Αναζήτηση σελίδων, ενεργειών, διαγωνισμών...",
     "noResults": "Δεν βρέθηκαν αποτελέσματα",
@@ -282,5 +285,56 @@
     "navigate": "πλοήγηση",
     "select": "επιλογή",
     "close": "κλείσιμο"
+  },
+  "fakeloi": {
+    "title": "Οι Φάκελοί Μου",
+    "subtitle": "Παρακολουθήστε την ετοιμότητα κάθε φακέλου",
+    "active": "Ενεργοί",
+    "ready": "Έτοιμοι",
+    "critical": "Κρίσιμοι",
+    "noTenders": "Δεν υπάρχουν διαγωνισμοί",
+    "noTendersSub": "Δημιουργήστε τον πρώτο σας διαγωνισμό",
+    "newTender": "Νέος Διαγωνισμός",
+    "statusReady": "ΕΤΟΙΜΟΣ",
+    "statusAtRisk": "ΚΙΝΔΥΝΟΣ",
+    "statusNotReady": "ΜΗ ΕΤΟΙΜΟΣ",
+    "statusUnchecked": "ΑΝΑΛΥΣΗ ΕΚΚΡΕΜΕΙ",
+    "days": "ημέρες",
+    "day": "ημέρα",
+    "criticalGaps": "κρίσιμα κενά",
+    "criticalGap": "κρίσιμο κενό",
+    "compliance": "Συμμόρφωση",
+    "documents": "Έγγραφα",
+    "deadline": "Προθεσμία",
+    "gaps": "Κενά"
+  },
+  "analytics": {
+    "title": "Αναλυτικά",
+    "subtitle": "Απόδοση και στατιστικά διαγωνισμών",
+    "pipeline": "Pipeline",
+    "pipelineSub": "Ενεργοί φάκελοι σε εξέλιξη",
+    "winRate": "Win Rate",
+    "avgPrepTime": "Μέσος Χρόνος Προετοιμασίας",
+    "avgPrepTimeSub": "Από δημιουργία έως υποβολή",
+    "activeDossiers": "Ενεργοί Φάκελοι",
+    "activeDossiersSub": "Discovery + Go/No-Go + Σε Εξέλιξη",
+    "statusDistribution": "Κατανομή Κατάστασης",
+    "dossierEvolution": "Εξέλιξη Φακέλων",
+    "complianceComparison": "Σύγκριση Compliance — Κερδισμένοι vs Χαμένοι",
+    "noData": "Δεν υπάρχουν δεδομένα",
+    "notEnoughData": "Δεν υπάρχουν αρκετά δεδομένα για σύγκριση",
+    "won": "Κερδισμένοι",
+    "lost": "Χαμένοι",
+    "inProgress": "Σε Εξέλιξη",
+    "conversionFunnel": "Χωνί Μετατροπής",
+    "deadlineHeatmap": "Εγγύτητα Προθεσμιών",
+    "urgent": "Επείγον",
+    "thisWeek": "Αυτή την Εβδομάδα",
+    "thisMonth": "Αυτόν τον Μήνα",
+    "safe": "Ασφαλές",
+    "complianceOverview": "Επισκόπηση Συμμόρφωσης",
+    "highRisk": "Υψηλός Κίνδυνος",
+    "mediumRisk": "Μέτριος Κίνδυνος",
+    "onTrack": "Εντός Στόχου"
   }
 }

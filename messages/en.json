@@ -255,6 +255,9 @@
     "statusWon": "Won",
     "statusLost": "Lost"
   },
+  "topNav": {
+    "signOut": "Sign out"
+  },
   "commandPalette": {
     "searchPlaceholder": "Search pages, actions, tenders...",
     "noResults": "No results found",
@@ -282,5 +285,56 @@
     "navigate": "navigate",
     "select": "select",
     "close": "close"
+  },
+  "fakeloi": {
+    "title": "My Dossiers",
+    "subtitle": "Monitor the readiness of each dossier",
+    "active": "Active",
+    "ready": "Ready",
+    "critical": "Critical",
+    "noTenders": "No tenders yet",
+    "noTendersSub": "Create your first tender",
+    "newTender": "New Tender",
+    "statusReady": "READY",
+    "statusAtRisk": "AT RISK",
+    "statusNotReady": "NOT READY",
+    "statusUnchecked": "PENDING ANALYSIS",
+    "days": "days",
+    "day": "day",
+    "criticalGaps": "critical gaps",
+    "criticalGap": "critical gap",
+    "compliance": "Compliance",
+    "documents": "Documents",
+    "deadline": "Deadline",
+    "gaps": "Gaps"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Performance and tender statistics",
+    "pipeline": "Pipeline",
+    "pipelineSub": "Active dossiers in progress",
+    "winRate": "Win Rate",
+    "avgPrepTime": "Avg Prep Time",
+    "avgPrepTimeSub": "From creation to submission",
+    "activeDossiers": "Active Dossiers",
+    "activeDossiersSub": "Discovery + Go/No-Go + In Progress",
+    "statusDistribution": "Status Distribution",
+    "dossierEvolution": "Dossier Evolution",
+    "complianceComparison": "Compliance Score — Won vs Lost",
+    "noData": "No data available",
+    "notEnoughData": "Not enough data for comparison",
+    "won": "Won",
+    "lost": "Lost",
+    "inProgress": "In Progress",
+    "conversionFunnel": "Conversion Funnel",
+    "deadlineHeatmap": "Deadline Proximity",
+    "urgent": "Urgent",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "safe": "Safe",
+    "complianceOverview": "Compliance Overview",
+    "highRisk": "High Risk",
+    "mediumRisk": "Medium Risk",
+    "onTrack": "On Track"
   }
 }

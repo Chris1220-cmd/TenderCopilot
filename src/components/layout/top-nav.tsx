@@ -32,6 +32,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
+import { LanguageToggle } from '@/components/ui/language-toggle';
 import { useState, useEffect, useCallback } from 'react';
 
 const navItems = [
@@ -151,6 +152,9 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
           </kbd>
         </Button>
 
+        {/* Language Toggle */}
+        <LanguageToggle className="bg-foreground/[0.04] border-border/60" />
+
         {/* Theme Toggle */}
         {mounted && (
           <Button
@@ -208,17 +212,17 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="cursor-pointer">
               <Link href="/company" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" /> Company
+                <Building2 className="h-4 w-4" /> {t('commandPalette.company')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="cursor-pointer">
               <Link href="/tasks" className="flex items-center gap-2">
-                <CheckSquare className="h-4 w-4" /> Tasks
+                <CheckSquare className="h-4 w-4" /> {t('commandPalette.tasks')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="cursor-pointer">
               <Link href="/settings" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" /> Settings
+                <Settings className="h-4 w-4" /> {t('commandPalette.settings')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -227,7 +231,7 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
               onClick={() => signOut({ callbackUrl: '/login' })}
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Sign out
+              {t('topNav.signOut')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
