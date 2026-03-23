@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
   FileText,
-  Compass,
+  FolderCheck,
   BarChart3,
   Bell,
   Search,
@@ -36,7 +36,7 @@ import { useState, useEffect, useCallback } from 'react';
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Tenders', href: '/tenders', icon: FileText },
-  { label: 'Discovery', href: '/discovery', icon: Compass },
+  { label: 'Φάκελοι', href: '/fakeloi', icon: FolderCheck },
   { label: 'Analytics', href: '/analytics', icon: BarChart3 },
 ];
 

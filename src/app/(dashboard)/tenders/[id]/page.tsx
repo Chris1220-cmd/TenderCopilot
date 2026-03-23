@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
@@ -34,6 +34,7 @@ import { TechnicalTabEnhanced } from '@/components/tender/technical-tab-enhanced
 import { AIAssistantButton, AIAssistantPanel } from '@/components/tender/ai-assistant-panel';
 import { OutcomePanel } from '@/components/tender/outcome-panel';
 import { MissingInfoPanel } from '@/components/tender/missing-info-panel';
+import { FakelosTab } from '@/components/tender/fakelos-tab';
 import {
   ChevronRight,
   Pencil,
@@ -50,6 +51,7 @@ import {
   Banknote,
   Wrench,
   Loader2,
+  FolderCheck,
 } from 'lucide-react';
 
 const containerVariants = {
@@ -72,10 +74,11 @@ const itemVariants = {
 export default function TenderDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const tenderId = params.id as string;
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
   const [analysisStep, setAnalysisStep] = useState<string | null>(null);
   const [fullAnalysisLangModalOpen, setFullAnalysisLangModalOpen] = useState(false);
 
@@ -312,6 +315,7 @@ export default function TenderDetailPage() {
             <AnimatedTabsTrigger value="overview" activeValue={activeTab}><Eye className="h-3.5 w-3.5" />Επισκοπηση</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="requirements" activeValue={activeTab}><ClipboardList className="h-3.5 w-3.5" />Απαιτησεις</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="documents" activeValue={activeTab}><FileText className="h-3.5 w-3.5" />Εγγραφα</AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="fakelos" activeValue={activeTab}><FolderCheck className="h-3.5 w-3.5" />Φάκελος</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="tasks" activeValue={activeTab}><ListTodo className="h-3.5 w-3.5" />Εργασιες</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="legal" activeValue={activeTab}><Scale className="h-3.5 w-3.5" />Νομικα & Συμβαση</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="financial" activeValue={activeTab}><Banknote className="h-3.5 w-3.5" />Οικονομικα</AnimatedTabsTrigger>
@@ -347,6 +351,9 @@ export default function TenderDetailPage() {
                 </TabsContent>
                 <TabsContent value="documents" forceMount={activeTab === 'documents' ? true : undefined}>
                   <DocumentsTab tenderId={tenderId} />
+                </TabsContent>
+                <TabsContent value="fakelos" forceMount={activeTab === 'fakelos' ? true : undefined}>
+                  <FakelosTab tenderId={tenderId} />
                 </TabsContent>
                 <TabsContent value="tasks" forceMount={activeTab === 'tasks' ? true : undefined}>
                   <TasksTab tenderId={tenderId} />
