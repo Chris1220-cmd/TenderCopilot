@@ -8,13 +8,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
-import { GlassInput } from '@/components/ui/glass-input';
-import { GlowButton } from '@/components/ui/glow-button';
+import { Input } from '@/components/ui/input';
 import { LanguageToggle } from '@/components/ui/language-toggle';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { motion } from 'motion/react';
 import {
-  Sparkles,
   Mail,
   Lock,
   Eye,
@@ -110,10 +109,15 @@ export default function LoginPage() {
 
   return (
     <div className="relative">
-      {/* Glass card */}
-      <div className="glass-card relative overflow-hidden rounded-2xl">
+      {/* Card with entrance animation */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
+        className="rounded-2xl border border-border/60 bg-card shadow-2xl shadow-black/20 relative overflow-hidden"
+      >
         {/* Top border glow line */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
         {/* Inner gradient overlay */}
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.05] to-transparent" />
@@ -126,18 +130,11 @@ export default function LoginPage() {
 
           {/* Logo & Title */}
           <div className="flex flex-col items-center space-y-4">
-            <div
-              className={cn(
-                'flex h-14 w-14 items-center justify-center rounded-full',
-                'bg-gradient-to-br from-blue-600 to-cyan-500',
-                'shadow-lg shadow-blue-500/30',
-                'ring-1 ring-white/10'
-              )}
-            >
-              <Sparkles className="h-7 w-7 text-white" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/30 ring-1 ring-white/10">
+              <span className="text-lg font-bold text-white tracking-tight">TC</span>
             </div>
             <div className="space-y-1.5 text-center">
-              <h1 className="bg-gradient-to-b from-white to-white/80 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
                 {t('auth.loginTitle')}
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -169,13 +166,13 @@ export default function LoginPage() {
               </Label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
-                <GlassInput
+                <Input
                   id="email"
                   type="email"
                   placeholder="you@company.gr"
                   autoComplete="email"
                   className={cn(
-                    'pl-10',
+                    'h-11 rounded-xl bg-background border-border/60 pl-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
                     errors.email && 'border-red-500/50 focus:ring-red-500/20'
                   )}
                   {...register('email')}
@@ -193,13 +190,13 @@ export default function LoginPage() {
               </Label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
-                <GlassInput
+                <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="********"
                   autoComplete="current-password"
                   className={cn(
-                    'pl-10 pr-10',
+                    'h-11 rounded-xl bg-background border-border/60 pl-10 pr-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
                     errors.password && 'border-red-500/50 focus:ring-red-500/20'
                   )}
                   {...register('password')}
@@ -236,10 +233,10 @@ export default function LoginPage() {
             </div>
 
             {/* Submit */}
-            <GlowButton
+            <Button
               type="submit"
               disabled={isLoading}
-              className="w-full"
+              className="h-11 w-full rounded-xl bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 cursor-pointer font-medium"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -249,7 +246,7 @@ export default function LoginPage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
-            </GlowButton>
+            </Button>
           </form>
 
           {/* Divider */}
@@ -258,7 +255,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-white/[0.08]" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-background/60 px-4 text-muted-foreground backdrop-blur-sm">
+              <span className="bg-card px-4 text-muted-foreground backdrop-blur-sm">
                 {t('auth.or')}
               </span>
             </div>
@@ -343,7 +340,7 @@ export default function LoginPage() {
             </Link>
           </p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

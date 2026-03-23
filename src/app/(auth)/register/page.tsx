@@ -9,12 +9,12 @@ import { z } from 'zod';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
 import { trpc } from '@/lib/trpc';
-import { GlassInput } from '@/components/ui/glass-input';
-import { GlowButton } from '@/components/ui/glow-button';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { LanguageToggle } from '@/components/ui/language-toggle';
 import { Label } from '@/components/ui/label';
+import { motion } from 'motion/react';
 import {
-  Sparkles,
   Mail,
   Lock,
   User,
@@ -56,7 +56,7 @@ function PasswordStrength({ password }: { password: string }) {
           key={level}
           className={cn(
             'h-1 flex-1 rounded-full transition-all duration-300',
-            level <= strength ? color : 'bg-white/10'
+            level <= strength ? color : 'bg-muted/40'
           )}
         />
       ))}
@@ -115,210 +115,228 @@ export default function RegisterPage() {
 
   return (
     <div className="relative">
-      {/* Glass card */}
-      <div className="glass-card relative overflow-hidden rounded-2xl">
-        {/* Top border glow line */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
+      >
+        {/* Card */}
+        <div className="rounded-2xl border border-border/60 bg-card shadow-2xl shadow-black/20 relative overflow-hidden">
+          {/* Top border glow line */}
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
-        {/* Inner gradient overlay */}
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.05] to-transparent" />
+          {/* Inner gradient overlay */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/[0.05] to-transparent" />
 
-        <div className="relative space-y-6 p-8 sm:p-10">
-          {/* Language Toggle */}
-          <div className="flex justify-end">
-            <LanguageToggle />
-          </div>
-
-          {/* Logo & Title */}
-          <div className="flex flex-col items-center space-y-3">
-            <div
-              className={cn(
-                'flex h-12 w-12 items-center justify-center rounded-xl',
-                'bg-gradient-to-br from-blue-600 to-cyan-500',
-                'shadow-lg shadow-blue-500/25',
-                'ring-1 ring-white/10'
-              )}
-            >
-              <Sparkles className="h-6 w-6 text-white" />
+          <div className="relative space-y-6 p-8 sm:p-10">
+            {/* Language Toggle */}
+            <div className="flex justify-end">
+              <LanguageToggle />
             </div>
-            <div className="space-y-1 text-center">
-              <h1 className="text-xl font-semibold tracking-tight text-foreground">
-                {t('auth.registerTitle')}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {t('auth.registerSubtitle')}
-              </p>
-            </div>
-          </div>
 
-          {/* Error */}
-          {error && (
-            <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-              {error}
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm text-foreground/80">
-                {t('auth.name')}
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
-                <GlassInput
-                  id="name"
-                  type="text"
-                  placeholder="John Doe"
-                  className={cn('pl-10', errors.name && 'border-red-500/50')}
-                  {...register('name')}
-                />
+            {/* Logo & Title */}
+            <div className="flex flex-col items-center space-y-3">
+              <div
+                className={cn(
+                  'flex h-12 w-12 items-center justify-center rounded-xl',
+                  'bg-gradient-to-br from-primary to-accent',
+                  'shadow-lg shadow-primary/25',
+                  'ring-1 ring-white/10'
+                )}
+              >
+                <span className="text-sm font-bold text-white tracking-tight">TC</span>
               </div>
-              {errors.name && (
-                <p className="text-xs text-red-400">{t(errors.name.message || 'auth.nameRequired')}</p>
-              )}
-            </div>
-
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm text-foreground/80">
-                {t('auth.email')}
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
-                <GlassInput
-                  id="email"
-                  type="email"
-                  placeholder="you@company.gr"
-                  className={cn('pl-10', errors.email && 'border-red-500/50')}
-                  {...register('email')}
-                />
+              <div className="space-y-1 text-center">
+                <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                  {t('auth.registerTitle')}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {t('auth.registerSubtitle')}
+                </p>
               </div>
-              {errors.email && (
-                <p className="text-xs text-red-400">{t(errors.email.message || 'auth.invalidEmail')}</p>
-              )}
             </div>
 
-            {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm text-foreground/80">
-                {t('auth.password')}
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
-                <GlassInput
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="********"
-                  className={cn('pl-10 pr-10', errors.password && 'border-red-500/50')}
-                  {...register('password')}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground/60 transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 rounded-sm z-10"
-                  tabIndex={0}
-                  aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
+            {/* Error */}
+            {error && (
+              <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {error}
               </div>
-              <PasswordStrength password={passwordValue} />
-              {errors.password && (
-                <p className="text-xs text-red-400">{t(errors.password.message || 'auth.passwordMin')}</p>
-              )}
-            </div>
+            )}
 
-            {/* Company Name */}
-            <div className="space-y-2">
-              <Label htmlFor="companyName" className="text-sm text-foreground/80">
-                {t('auth.company')}
-              </Label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
-                <GlassInput
-                  id="companyName"
-                  type="text"
-                  placeholder="Acme Corp"
-                  className={cn('pl-10', errors.companyName && 'border-red-500/50')}
-                  {...register('companyName')}
-                />
-              </div>
-              {errors.companyName && (
-                <p className="text-xs text-red-400">{t(errors.companyName.message || 'auth.companyRequired')}</p>
-              )}
-            </div>
-
-            {/* Terms checkbox */}
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <div className="relative flex items-center justify-center pt-0.5">
-                <input
-                  type="checkbox"
-                  checked={termsAccepted}
-                  onChange={(e) => setTermsAccepted(e.target.checked)}
-                  className="peer sr-only"
-                />
-                <div
-                  className={cn(
-                    'h-4 w-4 rounded border transition-all duration-200',
-                    'border-white/20 bg-white/[0.04]',
-                    'peer-checked:border-primary peer-checked:bg-primary',
-                    'peer-focus-visible:ring-2 peer-focus-visible:ring-ring',
-                    'flex items-center justify-center'
-                  )}
-                >
-                  {termsAccepted && (
-                    <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 12 12" fill="none">
-                      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
+            {/* Form */}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {/* Name */}
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm text-foreground/80">
+                  {t('auth.name')}
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="John Doe"
+                    className={cn(
+                      'h-11 rounded-xl bg-background border-border/60 pl-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
+                      errors.name && 'border-red-500/50'
+                    )}
+                    {...register('name')}
+                  />
                 </div>
+                {errors.name && (
+                  <p className="text-xs text-red-400">{t(errors.name.message || 'auth.nameRequired')}</p>
+                )}
               </div>
-              <span className="text-xs text-muted-foreground leading-relaxed">
-                {t('auth.termsAgree')}{' '}
-                <Link
-                  href="/terms"
-                  className="text-primary hover:text-primary/80 underline transition-colors duration-200 cursor-pointer"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {t('auth.termsLink')}
-                </Link>
-              </span>
-            </label>
 
-            <GlowButton
-              type="submit"
-              disabled={isLoading || !termsAccepted}
-              className="w-full"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  {t('auth.register')}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </GlowButton>
-          </form>
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm text-foreground/80">
+                  {t('auth.email')}
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@company.gr"
+                    className={cn(
+                      'h-11 rounded-xl bg-background border-border/60 pl-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
+                      errors.email && 'border-red-500/50'
+                    )}
+                    {...register('email')}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="text-xs text-red-400">{t(errors.email.message || 'auth.invalidEmail')}</p>
+                )}
+              </div>
 
-          {/* Login link */}
-          <p className="text-center text-sm text-muted-foreground">
-            {t('auth.hasAccount')}{' '}
-            <Link
-              href="/login"
-              className="font-medium text-primary transition-colors duration-200 hover:text-primary/80 cursor-pointer focus-visible:outline-none focus-visible:underline"
-            >
-              {t('common.login')}
-            </Link>
-          </p>
+              {/* Password */}
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm text-foreground/80">
+                  {t('auth.password')}
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="********"
+                    className={cn(
+                      'h-11 rounded-xl bg-background border-border/60 pl-10 pr-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
+                      errors.password && 'border-red-500/50'
+                    )}
+                    {...register('password')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground/60 transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 rounded-sm z-10"
+                    tabIndex={0}
+                    aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                <PasswordStrength password={passwordValue} />
+                {errors.password && (
+                  <p className="text-xs text-red-400">{t(errors.password.message || 'auth.passwordMin')}</p>
+                )}
+              </div>
+
+              {/* Company Name */}
+              <div className="space-y-2">
+                <Label htmlFor="companyName" className="text-sm text-foreground/80">
+                  {t('auth.company')}
+                </Label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                  <Input
+                    id="companyName"
+                    type="text"
+                    placeholder="Acme Corp"
+                    className={cn(
+                      'h-11 rounded-xl bg-background border-border/60 pl-10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
+                      errors.companyName && 'border-red-500/50'
+                    )}
+                    {...register('companyName')}
+                  />
+                </div>
+                {errors.companyName && (
+                  <p className="text-xs text-red-400">{t(errors.companyName.message || 'auth.companyRequired')}</p>
+                )}
+              </div>
+
+              {/* Terms checkbox */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative flex items-center justify-center pt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <div
+                    className={cn(
+                      'h-4 w-4 rounded border transition-all duration-200',
+                      'border-border/60 bg-background',
+                      'peer-checked:border-primary peer-checked:bg-primary',
+                      'peer-focus-visible:ring-2 peer-focus-visible:ring-ring',
+                      'flex items-center justify-center'
+                    )}
+                  >
+                    {termsAccepted && (
+                      <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 12 12" fill="none">
+                        <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs text-muted-foreground leading-relaxed">
+                  {t('auth.termsAgree')}{' '}
+                  <Link
+                    href="/terms"
+                    className="text-primary hover:text-primary/80 underline transition-colors duration-200 cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {t('auth.termsLink')}
+                  </Link>
+                </span>
+              </label>
+
+              <Button
+                type="submit"
+                disabled={isLoading || !termsAccepted}
+                className="h-11 w-full rounded-xl bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 cursor-pointer font-medium"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    {t('auth.register')}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            {/* Login link */}
+            <p className="text-center text-sm text-muted-foreground">
+              {t('auth.hasAccount')}{' '}
+              <Link
+                href="/login"
+                className="font-medium text-primary transition-colors duration-200 hover:text-primary/80 cursor-pointer focus-visible:outline-none focus-visible:underline"
+              >
+                {t('common.login')}
+              </Link>
+            </p>
+          </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
