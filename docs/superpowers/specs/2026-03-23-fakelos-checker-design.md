@@ -194,7 +194,7 @@ fakelos.getWarRoom      // GET - returns summary for all active tenders
 
 **File:** `src/app/(dashboard)/fakeloi/page.tsx`
 
-**Replaces:** Discovery page (`/discovery`) → rename nav link to "Φάκελοι"
+**Replaces:** Discovery placeholder page (`/discovery` — currently shows "Σύντομα διαθέσιμο" empty state, no real functionality to preserve) → rename nav link to "Φάκελοι"
 
 **Structure:**
 - Header: "Οι Φάκελοί Μου" + total stats (X active, Y ready, Z critical)
@@ -291,27 +291,17 @@ This allows the user to VERIFY. The AI is a helper, not the authority. The user 
 
 ### Minimal — leverage existing models
 
-No new Prisma models needed. The FakelosReport is stored as JSON in the existing tender metadata pattern:
+No new Prisma models needed. Add two fields to the existing Tender model:
 
-```typescript
-// In the fakelos router, cache the report:
-await prisma.tender.update({
-  where: { id: tenderId },
-  data: {
-    // Use the existing notes/metadata JSON pattern
-    // or add a simple fakelosReport JSON field
-  }
-});
-```
-
-If a dedicated field is needed, add to Tender model:
 ```prisma
 model Tender {
   // ... existing fields
-  fakelosReport     Json?      // Cached FakelosReport
+  fakelosReport     Json?      // Cached FakelosReport JSON
   fakelosCheckedAt  DateTime?  // Last check timestamp
 }
 ```
+
+**Empty vault handling:** If the company vault is empty (new user, no documents uploaded), ALL items show as GAP with a prominent banner: "Δεν έχετε ανεβάσει έγγραφα εταιρείας. Πηγαίνετε στο Εταιρεία → Πιστοποιητικά για να ξεκινήσετε." with a CTA button to `/company`.
 
 User-marked statuses (IN_PROGRESS, MANUAL_OVERRIDE) already exist in the `coverageStatus` field of `TenderRequirement`.
 
