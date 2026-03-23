@@ -23,6 +23,9 @@ import {
 import Link from 'next/link';
 import { EmptyStateIllustration } from '@/components/ui/empty-state';
 import { BlurFade } from '@/components/ui/blur-fade';
+import { Particles } from '@/components/ui/particles';
+import { Ripple } from '@/components/ui/ripple';
+import { BorderBeam } from '@/components/ui/border-beam';
 import { useTranslation } from '@/lib/i18n';
 
 /* ------------------------------------------------------------------ */
@@ -125,12 +128,19 @@ export default function DashboardPage() {
       animate="visible"
       className="space-y-8"
     >
-      {/* Welcome Header */}
+      {/* Welcome Header with Particles */}
       <BlurFade delay={0.1}>
         <motion.div
           variants={itemVariants}
-          className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+          className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
         >
+          <Particles
+            className="absolute inset-0 -m-4 rounded-xl"
+            quantity={30}
+            color="#48A4D6"
+            size={0.5}
+            staticity={40}
+          />
           <div>
             <h1 className="text-display text-foreground">
               {t('dashboard.welcome').replace('{name}', firstName)}
@@ -193,7 +203,7 @@ export default function DashboardPage() {
       </BlurFade>
 
       {/* Recent Tenders + Upcoming Deadlines */}
-      <BlurFade delay={0.2}>
+      <BlurFade delay={0.2} inView>
         <div className="grid gap-6 lg:grid-cols-5">
         {/* Recent Tenders */}
         <motion.div variants={itemVariants} className="lg:col-span-3">
@@ -215,14 +225,17 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : recentTenders.length === 0 ? (
-                <div className="py-12 text-center">
-                  <EmptyStateIllustration variant="tenders" className="mb-4" />
-                  <p className="text-body text-muted-foreground">{t('dashboard.noTenders')}</p>
-                  <Button asChild variant="outline" size="sm" className="mt-4 rounded-full border-border cursor-pointer">
-                    <Link href="/tenders/new">
-                      <Plus className="mr-1.5 h-3.5 w-3.5" /> {t('dashboard.newTender')}
-                    </Link>
-                  </Button>
+                <div className="relative py-12 text-center overflow-hidden">
+                  <Ripple mainCircleSize={100} mainCircleOpacity={0.06} numCircles={5} />
+                  <div className="relative z-10">
+                    <EmptyStateIllustration variant="tenders" className="mb-4" />
+                    <p className="text-body text-muted-foreground">{t('dashboard.noTenders')}</p>
+                    <Button asChild variant="outline" size="sm" className="mt-4 rounded-full border-border cursor-pointer">
+                      <Link href="/tenders/new">
+                        <Plus className="mr-1.5 h-3.5 w-3.5" /> {t('dashboard.newTender')}
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div>
@@ -271,9 +284,12 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : upcomingDeadlines.length === 0 ? (
-                <div className="py-12 text-center">
-                  <EmptyStateIllustration variant="deadlines" className="mb-4" />
-                  <p className="text-body text-muted-foreground">{t('dashboard.noDeadlines')}</p>
+                <div className="relative py-12 text-center overflow-hidden">
+                  <Ripple mainCircleSize={100} mainCircleOpacity={0.06} numCircles={5} />
+                  <div className="relative z-10">
+                    <EmptyStateIllustration variant="deadlines" className="mb-4" />
+                    <p className="text-body text-muted-foreground">{t('dashboard.noDeadlines')}</p>
+                  </div>
                 </div>
               ) : (
                 <div>

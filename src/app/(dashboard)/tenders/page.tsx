@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BlurFade } from '@/components/ui/blur-fade';
+import { Ripple } from '@/components/ui/ripple';
 import {
   Plus,
   Search,
@@ -204,7 +205,9 @@ export default function TendersPage() {
               </div>
             </div>
           ) : filteredTenders.length === 0 ? (
-            <div className="py-16 text-center">
+            <div className="relative py-16 text-center overflow-hidden">
+              <Ripple mainCircleSize={100} mainCircleOpacity={0.06} numCircles={5} />
+              <div className="relative z-10">
               <EmptyStateIllustration variant="tenders" className="mb-5" />
               <h3 className="text-title text-foreground">Κανενας διαγωνισμος</h3>
               <p className="text-body text-muted-foreground mt-1">
@@ -222,6 +225,7 @@ export default function TendersPage() {
                   <Link href="/tenders/new">Νεος Διαγωνισμος</Link>
                 </Button>
               )}
+              </div>
             </div>
           ) : (
             <div className="rounded-xl border border-border/60 bg-card overflow-hidden transition-colors hover:border-primary/20">

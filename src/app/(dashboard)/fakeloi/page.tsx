@@ -9,6 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyStateIllustration } from '@/components/ui/empty-state';
 import { useTranslation } from '@/lib/i18n';
 import { BlurFade } from '@/components/ui/blur-fade';
+import { Ripple } from '@/components/ui/ripple';
+import { BorderBeam } from '@/components/ui/border-beam';
 import { PremiumStatCardV2 } from '@/components/ui/premium-stat-card-v2';
 import {
   FolderCheck,
@@ -183,7 +185,7 @@ export default function FakeloiPage() {
       </BlurFade>
 
       {/* Stats Row */}
-      <BlurFade delay={0.15}>
+      <BlurFade delay={0.15} inView>
         <div className="grid gap-4 grid-cols-3">
           {isLoading
             ? Array.from({ length: 3 }).map((_, i) => (
@@ -231,9 +233,11 @@ export default function FakeloiPage() {
 
       {/* Empty state */}
       {!isLoading && (!tenders || tenders.length === 0) && (
-        <BlurFade delay={0.2}>
+        <BlurFade delay={0.2} inView>
           <motion.div variants={itemVariants}>
-            <div className="rounded-2xl border border-border/60 bg-card py-20 text-center">
+            <div className="relative rounded-2xl border border-border/60 bg-card py-20 text-center overflow-hidden">
+              <Ripple mainCircleSize={100} mainCircleOpacity={0.06} numCircles={5} />
+              <div className="relative z-10">
               <EmptyStateIllustration variant="tenders" className="mb-5" />
               <h3 className="text-title text-foreground">{t('fakeloi.noTenders')}</h3>
               <p className="mt-1 text-body text-muted-foreground">{t('fakeloi.noTendersSub')}</p>
@@ -246,6 +250,7 @@ export default function FakeloiPage() {
                   {t('fakeloi.newTender')}
                 </Link>
               </Button>
+              </div>
             </div>
           </motion.div>
         </BlurFade>
@@ -253,7 +258,7 @@ export default function FakeloiPage() {
 
       {/* Tender Cards — Premium Floating */}
       {!isLoading && tenders && tenders.length > 0 && (
-        <BlurFade delay={0.2}>
+        <BlurFade delay={0.2} inView>
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {tenders.map((tender: any, i: number) => {
               const status = tender.status || 'UNCHECKED';
@@ -272,12 +277,26 @@ export default function FakeloiPage() {
                   <Link
                     href={`/tenders/${tender.tenderId}?tab=fakelos`}
                     className={cn(
-                      'group relative block rounded-2xl border bg-card p-6 transition-all duration-200 cursor-pointer',
+                      'group relative block rounded-2xl border bg-card p-6 transition-all duration-200 cursor-pointer overflow-hidden',
                       'border-border/60 hover:border-primary/20',
                       'hover:shadow-lg hover:-translate-y-0.5',
                       cfg.glow && `hover:${cfg.glow}`,
                     )}
+                    onMouseMove={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      e.currentTarget.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+                      e.currentTarget.style.setProperty('--my', `${e.clientY - rect.top}px`);
+                    }}
                   >
+                    {/* Spotlight */}
+                    <div
+                      className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      style={{ background: 'radial-gradient(300px circle at var(--mx, 50%) var(--my, 50%), rgba(72,164,214,0.08), transparent 60%)' }}
+                    />
+                    {/* BorderBeam on hover */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <BorderBeam size={60} duration={6} colorFrom="#48A4D6" colorTo="transparent" borderWidth={1} />
+                    </div>
                     {/* Top row: title + status */}
                     <div className="flex items-start justify-between gap-3 mb-4">
                       <div className="min-w-0 flex-1">

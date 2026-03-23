@@ -276,7 +276,7 @@ export default function AnalyticsPage() {
       </BlurFade>
 
       {/* Row 1: Conversion Funnel + Deadline Proximity */}
-      <BlurFade delay={0.2}>
+      <BlurFade delay={0.2} inView>
         <motion.div variants={itemVariants} className="grid gap-6 lg:grid-cols-2">
           {/* Conversion Funnel */}
           <div className="rounded-xl border border-border/60 bg-card p-6 transition-colors hover:border-primary/20">
@@ -338,7 +338,7 @@ export default function AnalyticsPage() {
       </BlurFade>
 
       {/* Row 2: Status Distribution + Compliance Comparison */}
-      <BlurFade delay={0.25}>
+      <BlurFade delay={0.25} inView>
         <motion.div variants={itemVariants} className="grid gap-6 lg:grid-cols-2">
           {/* Donut — Status Distribution */}
           <div className="rounded-xl border border-border/60 bg-card p-6 transition-colors hover:border-primary/20">
