@@ -298,6 +298,7 @@ model Tender {
   technicalSections  TechnicalProposalSection[]
   technicalRisks     TechnicalRisk[]
   teamRequirements   TeamRequirement[]
+  subcontractorNeeds SubcontractorNeed[]
 
   analysisLanguage  String  @default("el")
 
@@ -809,6 +810,41 @@ model TeamRequirement {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── Subcontractor & Supplier Needs ─────────────────────────
+
+enum SubcontractorKind {
+  SUBCONTRACTOR
+  SUPPLIER
+}
+
+enum SubcontractorStatus {
+  PENDING
+  IN_PROGRESS
+  COVERED
+}
+
+model SubcontractorNeed {
+  id             String              @id @default(cuid())
+  specialty      String              // "Υδραυλικός", "Ηλεκτρολόγος"
+  kind           SubcontractorKind   // SUBCONTRACTOR | SUPPLIER
+  reason         String   @db.Text   // "Απαιτείται από Άρθρο 3.2 — εγκατάσταση υδραυλικών"
+  isMandatory    Boolean  @default(false)
+  requiredCerts  Json     @default("[]") // ["Άδεια ΥΔΕ", "ISO 14001"]
+  guidance       String?  @db.Text   // AI-generated advice
+  status         SubcontractorStatus @default(PENDING)
+  assignedName   String?             // "Παπαδόπουλος Ηλεκτρικά"
+  notes          String?  @db.Text
+  isAiGenerated  Boolean  @default(true)
+
+  tenderId String
+  tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenderId])
 }
 
 // ─── Activity Log ───────────────────────────────────────────
