@@ -14,6 +14,7 @@ interface PremiumStatCardV2Props {
   icon: LucideIcon;
   index?: number;
   colorClass?: string;
+  sparkline?: React.ReactNode;
 }
 
 export function PremiumStatCardV2({
@@ -24,6 +25,7 @@ export function PremiumStatCardV2({
   icon: Icon,
   index = 0,
   colorClass,
+  sparkline,
 }: PremiumStatCardV2Props) {
   return (
     <motion.div
@@ -70,6 +72,8 @@ export function PremiumStatCardV2({
         </div>
 
         <p className="mt-1.5 text-xs text-muted-foreground/70">{subtitle}</p>
+
+        {sparkline && sparkline}
       </div>
     </motion.div>
   );
