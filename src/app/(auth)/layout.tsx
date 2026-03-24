@@ -20,12 +20,12 @@ const GLOBE_CONFIG = {
   phi: 0,
   theta: 0.25,
   dark: 1,
-  diffuse: 3,
-  mapSamples: 36000,
-  mapBrightness: 8,
-  baseColor: [0.25, 0.28, 0.35],
+  diffuse: 1.2,
+  mapSamples: 40000,
+  mapBrightness: 6,
+  baseColor: [0.6, 0.65, 0.75],
   markerColor: [72 / 255, 164 / 255, 214 / 255],
-  glowColor: [0.12, 0.18, 0.28],
+  glowColor: [0.05, 0.1, 0.2],
   markers: [
     { location: [37.9838, 23.7275], size: 0.08 },  // Athens
     { location: [40.6401, 22.9444], size: 0.06 },  // Thessaloniki
