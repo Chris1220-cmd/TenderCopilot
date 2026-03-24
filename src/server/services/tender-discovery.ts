@@ -1442,7 +1442,9 @@ class TenderDiscoveryService {
 
     // ── Filter out irrelevant tender types ──────────────────────
     // Exclude: job postings, auctions, real estate, personnel hiring, scholarships
+    // Multilingual patterns for all EU sources
     const IRRELEVANT_PATTERNS = [
+      // ── Greek ──
       /πρόσληψη|προσλήψεις|πρόσληψ/i,
       /πλειστηριασμ/i,
       /ακίνητ|μίσθωση\s+ακινήτ/i,
@@ -1452,8 +1454,39 @@ class TenderDiscoveryService {
       /επιλογή\s+προσωπικού/i,
       /σύμβαση\s+εργασίας/i,
       /ΑΣΕΠ|ΣΟΧ|ΣΜΕ/,
-      /personnel|recruitment|hiring|job\s+post/i,
-      /auction|foreclosure/i,
+      /μετάταξη|απόσπαση|τοποθέτηση|υπαλλήλ/i,
+      /εκμίσθωση|κυλικείο/i,
+      /κήρυξη\s+ως\s+άγον/i,
+      // ── English ──
+      /personnel|recruitment|hiring|job\s+post|job\s+vacancy|staff\s+position/i,
+      /auction|foreclosure|real\s+estate\s+lease/i,
+      /scholarship|fellowship|grant\s+for\s+student/i,
+      /employment\s+contract|work\s+permit/i,
+      // ── French ──
+      /recrutement|embauche|poste\s+vacant|offre\s+d'emploi|emploi/i,
+      /bourse\s+d'études|vente\s+aux\s+enchères|location\s+immobili/i,
+      /contrat\s+de\s+travail|concours\s+de\s+recrutement/i,
+      // ── German ──
+      /stellenausschreibung|personaleinstellung|stellenangebot|arbeitsvertrag/i,
+      /versteigerung|zwangsversteigerung|immobilienvermietung/i,
+      /stipendium|personalrekrutierung/i,
+      // ── Italian ──
+      /assunzione|concorso\s+pubblico\s+per\s+personale|posto\s+vacante|offerta\s+di\s+lavoro/i,
+      /asta\s+pubblica|asta\s+giudiziaria|locazione\s+immobil/i,
+      /borsa\s+di\s+studio|contratto\s+di\s+lavoro/i,
+      // ── Spanish ──
+      /contratación\s+de\s+personal|oferta\s+de\s+empleo|puesto\s+vacante|convocatoria\s+de\s+empleo/i,
+      /subasta|ejecución\s+hipotecaria|alquiler\s+de\s+inmueble/i,
+      /beca\s+de\s+estudios|contrato\s+laboral/i,
+      // ── Polish ──
+      /nabór\s+na\s+stanowisko|oferta\s+pracy|zatrudnienie|rekrutacja/i,
+      /licytacja|egzekucja|stypendium/i,
+      // ── Dutch ──
+      /vacature|personeelswerving|arbeidsovereenkomst/i,
+      /veiling|executieverkoop|studiebeurs/i,
+      // ── Portuguese ──
+      /recrutamento|oferta\s+de\s+emprego|contrato\s+de\s+trabalho/i,
+      /leilão|bolsa\s+de\s+estudo/i,
     ];
 
     allTenders = allTenders.filter((t) => {
