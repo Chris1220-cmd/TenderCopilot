@@ -126,6 +126,9 @@ export default function TenderDetailPage() {
   const assessLegalMutation = trpc.aiRoles.assessLegalRisks.useMutation({ onError: handleAiError('tender.riskError') });
   const extractFinancialMutation = trpc.aiRoles.extractFinancials.useMutation({ onError: handleAiError('tender.financialError') });
   const goNoGoMutation = trpc.aiRoles.goNoGo.useMutation({ onError: handleAiError('tender.goNoGoError') });
+  const analyzeSubcontractorsMutation = trpc.aiRoles.analyzeSubcontractorNeeds.useMutation({
+    onError: handleAiError('tender.subcontractorError'),
+  });
 
   function handleRunFullAnalysis() {
     setFullAnalysisLangModalOpen(true);
@@ -141,6 +144,8 @@ export default function TenderDetailPage() {
       await assessLegalMutation.mutateAsync({ tenderId });
       setAnalysisStep(t('tender.financialAnalysis'));
       await extractFinancialMutation.mutateAsync({ tenderId, language });
+      setAnalysisStep(t('tender.subcontractorAnalysis'));
+      await analyzeSubcontractorsMutation.mutateAsync({ tenderId, language });
       setAnalysisStep(t('tender.goNoGoAssessment'));
       await goNoGoMutation.mutateAsync({ tenderId, language });
       setAnalysisStep(null);
@@ -148,6 +153,7 @@ export default function TenderDetailPage() {
       utils.aiRoles.getGoNoGo.invalidate({ tenderId });
       utils.aiRoles.getLegalClauses.invalidate({ tenderId });
       utils.tender.getById.invalidate({ id: tenderId });
+      utils.fakelos.getReport.invalidate({ tenderId });
       toast({ title: t('tender.analysisComplete') });
     } catch (err: any) {
       setAnalysisStep(null);
