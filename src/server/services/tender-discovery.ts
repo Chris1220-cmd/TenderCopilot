@@ -847,47 +847,56 @@ async function getLatestFromFTS(cpvCodes?: string[]): Promise<DiscoveredTender[]
 }
 
 /**
- * e-Zamówienia (Poland) — BZP notices
- * Public REST API, no auth for reading.
- * Docs: https://ezamowienia.gov.pl/pl/integracja/
+ * e-Zamówienia (Poland) — Uses TED API filtered by buyer-country=POL.
+ * The native e-Zamówienia API is an internal endpoint that may require auth.
  */
-async function getLatestFromEZamowienia(): Promise<DiscoveredTender[]> {
+async function getLatestFromEZamowienia(cpvCodes?: string[]): Promise<DiscoveredTender[]> {
   try {
-    const res = await fetch(
-      'https://ezamowienia.gov.pl/mo-board/api/v1/notice?SortingColumnName=PublicationDate&SortingDirection=DESC&PageSize=50',
-      {
-        headers: { Accept: 'application/json' },
-        signal: AbortSignal.timeout(12000),
-      }
-    );
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const dateStr = threeMonthsAgo.toISOString().slice(0, 10).replace(/-/g, '');
 
-    if (!res.ok) {
-      console.error(`[eZam] API error: ${res.status}`);
-      return [];
+    let query = `publication-date>=${dateStr} and buyer-country=POL`;
+    if (cpvCodes && cpvCodes.length > 0) {
+      const cpvQ = cpvCodes.slice(0, 3).map(c => `cpv=${c.split('-')[0]}*`).join(' or ');
+      query += ` and (${cpvQ})`;
     }
 
-    const data = await res.json();
-    const notices = data.elements || data.data || data.notices || [];
+    const res = await fetch('https://api.ted.europa.eu/v3/notices/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query, limit: 50, page: 1, fields: ['notice-title', 'publication-number', 'publication-date', 'deadline-receipt-tender-date-lot'] }),
+      signal: AbortSignal.timeout(15000),
+    });
 
-    return notices.slice(0, 50).map((n: any) => ({
-      title: n.objectContract?.title || n.title || 'Polish Tender',
-      referenceNumber: n.bzpNumber || n.noticeNumber || '',
-      contractingAuthority: n.contractingAuthority?.officialName || n.organizationName || '',
-      platform: 'EU_MEMBER' as const,
-      budget: n.objectContract?.totalValue?.amount
-        ? parseFloat(n.objectContract.totalValue.amount)
-        : undefined,
-      submissionDeadline: safeDateOrUndefined(n.tenderSubmissionDeadlineDate),
-      cpvCodes: n.objectContract?.cpvMain?.code ? [n.objectContract.cpvMain.code] : [],
-      sourceUrl: n.bzpNumber
-        ? `https://ezamowienia.gov.pl/mo-public/bzp/notice/${n.bzpNumber}`
-        : 'https://ezamowienia.gov.pl/',
-      summary: n.objectContract?.shortDescription || undefined,
-      publishedAt: safeDate(n.publicationDate),
-      country: 'PL',
-      sourceLabel: 'e-Zamówienia (Poland)',
-      isPrivate: false,
-    }));
+    if (!res.ok) { console.error(`[eZam] TED-POL API error: ${res.status}`); return []; }
+
+    const data = await res.json();
+    const notices = data.notices || [];
+
+    return notices.slice(0, 50).map((n: any) => {
+      const pubNumber = n['publication-number'] || '';
+      const titleObj = n['notice-title'] || {};
+      const title = titleObj['POL'] || titleObj['ENG'] || Object.values(titleObj)[0] as string || `TED-PL ${pubNumber}`;
+      const deadlineArr = n['deadline-receipt-tender-date-lot'];
+      const deadline = Array.isArray(deadlineArr) && deadlineArr.length > 0 ? safeDateOrUndefined(deadlineArr[0]) : undefined;
+
+      return {
+        title: typeof title === 'string' ? title.slice(0, 300) : `TED-PL ${pubNumber}`,
+        referenceNumber: pubNumber,
+        contractingAuthority: '',
+        platform: 'EU_MEMBER' as const,
+        budget: undefined,
+        submissionDeadline: deadline,
+        cpvCodes: [],
+        sourceUrl: `https://ted.europa.eu/en/notice/-/detail/${pubNumber}`,
+        summary: undefined,
+        publishedAt: safeDate(n['publication-date']),
+        country: 'PL',
+        sourceLabel: 'e-Zamówienia (Poland via TED)',
+        isPrivate: false,
+      };
+    });
   } catch (err) {
     console.error('[eZam] Fetch error:', err);
     return [];
@@ -895,48 +904,56 @@ async function getLatestFromEZamowienia(): Promise<DiscoveredTender[]> {
 }
 
 /**
- * TenderNed (Netherlands) — Dutch procurement platform
- * REST API, account required (may fail without credentials).
- * Docs: https://www.tenderned.nl/info/swagger/
+ * TenderNed (Netherlands) — Uses TED API filtered by buyer-country=NLD.
+ * TenderNed's own API requires account credentials.
  */
-async function getLatestFromTenderNed(): Promise<DiscoveredTender[]> {
+async function getLatestFromTenderNed(cpvCodes?: string[]): Promise<DiscoveredTender[]> {
   try {
-    const res = await fetch(
-      'https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties?pageSize=20&sort=-publicatiedatum',
-      {
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-        signal: AbortSignal.timeout(12000),
-      }
-    );
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const dateStr = threeMonthsAgo.toISOString().slice(0, 10).replace(/-/g, '');
 
-    if (!res.ok) {
-      console.error(`[TenderNed] API error: ${res.status}`);
-      return [];
+    let query = `publication-date>=${dateStr} and buyer-country=NLD`;
+    if (cpvCodes && cpvCodes.length > 0) {
+      const cpvQ = cpvCodes.slice(0, 3).map(c => `cpv=${c.split('-')[0]}*`).join(' or ');
+      query += ` and (${cpvQ})`;
     }
 
-    const data = await res.json();
-    const publications = data.publicaties || data.content || data.results || [];
+    const res = await fetch('https://api.ted.europa.eu/v3/notices/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query, limit: 50, page: 1, fields: ['notice-title', 'publication-number', 'publication-date', 'deadline-receipt-tender-date-lot'] }),
+      signal: AbortSignal.timeout(15000),
+    });
 
-    return publications.slice(0, 50).map((p: any) => ({
-      title: p.omschrijving || p.titel || 'Dutch Tender',
-      referenceNumber: p.publicatienummer || p.referentienummer || '',
-      contractingAuthority: p.aanbestedendeDienst?.naam || '',
-      platform: 'EU_MEMBER' as const,
-      budget: p.geraamdTotaalBedrag ? parseFloat(p.geraamdTotaalBedrag) : undefined,
-      submissionDeadline: safeDateOrUndefined(p.sluitingsdatumInschrijving),
-      cpvCodes: p.cpvCodes || [],
-      sourceUrl: p.publicatienummer
-        ? `https://www.tenderned.nl/aankondigingen/overzicht/publicatie/${p.publicatienummer}`
-        : 'https://www.tenderned.nl/',
-      summary: p.omschrijving || undefined,
-      publishedAt: safeDate(p.publicatiedatum),
-      country: 'NL',
-      sourceLabel: 'TenderNed (Netherlands)',
-      isPrivate: false,
-    }));
+    if (!res.ok) { console.error(`[TenderNed] TED-NLD API error: ${res.status}`); return []; }
+
+    const data = await res.json();
+    const notices = data.notices || [];
+
+    return notices.slice(0, 50).map((n: any) => {
+      const pubNumber = n['publication-number'] || '';
+      const titleObj = n['notice-title'] || {};
+      const title = titleObj['NLD'] || titleObj['ENG'] || Object.values(titleObj)[0] as string || `TED-NL ${pubNumber}`;
+      const deadlineArr = n['deadline-receipt-tender-date-lot'];
+      const deadline = Array.isArray(deadlineArr) && deadlineArr.length > 0 ? safeDateOrUndefined(deadlineArr[0]) : undefined;
+
+      return {
+        title: typeof title === 'string' ? title.slice(0, 300) : `TED-NL ${pubNumber}`,
+        referenceNumber: pubNumber,
+        contractingAuthority: '',
+        platform: 'EU_MEMBER' as const,
+        budget: undefined,
+        submissionDeadline: deadline,
+        cpvCodes: [],
+        sourceUrl: `https://ted.europa.eu/en/notice/-/detail/${pubNumber}`,
+        summary: undefined,
+        publishedAt: safeDate(n['publication-date']),
+        country: 'NL',
+        sourceLabel: 'TenderNed (Netherlands via TED)',
+        isPrivate: false,
+      };
+    });
   } catch (err) {
     console.error('[TenderNed] Fetch error:', err);
     return [];
@@ -944,53 +961,67 @@ async function getLatestFromTenderNed(): Promise<DiscoveredTender[]> {
 }
 
 /**
- * ProZorro (Ukraine) — Open procurement API
- * Full REST API, OCDS-compliant, no auth.
- * Docs: https://prozorro-api-docs.readthedocs.io/en/master/
+ * ProZorro (Ukraine) — Uses TED API filtered by buyer-country=UKR.
+ * ProZorro's own list endpoint only returns id+dateModified (no titles/budgets),
+ * so we use TED which indexes Ukrainian above-threshold tenders.
  */
 async function getLatestFromProZorro(cpvCodes?: string[]): Promise<DiscoveredTender[]> {
   try {
-    // Use opt_fields to get actual tender data from the list endpoint
-    const params = new URLSearchParams({
-      descending: '1',
-      limit: '50',
-      mode: '_all_',
-      opt_fields: 'title,title_en,tenderID,procuringEntity,value,tenderPeriod,items,description,dateModified',
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const dateStr = threeMonthsAgo.toISOString().slice(0, 10).replace(/-/g, '');
+
+    let query = `publication-date>=${dateStr} and buyer-country=UKR`;
+    if (cpvCodes && cpvCodes.length > 0) {
+      const cpvQ = cpvCodes.slice(0, 3).map(c => `cpv=${c.split('-')[0]}*`).join(' or ');
+      query += ` and (${cpvQ})`;
+    }
+
+    const res = await fetch('https://api.ted.europa.eu/v3/notices/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        query,
+        limit: 50,
+        page: 1,
+        fields: ['notice-title', 'publication-number', 'publication-date', 'deadline-receipt-tender-date-lot'],
+      }),
+      signal: AbortSignal.timeout(15000),
     });
 
-    const res = await fetch(
-      `https://public.api.openprocurement.org/api/2.5/tenders?${params}`,
-      {
-        headers: { Accept: 'application/json' },
-        signal: AbortSignal.timeout(15000),
-      }
-    );
-
     if (!res.ok) {
-      console.error(`[ProZorro] API error: ${res.status}`);
+      console.error(`[ProZorro] TED-UKR API error: ${res.status}`);
       return [];
     }
 
     const data = await res.json();
-    const tenders = data.data || [];
+    const notices = data.notices || [];
 
-    return tenders.slice(0, 50).map((t: any) => ({
-      title: t.title_en || t.title || 'Ukrainian Tender',
-      referenceNumber: t.tenderID || t.id || '',
-      contractingAuthority: t.procuringEntity?.name || '',
-      platform: 'EU_MEMBER' as const,
-      budget: t.value?.amount ? parseFloat(String(t.value.amount)) : undefined,
-      submissionDeadline: safeDateOrUndefined(t.tenderPeriod?.endDate),
-      cpvCodes: t.items?.map((i: any) => i.classification?.id).filter(Boolean) || [],
-      sourceUrl: t.tenderID
-        ? `https://prozorro.gov.ua/tender/${t.tenderID}`
-        : 'https://prozorro.gov.ua/',
-      summary: t.description || t.title_en || undefined,
-      publishedAt: safeDate(t.dateModified || t.date),
-      country: 'UA',
-      sourceLabel: 'ProZorro (Ukraine)',
-      isPrivate: false,
-    }));
+    return notices.slice(0, 50).map((n: any) => {
+      const pubNumber = n['publication-number'] || '';
+      const titleObj = n['notice-title'] || {};
+      const title = titleObj['UKR'] || titleObj['ENG'] || Object.values(titleObj)[0] as string || `TED-UA ${pubNumber}`;
+      const deadlineArr = n['deadline-receipt-tender-date-lot'];
+      const deadline = Array.isArray(deadlineArr) && deadlineArr.length > 0
+        ? safeDateOrUndefined(deadlineArr[0])
+        : undefined;
+
+      return {
+        title: typeof title === 'string' ? title.slice(0, 300) : `TED-UA ${pubNumber}`,
+        referenceNumber: pubNumber,
+        contractingAuthority: '',
+        platform: 'EU_MEMBER' as const,
+        budget: undefined,
+        submissionDeadline: deadline,
+        cpvCodes: [],
+        sourceUrl: `https://ted.europa.eu/en/notice/-/detail/${pubNumber}`,
+        summary: undefined,
+        publishedAt: safeDate(n['publication-date']),
+        country: 'UA',
+        sourceLabel: 'ProZorro (Ukraine via TED)',
+        isPrivate: false,
+      };
+    });
   } catch (err) {
     console.error('[ProZorro] Fetch error:', err);
     return [];
@@ -1307,10 +1338,10 @@ class TenderDiscoveryService {
           fetchers.push(getLatestFromFTS(cpvFilter));
           break;
         case 'ezamowienia':
-          fetchers.push(getLatestFromEZamowienia());
+          fetchers.push(getLatestFromEZamowienia(cpvFilter));
           break;
         case 'tenderned':
-          fetchers.push(getLatestFromTenderNed());
+          fetchers.push(getLatestFromTenderNed(cpvFilter));
           break;
         case 'prozorro':
           fetchers.push(getLatestFromProZorro(cpvFilter));
