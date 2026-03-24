@@ -26,6 +26,8 @@ import { EmptyStateIllustration } from '@/components/ui/empty-state';
 import Link from 'next/link';
 import { getInitials } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
+import { BlurFade } from '@/components/ui/blur-fade';
+import { Particles } from '@/components/ui/particles';
 
 const priorityColors: Record<string, string> = {
   LOW: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
@@ -82,14 +84,24 @@ export default function TasksPage() {
       className="space-y-6"
     >
       {/* Header */}
-      <motion.div variants={itemVariants}>
-        <h1 className="text-headline text-foreground">{t('tasks.title')}</h1>
-        <p className="text-muted-foreground">
-          {t('tasks.subtitle')}
-        </p>
-      </motion.div>
+      <BlurFade delay={0.1}>
+        <motion.div variants={itemVariants} className="relative">
+          <Particles
+            className="absolute inset-0 -m-4 rounded-xl"
+            quantity={30}
+            color="#48A4D6"
+            size={0.5}
+            staticity={40}
+          />
+          <h1 className="text-headline text-foreground">{t('tasks.title')}</h1>
+          <p className="text-muted-foreground">
+            {t('tasks.subtitle')}
+          </p>
+        </motion.div>
+      </BlurFade>
 
       {/* Stats */}
+      <BlurFade delay={0.15}>
       <motion.div variants={itemVariants} className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-border/60 bg-card p-5 transition-colors hover:border-primary/20">
           <div className="flex items-center justify-between">
@@ -119,8 +131,10 @@ export default function TasksPage() {
           <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums">{doneCount}</p>
         </div>
       </motion.div>
+      </BlurFade>
 
       {/* Filters */}
+      <BlurFade delay={0.2} inView>
       <motion.div variants={itemVariants} className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -144,8 +158,10 @@ export default function TasksPage() {
           </SelectContent>
         </Select>
       </motion.div>
+      </BlurFade>
 
       {/* Task list */}
+      <BlurFade delay={0.25} inView>
       {isLoading ? (
         <motion.div variants={itemVariants} className="space-y-3">
           {[...Array(5)].map((_, i) => (
@@ -226,6 +242,7 @@ export default function TasksPage() {
           </div>
         </motion.div>
       )}
+      </BlurFade>
     </motion.div>
   );
 }
