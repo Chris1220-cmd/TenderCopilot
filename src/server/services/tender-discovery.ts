@@ -114,7 +114,7 @@ async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTen
       try {
         const params = new URLSearchParams({
           subject: term,
-          size: '15',
+          size: '50',
           page: '0',
         });
 
@@ -205,7 +205,7 @@ async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTen
     });
 
     return filteredDecisions
-      .slice(0, 15)
+      .slice(0, 50)
       .map((d: any) => {
         // Extract organization name from extraFieldValues.org or top-level fields
         const orgName =
@@ -283,7 +283,7 @@ async function getLatestFromTED(cpvCodes?: string[], countryFilter: 'GR' | 'EU' 
         },
         body: JSON.stringify({
           query,
-          limit: 20,
+          limit: 50,
           page: 1,
           fields: [
             'notice-title',
@@ -305,7 +305,7 @@ async function getLatestFromTED(cpvCodes?: string[], countryFilter: 'GR' | 'EU' 
     const data = await res.json();
     const notices = data.notices || [];
 
-    return notices.slice(0, 15).map((n: any) => {
+    return notices.slice(0, 50).map((n: any) => {
       const pubNumber = n['publication-number'] || '';
       const htmlLink = n.links?.html?.ELL || n.links?.html?.ENG
         || `https://ted.europa.eu/el/notice/-/detail/${pubNumber}`;
@@ -383,7 +383,7 @@ async function getLatestFromKIMDIS(cpvCodes?: string[]): Promise<DiscoveredTende
     const data = await res.json();
     const notices = data.content || data.notices || data.data || [];
 
-    return notices.slice(0, 15).map((n: any) => {
+    return notices.slice(0, 50).map((n: any) => {
       // Extract CPV codes from objectDetails[].cpvs[].key
       const cpvCodes: string[] = [];
       if (Array.isArray(n.objectDetails)) {
@@ -478,7 +478,7 @@ async function scrapeDEKOSource(source: { id: string; name: string; url: string 
       const lowerText = text.toLowerCase();
       if (tenderKeywords.some(kw => lowerText.includes(kw))) {
         const fullUrl = href.startsWith('http') ? href : new URL(href, source.url).href;
-        if (results.length >= 15) break;
+        if (results.length >= 50) break;
         results.push({
           title: text.trim().replace(/\s+/g, ' '),
           referenceNumber: '',
@@ -525,7 +525,7 @@ async function scrapePromitheies(): Promise<DiscoveredTender[]> {
       'προμήθει', 'δημοπρασ', 'σύμβαση',
     ];
 
-    while ((match = linkRegex.exec(html)) !== null && results.length < 15) {
+    while ((match = linkRegex.exec(html)) !== null && results.length < 50) {
       const [, href, text] = match;
       const lowerText = text.toLowerCase();
       if (tenderKeywords.some(kw => lowerText.includes(kw))) {
@@ -671,7 +671,7 @@ async function getLatestFromBOAMP(cpvCodes?: string[]): Promise<DiscoveredTender
     }
 
     const params = new URLSearchParams({
-      rows: '20',
+      rows: '50',
       sort: '-datepublication',
       where,
     });
@@ -689,7 +689,7 @@ async function getLatestFromBOAMP(cpvCodes?: string[]): Promise<DiscoveredTender
     const data = await res.json();
     const records = data.results || [];
 
-    return records.slice(0, 20).map((r: any) => ({
+    return records.slice(0, 50).map((r: any) => ({
       title: r.objet || r.intitule || 'BOAMP Notice',
       referenceNumber: r.idweb || r.reference || '',
       contractingAuthority: r.nomacheteur || r.denomination || '',
@@ -734,7 +734,7 @@ async function getLatestFromANAC(cpvCodes?: string[]): Promise<DiscoveredTender[
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
         query,
-        limit: 20,
+        limit: 50,
         page: 1,
         fields: ['notice-title', 'publication-number', 'publication-date', 'deadline-receipt-tender-date-lot'],
       }),
@@ -749,7 +749,7 @@ async function getLatestFromANAC(cpvCodes?: string[]): Promise<DiscoveredTender[
     const data = await res.json();
     const notices = data.notices || [];
 
-    return notices.slice(0, 20).map((n: any) => {
+    return notices.slice(0, 50).map((n: any) => {
       const pubNumber = n['publication-number'] || '';
       const titleObj = n['notice-title'] || {};
       const title = titleObj['ITA'] || titleObj['ENG'] || Object.values(titleObj)[0] as string || `TED-IT ${pubNumber}`;
@@ -818,7 +818,7 @@ async function getLatestFromFTS(cpvCodes?: string[]): Promise<DiscoveredTender[]
     const data = await res.json();
     const releases = data.releases || [];
 
-    return releases.slice(0, 20).map((r: any) => {
+    return releases.slice(0, 50).map((r: any) => {
       const tender = r.tender || {};
       const buyer = r.buyer || {};
 
@@ -854,7 +854,7 @@ async function getLatestFromFTS(cpvCodes?: string[]): Promise<DiscoveredTender[]
 async function getLatestFromEZamowienia(): Promise<DiscoveredTender[]> {
   try {
     const res = await fetch(
-      'https://ezamowienia.gov.pl/mo-board/api/v1/notice?SortingColumnName=PublicationDate&SortingDirection=DESC&PageSize=20',
+      'https://ezamowienia.gov.pl/mo-board/api/v1/notice?SortingColumnName=PublicationDate&SortingDirection=DESC&PageSize=50',
       {
         headers: { Accept: 'application/json' },
         signal: AbortSignal.timeout(12000),
@@ -869,7 +869,7 @@ async function getLatestFromEZamowienia(): Promise<DiscoveredTender[]> {
     const data = await res.json();
     const notices = data.elements || data.data || data.notices || [];
 
-    return notices.slice(0, 20).map((n: any) => ({
+    return notices.slice(0, 50).map((n: any) => ({
       title: n.objectContract?.title || n.title || 'Polish Tender',
       referenceNumber: n.bzpNumber || n.noticeNumber || '',
       contractingAuthority: n.contractingAuthority?.officialName || n.organizationName || '',
@@ -920,7 +920,7 @@ async function getLatestFromTenderNed(): Promise<DiscoveredTender[]> {
     const data = await res.json();
     const publications = data.publicaties || data.content || data.results || [];
 
-    return publications.slice(0, 20).map((p: any) => ({
+    return publications.slice(0, 50).map((p: any) => ({
       title: p.omschrijving || p.titel || 'Dutch Tender',
       referenceNumber: p.publicatienummer || p.referentienummer || '',
       contractingAuthority: p.aanbestedendeDienst?.naam || '',
@@ -953,7 +953,7 @@ async function getLatestFromProZorro(cpvCodes?: string[]): Promise<DiscoveredTen
     // Use opt_fields to get actual tender data from the list endpoint
     const params = new URLSearchParams({
       descending: '1',
-      limit: '20',
+      limit: '50',
       mode: '_all_',
       opt_fields: 'title,title_en,tenderID,procuringEntity,value,tenderPeriod,items,description,dateModified',
     });
@@ -974,7 +974,7 @@ async function getLatestFromProZorro(cpvCodes?: string[]): Promise<DiscoveredTen
     const data = await res.json();
     const tenders = data.data || [];
 
-    return tenders.slice(0, 20).map((t: any) => ({
+    return tenders.slice(0, 50).map((t: any) => ({
       title: t.title_en || t.title || 'Ukrainian Tender',
       referenceNumber: t.tenderID || t.id || '',
       contractingAuthority: t.procuringEntity?.name || '',
@@ -1071,7 +1071,7 @@ async function scrapeEUSource(source: { id: string; name: string; url: string; c
       const lowerText = text.toLowerCase();
       if (EU_TENDER_KEYWORDS.some(kw => lowerText.includes(kw))) {
         const fullUrl = href.startsWith('http') ? href : new URL(href, source.url).href;
-        if (results.length >= 20) break;
+        if (results.length >= 50) break;
         results.push({
           title: text.trim().replace(/\s+/g, ' '),
           referenceNumber: '',
@@ -1123,7 +1123,7 @@ async function getLatestFromPLACSP(): Promise<DiscoveredTender[]> {
     const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi;
     let entryMatch: RegExpExecArray | null;
 
-    while ((entryMatch = entryRegex.exec(xml)) !== null && results.length < 20) {
+    while ((entryMatch = entryRegex.exec(xml)) !== null && results.length < 50) {
       const entry = entryMatch[1];
       const title = entry.match(/<title[^>]*>([\s\S]*?)<\/title>/)?.[1]?.trim() || '';
       const link = entry.match(/<link[^>]+href="([^"]+)"/)?.[1] || '';
@@ -1466,7 +1466,7 @@ class TenderDiscoveryService {
     if (!companyProfile) {
       // No profile = return all tenders, limited to 30
       const tenders = await this.searchTenders();
-      return tenders.slice(0, 30).map((t) => ({ ...t, relevanceScore: 0 }));
+      return tenders.slice(0, 100).map((t) => ({ ...t, relevanceScore: 0 }));
     }
 
     const profile: CompanySearchProfile = {
