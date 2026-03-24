@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -162,6 +162,7 @@ const priorityConfig = {
 async function streamChat(
   tenderId: string,
   question: string,
+  locale: string,
   onToken: (text: string) => void,
   onDone: (metadata: any) => void,
   onError: (error: string) => void,
@@ -169,7 +170,7 @@ async function streamChat(
   const res = await fetch('/api/chat/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tenderId, question }),
+    body: JSON.stringify({ tenderId, question, locale }),
   });
 
   if (!res.ok) {
@@ -251,6 +252,7 @@ interface AIAssistantPanelProps {
 
 export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPanelProps) {
   const t = useTranslations('chat');
+  const locale = useLocale();
   const quickQuestions = [
     { text: t('quick_q_missing'), icon: HelpCircle },
     { text: t('quick_q_ready'), icon: CheckSquare },
@@ -363,6 +365,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
     streamChat(
       tenderId,
       question,
+      locale,
       // onToken
       (token) => setStreamingText((prev) => prev + token),
       // onDone

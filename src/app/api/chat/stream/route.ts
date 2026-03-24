@@ -20,6 +20,7 @@ export const maxDuration = 60;
 const inputSchema = z.object({
   tenderId: z.string(),
   question: z.string().min(1).max(2000),
+  locale: z.enum(['el', 'en']).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    const { tenderId, question } = parsed.data;
+    const { tenderId, question, locale: bodyLocale } = parsed.data;
 
     // 3. Verify tender belongs to tenant
     const tender = await db.tender.findFirst({
@@ -80,9 +81,9 @@ export async function POST(req: NextRequest) {
       data: { tenderId, tenantId, role: 'user', content: question },
     });
 
-    // 6. Detect locale from Accept-Language header
-    const acceptLang = req.headers.get('accept-language') || '';
-    const locale = (acceptLang.startsWith('en') ? 'en' : 'el') as 'el' | 'en';
+    // 6. Use locale from body (user's app language), fallback to Accept-Language header
+    const locale: 'el' | 'en' = bodyLocale
+      ?? ((req.headers.get('accept-language') || '').startsWith('en') ? 'en' : 'el');
 
     // 7. Build context + smart history in parallel
     const [context, { summary, recentMessages }] = await Promise.all([
