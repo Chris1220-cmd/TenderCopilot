@@ -41,6 +41,8 @@ interface FakelosItem {
   articleRef?: string;
   expiryDate?: string;
   aiConfidence?: number;
+  itemType?: 'requirement' | 'subcontractor';
+  matchedAsset?: { name?: string };
 }
 
 interface EnvelopeSection {
@@ -124,6 +126,7 @@ const envelopeConfig: Record<string, { letter: string; gradient: string; ring: s
   A: { letter: 'Α', gradient: 'bg-primary', ring: 'ring-primary/30' },
   B: { letter: 'Β', gradient: 'from-blue-600 to-cyan-500', ring: 'ring-blue-500/30' },
   C: { letter: 'Γ', gradient: 'from-emerald-600 to-green-500', ring: 'ring-emerald-500/30' },
+  D: { letter: 'Δ', gradient: 'from-orange-600 to-amber-500', ring: 'ring-orange-500/30' },
 };
 
 function getItemPriority(item: FakelosItem): number {
@@ -194,10 +197,26 @@ function ReadinessRing({ score, size = 120 }: { score: number; size?: number }) 
 }
 
 // ─── Item Renderers ──────────────────────────────────────────
-function CriticalItem({ item, onMarkStatus, isPending }: {
+function CriticalItem({
+  item,
+  onMarkStatus,
+  onMarkFound,
+  isPending,
+  foundFormId,
+  foundName,
+  onSetFoundName,
+  onConfirmFound,
+  onSetFoundFormId,
+}: {
   item: FakelosItem;
-  onMarkStatus: (reqId: string, status: string) => void;
+  onMarkStatus: (reqId: string, status: string, itemType?: string) => void;
+  onMarkFound: (itemId: string) => void;
   isPending: boolean;
+  foundFormId: string | null;
+  foundName: string;
+  onSetFoundName: (v: string) => void;
+  onConfirmFound: () => void;
+  onSetFoundFormId: (v: string | null) => void;
 }) {
   return (
     <div className="bg-destructive/[0.04] border border-destructive/15 rounded-xl p-4 space-y-2">
@@ -220,35 +239,81 @@ function CriticalItem({ item, onMarkStatus, isPending }: {
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2 pl-10">
-        <Button
-          size="sm"
-          className="cursor-pointer gap-1.5 h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg border-0"
-          disabled={isPending}
-          onClick={() => onMarkStatus(item.requirementId, 'IN_PROGRESS')}
-        >
-          <Upload className="h-3 w-3" />
-          Ανέβασε Αρχείο
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="cursor-pointer gap-1.5 h-8 text-xs text-muted-foreground hover:text-foreground"
-          disabled={isPending}
-          onClick={() => onMarkStatus(item.requirementId, 'IN_PROGRESS')}
-        >
-          <Timer className="h-3 w-3" />
-          Σε Εξέλιξη
-        </Button>
-      </div>
+      {foundFormId === item.requirementId ? (
+        <div className="flex items-center gap-2 pl-10">
+          <input
+            type="text"
+            placeholder="Όνομα (π.χ. Παπαδόπουλος Ηλεκτρικά)"
+            value={foundName}
+            onChange={(e) => onSetFoundName(e.target.value)}
+            className="flex-1 px-3 py-1.5 text-xs rounded-md border border-border/60 bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            autoFocus
+          />
+          <Button size="sm" className="cursor-pointer h-7 text-xs bg-emerald-600 text-white hover:bg-emerald-500" onClick={onConfirmFound}>
+            OK
+          </Button>
+          <Button size="sm" variant="ghost" className="cursor-pointer h-7 text-xs" onClick={() => onSetFoundFormId(null)}>
+            <XCircle className="h-3 w-3" />
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 pl-10">
+          <Button
+            size="sm"
+            className="cursor-pointer gap-1.5 h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg border-0"
+            disabled={isPending}
+            onClick={() => onMarkStatus(item.requirementId, 'IN_PROGRESS', item.itemType)}
+          >
+            <Upload className="h-3 w-3" />
+            Ανέβασε Αρχείο
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="cursor-pointer gap-1.5 h-8 text-xs text-muted-foreground hover:text-foreground"
+            disabled={isPending}
+            onClick={() => onMarkStatus(item.requirementId, 'IN_PROGRESS', item.itemType)}
+          >
+            <Timer className="h-3 w-3" />
+            Σε Εξέλιξη
+          </Button>
+          {item.itemType === 'subcontractor' && (
+            <Button
+              size="sm"
+              className="cursor-pointer gap-1.5 h-8 text-xs bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg border-0"
+              disabled={isPending}
+              onClick={() => onMarkFound(item.requirementId)}
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              Βρέθηκε
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-function WarningItem({ item, onMarkStatus, isPending }: {
+function WarningItem({
+  item,
+  onMarkStatus,
+  onMarkFound,
+  isPending,
+  foundFormId,
+  foundName,
+  onSetFoundName,
+  onConfirmFound,
+  onSetFoundFormId,
+}: {
   item: FakelosItem;
-  onMarkStatus: (reqId: string, status: string) => void;
+  onMarkStatus: (reqId: string, status: string, itemType?: string) => void;
+  onMarkFound: (itemId: string) => void;
   isPending: boolean;
+  foundFormId: string | null;
+  foundName: string;
+  onSetFoundName: (v: string) => void;
+  onConfirmFound: () => void;
+  onSetFoundFormId: (v: string | null) => void;
 }) {
   return (
     <div className="bg-warning/[0.04] border border-warning/12 rounded-xl p-4">
@@ -278,16 +343,48 @@ function WarningItem({ item, onMarkStatus, isPending }: {
             </Badge>
           )}
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="cursor-pointer h-7 px-2 text-[10px] text-muted-foreground hover:text-foreground shrink-0"
-          disabled={isPending}
-          onClick={() => onMarkStatus(item.requirementId, 'IN_PROGRESS')}
-        >
-          <Timer className="h-3 w-3 mr-1" />
-          Σε Εξέλιξη
-        </Button>
+        {foundFormId === item.requirementId ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Όνομα (π.χ. Παπαδόπουλος Ηλεκτρικά)"
+              value={foundName}
+              onChange={(e) => onSetFoundName(e.target.value)}
+              className="flex-1 px-3 py-1.5 text-xs rounded-md border border-border/60 bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              autoFocus
+            />
+            <Button size="sm" className="cursor-pointer h-7 text-xs bg-emerald-600 text-white hover:bg-emerald-500" onClick={onConfirmFound}>
+              OK
+            </Button>
+            <Button size="sm" variant="ghost" className="cursor-pointer h-7 text-xs" onClick={() => onSetFoundFormId(null)}>
+              <XCircle className="h-3 w-3" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="cursor-pointer h-7 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+              disabled={isPending}
+              onClick={() => onMarkStatus(item.requirementId, 'IN_PROGRESS', item.itemType)}
+            >
+              <Timer className="h-3 w-3 mr-1" />
+              Σε Εξέλιξη
+            </Button>
+            {item.itemType === 'subcontractor' && (
+              <Button
+                size="sm"
+                className="cursor-pointer gap-1.5 h-7 text-[10px] bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg border-0"
+                disabled={isPending}
+                onClick={() => onMarkFound(item.requirementId)}
+              >
+                <CheckCircle2 className="h-3 w-3" />
+                Βρέθηκε
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -304,6 +401,11 @@ function OkItem({ item }: { item: FakelosItem }) {
         {item.expiryDate && (
           <span className="text-[10px] text-muted-foreground/60 shrink-0 tabular-nums">
             Λήξη: {new Date(item.expiryDate).toLocaleDateString('el-GR')}
+          </span>
+        )}
+        {item.itemType === 'subcontractor' && item.matchedAsset?.name && (
+          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium shrink-0">
+            {item.matchedAsset.name}
           </span>
         )}
         {item.aiConfidence != null && item.aiConfidence < 0.7 && (
@@ -340,13 +442,25 @@ function EnvelopeBlock({
   isOpen,
   onToggle,
   onMarkStatus,
+  onMarkFound,
   isPending,
+  foundFormId,
+  foundName,
+  onSetFoundName,
+  onConfirmFound,
+  onSetFoundFormId,
 }: {
   envelope: EnvelopeSection;
   isOpen: boolean;
   onToggle: () => void;
-  onMarkStatus: (reqId: string, status: string) => void;
+  onMarkStatus: (reqId: string, status: string, itemType?: string) => void;
+  onMarkFound: (itemId: string) => void;
   isPending: boolean;
+  foundFormId: string | null;
+  foundName: string;
+  onSetFoundName: (v: string) => void;
+  onConfirmFound: () => void;
+  onSetFoundFormId: (v: string | null) => void;
 }) {
   const config = envelopeConfig[envelope.id] ?? envelopeConfig.A;
   const pct = envelope.totalCount > 0 ? Math.round((envelope.coveredCount / envelope.totalCount) * 100) : 0;
@@ -408,9 +522,29 @@ function EnvelopeBlock({
                 {sortedItems.map((item, i) => (
                   <BlurFade key={item.requirementId} delay={0.05 + i * 0.04} inView>
                     {item.status === 'GAP' && item.mandatory ? (
-                      <CriticalItem item={item} onMarkStatus={onMarkStatus} isPending={isPending} />
+                      <CriticalItem
+                        item={item}
+                        onMarkStatus={onMarkStatus}
+                        onMarkFound={onMarkFound}
+                        isPending={isPending}
+                        foundFormId={foundFormId}
+                        foundName={foundName}
+                        onSetFoundName={onSetFoundName}
+                        onConfirmFound={onConfirmFound}
+                        onSetFoundFormId={onSetFoundFormId}
+                      />
                     ) : item.status === 'EXPIRING' || (item.status === 'GAP' && !item.mandatory) ? (
-                      <WarningItem item={item} onMarkStatus={onMarkStatus} isPending={isPending} />
+                      <WarningItem
+                        item={item}
+                        onMarkStatus={onMarkStatus}
+                        onMarkFound={onMarkFound}
+                        isPending={isPending}
+                        foundFormId={foundFormId}
+                        foundName={foundName}
+                        onSetFoundName={onSetFoundName}
+                        onConfirmFound={onConfirmFound}
+                        onSetFoundFormId={onSetFoundFormId}
+                      />
                     ) : item.status === 'IN_PROGRESS' ? (
                       <InProgressItem item={item} />
                     ) : (
@@ -435,13 +569,18 @@ function EnvelopeBlock({
 // ─── Main Component ──────────────────────────────────────────
 export function FakelosTab({ tenderId }: { tenderId: string }) {
   const utils = trpc.useUtils();
-  const [openEnvelopes, setOpenEnvelopes] = useState<Set<string>>(new Set(['A', 'B', 'C']));
+  const [openEnvelopes, setOpenEnvelopes] = useState<Set<string>>(new Set(['A', 'B', 'C', 'D']));
+  const [foundFormId, setFoundFormId] = useState<string | null>(null);
+  const [foundName, setFoundName] = useState('');
 
   const reportQuery = trpc.fakelos.getReport.useQuery({ tenderId });
   const runCheckMutation = trpc.fakelos.runCheck.useMutation({
     onSuccess: () => { utils.fakelos.getReport.invalidate({ tenderId }); },
   });
   const markStatusMutation = trpc.fakelos.markItemStatus.useMutation({
+    onSuccess: () => { utils.fakelos.getReport.invalidate({ tenderId }); },
+  });
+  const markSubcontractorStatusMutation = trpc.subcontractorNeed.markStatus.useMutation({
     onSuccess: () => { utils.fakelos.getReport.invalidate({ tenderId }); },
   });
 
@@ -454,8 +593,32 @@ export function FakelosTab({ tenderId }: { tenderId: string }) {
     });
   };
 
-  const handleMarkStatus = (requirementId: string, status: string) => {
-    markStatusMutation.mutate({ requirementId, status: status as 'IN_PROGRESS' });
+  const handleMarkStatus = (itemId: string, status: string, itemType?: string) => {
+    if (itemType === 'subcontractor') {
+      markSubcontractorStatusMutation.mutate({
+        id: itemId,
+        status: status as 'IN_PROGRESS' | 'COVERED',
+      });
+    } else {
+      markStatusMutation.mutate({ requirementId: itemId, status: status as 'IN_PROGRESS' });
+    }
+  };
+
+  const handleMarkFound = (itemId: string) => {
+    setFoundFormId(itemId);
+    setFoundName('');
+  };
+
+  const handleConfirmFound = () => {
+    if (foundFormId) {
+      markSubcontractorStatusMutation.mutate({
+        id: foundFormId,
+        status: 'COVERED',
+        assignedName: foundName.trim() || undefined,
+      });
+      setFoundFormId(null);
+      setFoundName('');
+    }
   };
 
   const report = reportQuery.data as FakelosReport | null | undefined;
@@ -624,7 +787,13 @@ export function FakelosTab({ tenderId }: { tenderId: string }) {
           isOpen={openEnvelopes.has(envelope.id)}
           onToggle={() => handleToggleEnvelope(envelope.id)}
           onMarkStatus={handleMarkStatus}
-          isPending={markStatusMutation.isPending}
+          onMarkFound={handleMarkFound}
+          isPending={markStatusMutation.isPending || markSubcontractorStatusMutation.isPending}
+          foundFormId={foundFormId}
+          foundName={foundName}
+          onSetFoundName={setFoundName}
+          onConfirmFound={handleConfirmFound}
+          onSetFoundFormId={setFoundFormId}
         />
       ))}
     </motion.div>
