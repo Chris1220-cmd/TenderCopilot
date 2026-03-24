@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '@/server/trpc';
+import { fetchDocumentsForTender } from '@/server/services/document-fetcher';
 
 const tenderStatusEnum = z.enum([
   'DISCOVERY',
@@ -98,6 +99,7 @@ export const tenderRouter = router({
         awardCriteria: z.string().nullish(),
         submissionDeadline: z.coerce.date().nullish(),
         notes: z.string().nullish(),
+        sourceUrl: z.string().nullish(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -119,13 +121,27 @@ export const tenderRouter = router({
         return { id: existing.id };
       }
 
+      const { sourceUrl, ...tenderData } = input;
+
       const tender = await ctx.db.tender.create({
         data: {
           tenantId: ctx.tenantId,
-          ...input,
-          cpvCodes: input.cpvCodes ?? [],
+          ...tenderData,
+          cpvCodes: tenderData.cpvCodes ?? [],
         },
       });
+
+      // Fire-and-forget: fetch documents in background (don't block the response)
+      if (sourceUrl) {
+        fetchDocumentsForTender({
+          tenderId: tender.id,
+          tenantId: ctx.tenantId,
+          sourceUrl,
+          platform: input.platform || 'OTHER',
+        }).catch((err) => {
+          console.error(`[tender.create] Background document fetch failed for ${tender.id}:`, err);
+        });
+      }
 
       return { id: tender.id };
     }),

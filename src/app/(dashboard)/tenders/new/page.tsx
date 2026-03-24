@@ -277,8 +277,6 @@ export default function NewTenderPage() {
 
   // ─── Discovery import handler ─────────────────────────────────────────────
 
-  const fetchDocsMutation = trpc.discovery.fetchDocumentsFromSource.useMutation();
-
   async function handleDiscoveryImport(tender: any) {
     try {
       const result = await createTender.mutateAsync({
@@ -290,19 +288,11 @@ export default function NewTenderPage() {
         budget: tender.budget || null,
         submissionDeadline: tender.submissionDeadline || null,
         notes: tender.summary || null,
+        sourceUrl: tender.sourceUrl || null,
       });
 
       toast({ title: 'Επιτυχής εισαγωγή', description: 'Ο διαγωνισμός δημιουργήθηκε. Τα έγγραφα φορτώνονται στο background.' });
       router.push(`/tenders/${result.id}`);
-
-      // Fetch documents in background — don't block the user
-      if (tender.sourceUrl) {
-        fetchDocsMutation.mutate({
-          tenderId: result.id,
-          sourceUrl: tender.sourceUrl,
-          platform: tender.platform || 'OTHER',
-        });
-      }
     } catch (err: any) {
       console.error('Import failed:', err);
     }
