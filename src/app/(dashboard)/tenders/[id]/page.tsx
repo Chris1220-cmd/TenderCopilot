@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -111,6 +111,47 @@ export default function TenderDetailPage() {
       });
     },
   });
+
+  // ─── Background document fetch polling ─────────────────────
+  // After import, documents load in the background. Poll every 5s
+  // until they appear, then show a notification.
+  const initialDocCount = useRef<number | null>(null);
+  const docPollDone = useRef(false);
+
+  useEffect(() => {
+    const tender = tenderQuery.data;
+    if (!tender || docPollDone.current) return;
+
+    const currentCount = tender._count?.attachedDocuments ?? 0;
+
+    // First load: save initial count
+    if (initialDocCount.current === null) {
+      initialDocCount.current = currentCount;
+      // If already has documents, no need to poll
+      if (currentCount > 0) {
+        docPollDone.current = true;
+        return;
+      }
+    }
+
+    // Documents arrived!
+    if (currentCount > 0 && initialDocCount.current === 0) {
+      docPollDone.current = true;
+      toast({
+        title: '📄 Τα έγγραφα φορτώθηκαν',
+        description: `${currentCount} έγγραφ${currentCount === 1 ? 'ο' : 'α'} βρέθηκαν και είναι έτοιμα για ανάλυση.`,
+      });
+      return;
+    }
+
+    // Still waiting — poll every 5s
+    if (currentCount === 0) {
+      const timer = setTimeout(() => {
+        tenderQuery.refetch();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [tenderQuery.data]);
 
   const complianceMutation = trpc.aiRoles.updateCompliance.useMutation({
     onSuccess: () => utils.tender.getById.invalidate({ id: tenderId }),
