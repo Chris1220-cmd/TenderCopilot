@@ -39,6 +39,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getInitials } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from '@/lib/i18n';
+import { BlurFade } from '@/components/ui/blur-fade';
+import { Particles } from '@/components/ui/particles';
 
 const roleColors: Record<string, string> = {
   ADMIN: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary',
@@ -91,13 +93,23 @@ export default function SettingsPage() {
       animate="visible"
       className="space-y-6"
     >
-      <motion.div variants={itemVariants}>
-        <h1 className="text-headline text-foreground">{t('settings.title')}</h1>
-        <p className="text-muted-foreground">
-          {t('settings.subtitle')}
-        </p>
-      </motion.div>
+      <BlurFade delay={0.1}>
+        <motion.div variants={itemVariants} className="relative">
+          <Particles
+            className="absolute inset-0 -m-4 rounded-xl"
+            quantity={30}
+            color="#48A4D6"
+            size={0.5}
+            staticity={40}
+          />
+          <h1 className="text-headline text-foreground">{t('settings.title')}</h1>
+          <p className="text-muted-foreground">
+            {t('settings.subtitle')}
+          </p>
+        </motion.div>
+      </BlurFade>
 
+      <BlurFade delay={0.15} inView>
       <motion.div variants={itemVariants}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="border-b border-border/50 bg-transparent p-0 h-auto rounded-none gap-0">
@@ -271,6 +283,7 @@ export default function SettingsPage() {
           </div>
         </Tabs>
       </motion.div>
+      </BlurFade>
     </motion.div>
   );
 }
