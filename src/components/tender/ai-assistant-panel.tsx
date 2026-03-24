@@ -263,6 +263,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
   const [inputValue, setInputValue] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState('');
+  const rawStreamRef = useRef('');
   const [actions, setActions] = useState<SuggestedAction[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [activeTab, setActiveTab] = useState<'chat' | 'actions' | 'reminders'>('chat');
@@ -361,13 +362,23 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
     setInputValue('');
     setIsStreaming(true);
     setStreamingText('');
+    rawStreamRef.current = '';
 
     streamChat(
       tenderId,
       question,
       locale,
-      // onToken
-      (token) => setStreamingText((prev) => prev + token),
+      // onToken — accumulate raw JSON and extract answer field for display
+      (token) => {
+        rawStreamRef.current += token;
+        const raw = rawStreamRef.current;
+        // Try to extract the "answer" field value from partial JSON
+        const answerMatch = raw.match(/"answer"\s*:\s*"([\s\S]*?)(?:"\s*[,}]|$)/);
+        if (answerMatch) {
+          const extracted = answerMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+          setStreamingText(extracted);
+        }
+      },
       // onDone
       (metadata) => {
         setIsStreaming(false);
