@@ -163,6 +163,7 @@ export default function TenderDetailPage() {
     toast({ title: isPrecondition ? t('tender.missingDocs') : t(titleKey), description: isPrecondition ? t('tender.uploadPDFsFirst') : err.message, variant: 'destructive' });
   };
 
+  const extractRequirementsMutation = trpc.aiRoles.extractRequirements.useMutation({ onError: handleAiError('tender.requirementsError') });
   const extractLegalMutation = trpc.aiRoles.extractLegalClauses.useMutation({ onError: handleAiError('tender.legalError') });
   const assessLegalMutation = trpc.aiRoles.assessLegalRisks.useMutation({ onError: handleAiError('tender.riskError') });
   const extractFinancialMutation = trpc.aiRoles.extractFinancials.useMutation({ onError: handleAiError('tender.financialError') });
@@ -180,6 +181,8 @@ export default function TenderDetailPage() {
     try {
       setAnalysisStep(t('tender.readingDocs'));
       await summarizeMutation.mutateAsync({ tenderId, language });
+      setAnalysisStep('Εξαγωγή απαιτήσεων & κριτηρίων...');
+      await extractRequirementsMutation.mutateAsync({ tenderId });
       setAnalysisStep(t('tender.legalAnalysis'));
       await extractLegalMutation.mutateAsync({ tenderId, language });
       await assessLegalMutation.mutateAsync({ tenderId });

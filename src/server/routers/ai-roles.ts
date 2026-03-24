@@ -11,6 +11,7 @@ import { db } from '@/lib/db';
 import { ai, logTokenUsage } from '@/server/ai';
 import { buildContext } from '@/server/services/context-builder';
 import { validateResponse } from '@/server/services/trust-shield';
+import { tenderAnalysisService } from '@/server/services/tender-analysis';
 
 /**
  * Helper to ensure the calling user has a tenant and the tender belongs to that tenant.
@@ -444,5 +445,37 @@ export const aiRolesRouter = router({
     .query(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
       return aiOps.suggestNextActions(input.tenderId);
+    }),
+
+  /** Extract requirements (participation, exclusion, technical, financial, documentation, contract) */
+  extractRequirements: protectedProcedure
+    .input(z.object({ tenderId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+
+      // Get all attached document texts
+      const docs = await db.attachedDocument.findMany({
+        where: { tenderId: input.tenderId },
+        select: { extractedText: true },
+      });
+
+      const documentTexts = docs
+        .map(d => d.extractedText)
+        .filter((t): t is string => !!t && t.length > 50);
+
+      if (documentTexts.length === 0) {
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: 'Δεν βρέθηκαν έγγραφα με κείμενο. Ανεβάστε PDF πρώτα.',
+        });
+      }
+
+      // Clear existing requirements before re-extraction
+      await db.tenderRequirement.deleteMany({ where: { tenderId: input.tenderId } });
+
+      const analysis = await tenderAnalysisService.analyzeTender(input.tenderId, documentTexts);
+      await tenderAnalysisService.saveRequirements(input.tenderId, analysis);
+
+      return { requirementsCount: analysis.requirements.length };
     }),
 });
