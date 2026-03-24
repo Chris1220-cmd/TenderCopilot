@@ -29,6 +29,7 @@ import {
   Upload,
   Timer,
   ShieldAlert,
+  Plus,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────
@@ -449,6 +450,7 @@ function EnvelopeBlock({
   onSetFoundName,
   onConfirmFound,
   onSetFoundFormId,
+  footer,
 }: {
   envelope: EnvelopeSection;
   isOpen: boolean;
@@ -461,6 +463,7 @@ function EnvelopeBlock({
   onSetFoundName: (v: string) => void;
   onConfirmFound: () => void;
   onSetFoundFormId: (v: string | null) => void;
+  footer?: React.ReactNode;
 }) {
   const config = envelopeConfig[envelope.id] ?? envelopeConfig.A;
   const pct = envelope.totalCount > 0 ? Math.round((envelope.coveredCount / envelope.totalCount) * 100) : 0;
@@ -552,7 +555,8 @@ function EnvelopeBlock({
                     )}
                   </BlurFade>
                 ))}
-                {sortedItems.length === 0 && (
+                {footer}
+                {sortedItems.length === 0 && !footer && (
                   <p className="text-xs text-muted-foreground/60 text-center py-4">
                     Δεν υπάρχουν απαιτήσεις σε αυτόν τον φάκελο.
                   </p>
@@ -582,6 +586,27 @@ export function FakelosTab({ tenderId }: { tenderId: string }) {
   });
   const markSubcontractorStatusMutation = trpc.subcontractorNeed.markStatus.useMutation({
     onSuccess: () => { utils.fakelos.getReport.invalidate({ tenderId }); },
+  });
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newNeed, setNewNeed] = useState<{
+    specialty: string;
+    kind: 'SUBCONTRACTOR' | 'SUPPLIER';
+    reason: string;
+    isMandatory: boolean;
+  }>({
+    specialty: '',
+    kind: 'SUBCONTRACTOR',
+    reason: '',
+    isMandatory: false,
+  });
+
+  const createSubcontractorMutation = trpc.subcontractorNeed.create.useMutation({
+    onSuccess: () => {
+      utils.fakelos.getReport.invalidate({ tenderId });
+      setShowAddForm(false);
+      setNewNeed({ specialty: '', kind: 'SUBCONTRACTOR', reason: '', isMandatory: false });
+    },
   });
 
   const handleToggleEnvelope = (id: string) => {
@@ -794,6 +819,86 @@ export function FakelosTab({ tenderId }: { tenderId: string }) {
           onSetFoundName={setFoundName}
           onConfirmFound={handleConfirmFound}
           onSetFoundFormId={setFoundFormId}
+          footer={envelope.id === 'D' ? (
+            <div className="border-t border-border/40 pt-3 mt-2">
+              {!showAddForm ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="cursor-pointer gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-center"
+                  onClick={() => setShowAddForm(true)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Προσθήκη Υπεργολάβου/Προμηθευτή
+                </Button>
+              ) : (
+                <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                  <input
+                    type="text"
+                    placeholder="Ειδικότητα (π.χ. Υδραυλικός)"
+                    value={newNeed.specialty}
+                    onChange={(e) => setNewNeed(prev => ({ ...prev, specialty: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm rounded-md border border-border/60 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Λόγος (π.χ. Άρθρο 3.2 — εγκατάσταση υδραυλικών)"
+                    value={newNeed.reason}
+                    onChange={(e) => setNewNeed(prev => ({ ...prev, reason: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm rounded-md border border-border/60 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={newNeed.kind}
+                      onChange={(e) => setNewNeed(prev => ({ ...prev, kind: e.target.value as 'SUBCONTRACTOR' | 'SUPPLIER' }))}
+                      className="px-3 py-2 text-sm rounded-md border border-border/60 bg-background cursor-pointer"
+                    >
+                      <option value="SUBCONTRACTOR">Υπεργολάβος</option>
+                      <option value="SUPPLIER">Προμηθευτής</option>
+                    </select>
+                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newNeed.isMandatory}
+                        onChange={(e) => setNewNeed(prev => ({ ...prev, isMandatory: e.target.checked }))}
+                        className="cursor-pointer"
+                      />
+                      Υποχρεωτικό
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      className="cursor-pointer gap-1.5 h-8 text-xs"
+                      disabled={!newNeed.specialty.trim() || createSubcontractorMutation.isPending}
+                      onClick={() => createSubcontractorMutation.mutate({
+                        tenderId,
+                        specialty: newNeed.specialty.trim(),
+                        kind: newNeed.kind,
+                        reason: newNeed.reason.trim() || undefined,
+                        isMandatory: newNeed.isMandatory,
+                      })}
+                    >
+                      {createSubcontractorMutation.isPending ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Plus className="h-3 w-3" />
+                      )}
+                      Προσθήκη
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="cursor-pointer h-8 text-xs"
+                      onClick={() => setShowAddForm(false)}
+                    >
+                      Ακύρωση
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : undefined}
         />
       ))}
     </motion.div>
