@@ -7,6 +7,7 @@ import type {
 // ─── Types ──────────────────────────────────────────────────
 
 export interface FakelosItem {
+  itemType: 'requirement' | 'subcontractor';
   requirementId: string;
   title: string;
   description: string;
@@ -31,7 +32,7 @@ export interface FakelosItem {
 }
 
 export interface FakelosEnvelope {
-  id: 'A' | 'B' | 'C';
+  id: 'A' | 'B' | 'C' | 'D';
   title: string;
   totalItems: number;
   coveredItems: number;
@@ -70,10 +71,11 @@ function classifyEnvelope(category: RequirementCategory): 'A' | 'B' | 'C' {
   }
 }
 
-const ENVELOPE_TITLES: Record<'A' | 'B' | 'C', string> = {
+const ENVELOPE_TITLES: Record<'A' | 'B' | 'C' | 'D', string> = {
   A: 'Φάκελος Α — Δικαιολογητικά Συμμετοχής',
   B: 'Φάκελος Β — Τεχνική Προσφορά',
   C: 'Φάκελος Γ — Οικονομική Προσφορά',
+  D: 'Φάκελος Δ — Υπεργολάβοι & Προμηθευτές',
 };
 
 // ─── Service ────────────────────────────────────────────────
@@ -118,6 +120,11 @@ class FakelosChecker {
       projects.length === 0 &&
       contentItems.length === 0;
 
+    // 2b. Load subcontractor needs
+    const subcontractorNeeds = await db.subcontractorNeed.findMany({
+      where: { tenderId },
+    });
+
     // 3. Calculate deadline info
     const deadline = tender.submissionDeadline;
     const daysUntilDeadline = deadline
@@ -125,7 +132,7 @@ class FakelosChecker {
       : null;
 
     // 4. Classify requirements into envelopes and determine status
-    const envelopeMap: Record<'A' | 'B' | 'C', FakelosItem[]> = { A: [], B: [], C: [] };
+    const envelopeMap: Record<'A' | 'B' | 'C' | 'D', FakelosItem[]> = { A: [], B: [], C: [], D: [] };
 
     for (const req of tender.requirements) {
       const envelope = classifyEnvelope(req.category);
@@ -204,6 +211,7 @@ class FakelosChecker {
       else if (status === 'IN_PROGRESS') urgency = 'WARNING';
 
       const item: FakelosItem = {
+        itemType: 'requirement',
         requirementId: req.id,
         title: req.text.slice(0, 80), // Will be replaced by AI-generated title for GAPs
         description: req.text,
@@ -221,6 +229,40 @@ class FakelosChecker {
       envelopeMap[envelope].push(item);
     }
 
+    // 4b. Build Envelope Δ from subcontractor needs
+    for (const need of subcontractorNeeds) {
+      let status: FakelosItem['status'] = 'GAP';
+      if (need.status === 'COVERED') status = 'COVERED';
+      else if (need.status === 'IN_PROGRESS') status = 'IN_PROGRESS';
+
+      let urgency: FakelosItem['urgency'] = 'OK';
+      if (status === 'GAP' && need.isMandatory) urgency = 'CRITICAL';
+      else if (status === 'GAP') urgency = 'WARNING';
+      else if (status === 'IN_PROGRESS') urgency = 'WARNING';
+
+      const certsArray = Array.isArray(need.requiredCerts) ? need.requiredCerts as string[] : [];
+      const kindLabel = need.kind === 'SUPPLIER' ? 'Προμηθευτής' : 'Υπεργολάβος';
+
+      envelopeMap.D.push({
+        itemType: 'subcontractor',
+        requirementId: need.id,
+        title: `${need.specialty} (${kindLabel})`,
+        description: need.reason || need.specialty,
+        articleReference: '',
+        status,
+        urgency,
+        mandatory: need.isMandatory,
+        matchedAsset: need.assignedName
+          ? { type: 'subcontractor' as any, id: need.id, name: need.assignedName }
+          : undefined,
+        guidance: need.guidance || undefined,
+        aiConfidence: undefined,
+        sourceText: certsArray.length > 0
+          ? `Απαιτούμενα: ${certsArray.join(', ')}`
+          : undefined,
+      });
+    }
+
     // 5. Generate AI guidance for GAP and EXPIRING items
     const gapItems = Object.values(envelopeMap)
       .flat()
@@ -231,7 +273,7 @@ class FakelosChecker {
     }
 
     // 6. Build envelopes with sorting (CRITICAL first)
-    const envelopes: FakelosEnvelope[] = (['A', 'B', 'C'] as const).map((id) => {
+    const envelopes: FakelosEnvelope[] = (['A', 'B', 'C', 'D'] as const).map((id) => {
       const items = envelopeMap[id].sort((a, b) => {
         const urgencyOrder = { CRITICAL: 0, WARNING: 1, OK: 2 };
         return urgencyOrder[a.urgency] - urgencyOrder[b.urgency];
