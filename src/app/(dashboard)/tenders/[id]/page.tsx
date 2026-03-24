@@ -35,6 +35,7 @@ import { AIAssistantButton, AIAssistantPanel } from '@/components/tender/ai-assi
 import { OutcomePanel } from '@/components/tender/outcome-panel';
 import { MissingInfoPanel } from '@/components/tender/missing-info-panel';
 import { FakelosTab } from '@/components/tender/fakelos-tab';
+import { useTranslation } from '@/lib/i18n';
 import {
   ChevronRight,
   Pencil,
@@ -72,6 +73,7 @@ const itemVariants = {
 };
 
 export default function TenderDetailPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -92,7 +94,7 @@ export default function TenderDetailPage() {
 
   const deleteMutation = trpc.tender.delete.useMutation({
     onSuccess: () => router.push('/tenders'),
-    onError: (err) => toast({ title: 'Σφαλμα διαγραφης', description: err.message, variant: 'destructive' }),
+    onError: (err) => toast({ title: t('tender.deleteError'), description: err.message, variant: 'destructive' }),
   });
 
   const summarizeMutation = trpc.aiRoles.summarizeTender.useMutation({
@@ -103,8 +105,8 @@ export default function TenderDetailPage() {
     onError: (err: any) => {
       const isPrecondition = err?.data?.code === 'PRECONDITION_FAILED';
       toast({
-        title: isPrecondition ? 'Λειπουν εγγραφα' : 'Σφαλμα αναλυσης',
-        description: isPrecondition ? 'Ανεβαστε πρωτα τα PDF του διαγωνισμου στο tab "Εγγραφα" και δοκιμαστε ξανα.' : err.message,
+        title: isPrecondition ? t('tender.missingDocs') : t('tender.analysisError'),
+        description: isPrecondition ? t('tender.uploadPDFsFirst') : err.message,
         variant: 'destructive',
       });
     },
@@ -112,19 +114,18 @@ export default function TenderDetailPage() {
 
   const complianceMutation = trpc.aiRoles.updateCompliance.useMutation({
     onSuccess: () => utils.tender.getById.invalidate({ id: tenderId }),
-    onError: (err) => toast({ title: 'Σφαλμα ελεγχου', description: err.message, variant: 'destructive' }),
+    onError: (err) => toast({ title: t('tender.complianceError'), description: err.message, variant: 'destructive' }),
   });
 
-  const noDocsMsg = 'Ανεβαστε πρωτα τα PDF του διαγωνισμου στο tab "Εγγραφα" και δοκιμαστε ξανα.';
-  const handleAiError = (title: string) => (err: any) => {
+  const handleAiError = (titleKey: string) => (err: any) => {
     const isPrecondition = err?.data?.code === 'PRECONDITION_FAILED';
-    toast({ title: isPrecondition ? 'Λειπουν εγγραφα' : title, description: isPrecondition ? noDocsMsg : err.message, variant: 'destructive' });
+    toast({ title: isPrecondition ? t('tender.missingDocs') : t(titleKey), description: isPrecondition ? t('tender.uploadPDFsFirst') : err.message, variant: 'destructive' });
   };
 
-  const extractLegalMutation = trpc.aiRoles.extractLegalClauses.useMutation({ onError: handleAiError('Σφαλμα νομικης αναλυσης') });
-  const assessLegalMutation = trpc.aiRoles.assessLegalRisks.useMutation({ onError: handleAiError('Σφαλμα αξιολογησης κινδυνων') });
-  const extractFinancialMutation = trpc.aiRoles.extractFinancials.useMutation({ onError: handleAiError('Σφαλμα οικονομικης αναλυσης') });
-  const goNoGoMutation = trpc.aiRoles.goNoGo.useMutation({ onError: handleAiError('Σφαλμα Go/No-Go') });
+  const extractLegalMutation = trpc.aiRoles.extractLegalClauses.useMutation({ onError: handleAiError('tender.legalError') });
+  const assessLegalMutation = trpc.aiRoles.assessLegalRisks.useMutation({ onError: handleAiError('tender.riskError') });
+  const extractFinancialMutation = trpc.aiRoles.extractFinancials.useMutation({ onError: handleAiError('tender.financialError') });
+  const goNoGoMutation = trpc.aiRoles.goNoGo.useMutation({ onError: handleAiError('tender.goNoGoError') });
 
   function handleRunFullAnalysis() {
     setFullAnalysisLangModalOpen(true);
@@ -133,24 +134,24 @@ export default function TenderDetailPage() {
   async function runFullAnalysis(language: AnalysisLanguage) {
     setFullAnalysisLangModalOpen(false);
     try {
-      setAnalysisStep('Αναγνωση εγγραφων & συνοψη...');
+      setAnalysisStep(t('tender.readingDocs'));
       await summarizeMutation.mutateAsync({ tenderId, language });
-      setAnalysisStep('Νομικη αναλυση...');
+      setAnalysisStep(t('tender.legalAnalysis'));
       await extractLegalMutation.mutateAsync({ tenderId, language });
       await assessLegalMutation.mutateAsync({ tenderId });
-      setAnalysisStep('Οικονομικη αναλυση...');
+      setAnalysisStep(t('tender.financialAnalysis'));
       await extractFinancialMutation.mutateAsync({ tenderId, language });
-      setAnalysisStep('Αξιολογηση Go/No-Go...');
+      setAnalysisStep(t('tender.goNoGoAssessment'));
       await goNoGoMutation.mutateAsync({ tenderId, language });
       setAnalysisStep(null);
       utils.aiRoles.getBrief.invalidate({ tenderId });
       utils.aiRoles.getGoNoGo.invalidate({ tenderId });
       utils.aiRoles.getLegalClauses.invalidate({ tenderId });
       utils.tender.getById.invalidate({ id: tenderId });
-      toast({ title: 'Η αναλυση ολοκληρωθηκε!' });
+      toast({ title: t('tender.analysisComplete') });
     } catch (err: any) {
       setAnalysisStep(null);
-      toast({ title: 'Σφαλμα αναλυσης', description: err.message, variant: 'destructive' });
+      toast({ title: t('tender.analysisError'), description: err.message, variant: 'destructive' });
     }
   }
 
@@ -163,14 +164,14 @@ export default function TenderDetailPage() {
     return (
       <div className="space-y-6">
         <nav className="flex items-center gap-1.5 text-caption">
-          <Link href="/tenders" className="hover:text-foreground transition-colors cursor-pointer">Διαγωνισμοι</Link>
+          <Link href="/tenders" className="hover:text-foreground transition-colors cursor-pointer">{t('tender.breadcrumb')}</Link>
           <ChevronRight className="h-3 w-3" />
-          <span className="text-foreground">Μη διαθεσιμο</span>
+          <span className="text-foreground">{t('tender.notAvailable')}</span>
         </nav>
         <div className="text-center py-20">
-          <p className="text-body text-muted-foreground">Ο διαγωνισμος δεν βρεθηκε</p>
+          <p className="text-body text-muted-foreground">{t('tender.notFound')}</p>
           <Button variant="outline" className="mt-4 cursor-pointer" onClick={() => router.push('/tenders')}>
-            Επιστροφη στους Διαγωνισμους
+            {t('tender.backToTenders')}
           </Button>
         </div>
       </div>
@@ -183,14 +184,14 @@ export default function TenderDetailPage() {
 
   const stats = [
     {
-      label: 'Compliance Score',
+      label: t('tender.complianceScore'),
       value: tender?.complianceScore != null ? `${Math.round(tender.complianceScore)}%` : '--',
       color: (tender?.complianceScore ?? 0) >= 75 ? 'text-emerald-500' : (tender?.complianceScore ?? 0) >= 50 ? 'text-amber-500' : 'text-red-500',
       icon: BarChart3,
     },
-    { label: 'Απαιτησεις', value: requirementsCount.toString(), color: 'text-foreground', icon: ClipboardList },
-    { label: 'Εργασιες', value: tasksCount.toString(), color: 'text-foreground', icon: ListTodo },
-    { label: 'Εγγραφα', value: documentsCount.toString(), color: 'text-foreground', icon: FileText },
+    { label: t('tender.requirements'), value: requirementsCount.toString(), color: 'text-foreground', icon: ClipboardList },
+    { label: t('tender.tasks'), value: tasksCount.toString(), color: 'text-foreground', icon: ListTodo },
+    { label: t('tender.documents'), value: documentsCount.toString(), color: 'text-foreground', icon: FileText },
   ];
 
   return (
@@ -203,7 +204,7 @@ export default function TenderDetailPage() {
       {/* Breadcrumb + Header */}
       <motion.div variants={itemVariants}>
         <nav className="flex items-center gap-1.5 text-caption mb-4">
-          <Link href="/tenders" className="hover:text-foreground transition-colors cursor-pointer">Διαγωνισμοι</Link>
+          <Link href="/tenders" className="hover:text-foreground transition-colors cursor-pointer">{t('tender.breadcrumb')}</Link>
           <ChevronRight className="h-3 w-3" />
           {isLoading ? (
             <Skeleton className="h-4 w-48" />
@@ -244,11 +245,11 @@ export default function TenderDetailPage() {
                 {analysisStep ? (
                   <><Loader2 className="h-3.5 w-3.5 animate-spin" />{analysisStep}</>
                 ) : (
-                  <><Sparkles className="h-3.5 w-3.5" />Αναλυση</>
+                  <><Sparkles className="h-3.5 w-3.5" />{t('tender.analyze')}</>
                 )}
               </Button>
               <Button variant="outline" size="sm" className="cursor-pointer border-border/60" onClick={() => setActiveTab('overview')}>
-                <Pencil className="h-3.5 w-3.5 mr-1.5" />Επεξεργασια
+                <Pencil className="h-3.5 w-3.5 mr-1.5" />{t('tender.edit')}
               </Button>
               <Button
                 variant="outline"
@@ -258,7 +259,7 @@ export default function TenderDetailPage() {
                 onClick={() => { complianceMutation.mutate({ tenderId }); setActiveTab('requirements'); }}
               >
                 {complianceMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />}
-                Ελεγχος Συμμορφωσης
+                {t('tender.complianceCheck')}
               </Button>
               <Button
                 variant="outline"
@@ -266,7 +267,7 @@ export default function TenderDetailPage() {
                 className="cursor-pointer text-destructive hover:text-destructive hover:bg-destructive/10 border-border/60"
                 onClick={() => setDeleteOpen(true)}
               >
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" />Διαγραφη
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />{t('tender.delete')}
               </Button>
             </div>
           </div>
@@ -312,15 +313,15 @@ export default function TenderDetailPage() {
       <motion.div variants={itemVariants}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="border-b border-border/50 bg-transparent p-0 h-auto rounded-none flex-wrap gap-0">
-            <AnimatedTabsTrigger value="overview" activeValue={activeTab}><Eye className="h-3.5 w-3.5" />Επισκοπηση</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="requirements" activeValue={activeTab}><ClipboardList className="h-3.5 w-3.5" />Απαιτησεις</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="documents" activeValue={activeTab}><FileText className="h-3.5 w-3.5" />Εγγραφα</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="fakelos" activeValue={activeTab}><FolderCheck className="h-3.5 w-3.5" />Φάκελος</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="tasks" activeValue={activeTab}><ListTodo className="h-3.5 w-3.5" />Εργασιες</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="legal" activeValue={activeTab}><Scale className="h-3.5 w-3.5" />Νομικα & Συμβαση</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="financial" activeValue={activeTab}><Banknote className="h-3.5 w-3.5" />Οικονομικα</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="technical" activeValue={activeTab}><Wrench className="h-3.5 w-3.5" />Τεχνικη Προταση</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="activity" activeValue={activeTab}><Activity className="h-3.5 w-3.5" />Δραστηριοτητα</AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="overview" activeValue={activeTab}><Eye className="h-3.5 w-3.5" />{t('tender.overviewTab')}</AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="requirements" activeValue={activeTab}><ClipboardList className="h-3.5 w-3.5" />{t('tender.requirementsTab')}</AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="documents" activeValue={activeTab}><FileText className="h-3.5 w-3.5" />{t('tender.documentsTab')}</AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="fakelos" activeValue={activeTab}><FolderCheck className="h-3.5 w-3.5" />{t('tender.dossierTab')}</AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="tasks" activeValue={activeTab}><ListTodo className="h-3.5 w-3.5" />{t('tender.tasksTab')}</AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="legal" activeValue={activeTab}><Scale className="h-3.5 w-3.5" />{t('tender.legalTab')}</AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="financial" activeValue={activeTab}><Banknote className="h-3.5 w-3.5" />{t('tender.financialTab')}</AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="technical" activeValue={activeTab}><Wrench className="h-3.5 w-3.5" />{t('tender.technicalTab')}</AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="activity" activeValue={activeTab}><Activity className="h-3.5 w-3.5" />{t('tender.activityTab')}</AnimatedTabsTrigger>
           </TabsList>
 
           {/* Tab content with crossfade */}
@@ -379,14 +380,14 @@ export default function TenderDetailPage() {
       {/* Delete Dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Διαγραφη Διαγωνισμου</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('tender.deleteTitle')}</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Ειστε σιγουροι οτι θελετε να διαγραψετε αυτον τον διαγωνισμο; Η ενεργεια αυτη ειναι μη αναστρεψιμη.
+            {t('tender.deleteConfirm')}
           </p>
           <DialogFooter>
-            <DialogClose asChild><Button variant="outline" className="cursor-pointer">Ακυρωση</Button></DialogClose>
+            <DialogClose asChild><Button variant="outline" className="cursor-pointer">{t('tender.cancel')}</Button></DialogClose>
             <Button variant="destructive" className="cursor-pointer" disabled={deleteMutation.isPending} onClick={() => deleteMutation.mutate({ id: tenderId })}>
-              <Trash2 className="h-4 w-4 mr-1.5" />Διαγραφη
+              <Trash2 className="h-4 w-4 mr-1.5" />{t('tender.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

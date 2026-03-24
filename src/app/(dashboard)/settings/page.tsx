@@ -38,12 +38,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { getInitials } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
-
-const roleLabels: Record<string, string> = {
-  ADMIN: 'Διαχειριστής',
-  MEMBER: 'Μέλος',
-  EXTERNAL_COLLABORATOR: 'Εξωτερικός Συνεργάτης',
-};
+import { useTranslation } from '@/lib/i18n';
 
 const roleColors: Record<string, string> = {
   ADMIN: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary',
@@ -62,6 +57,7 @@ const itemVariants = {
 };
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { data: session } = useSession();
   const [inviteEmail, setInviteEmail] = useState('');
@@ -69,16 +65,22 @@ export default function SettingsPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('team');
 
+  const roleLabels: Record<string, string> = {
+    ADMIN: t('roles.admin'),
+    MEMBER: t('roles.member'),
+    EXTERNAL_COLLABORATOR: t('roles.externalCollaborator'),
+  };
+
   const { data: members, isLoading, refetch } = trpc.tenant.getMembers.useQuery();
   const inviteMutation = trpc.tenant.invite.useMutation({
     onSuccess: () => {
-      toast({ title: 'Η πρόσκληση στάλθηκε', description: `Πρόσκληση στο ${inviteEmail}` });
+      toast({ title: t('settings.inviteSent'), description: t('settings.inviteSentTo').replace('{email}', inviteEmail) });
       setInviteEmail('');
       setInviteOpen(false);
       refetch();
     },
     onError: (err) => {
-      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     },
   });
 
@@ -90,9 +92,9 @@ export default function SettingsPage() {
       className="space-y-6"
     >
       <motion.div variants={itemVariants}>
-        <h1 className="text-headline text-foreground">Ρυθμίσεις</h1>
+        <h1 className="text-headline text-foreground">{t('settings.title')}</h1>
         <p className="text-muted-foreground">
-          Διαχείριση ομάδας και ρυθμίσεων λογαριασμού
+          {t('settings.subtitle')}
         </p>
       </motion.div>
 
@@ -101,11 +103,11 @@ export default function SettingsPage() {
           <TabsList className="border-b border-border/50 bg-transparent p-0 h-auto rounded-none gap-0">
             <AnimatedTabsTrigger value="team" activeValue={activeTab}>
               <Users className="h-3.5 w-3.5" />
-              Ομάδα
+              {t('settings.teamTab')}
             </AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="profile" activeValue={activeTab}>
               <Shield className="h-3.5 w-3.5" />
-              Προφίλ
+              {t('settings.profileTab')}
             </AnimatedTabsTrigger>
           </TabsList>
 
@@ -122,25 +124,25 @@ export default function SettingsPage() {
                   {/* Invite button */}
                   <div className="flex justify-between items-center">
                     <div>
-                      <h2 className="text-lg font-semibold">Μέλη Ομάδας</h2>
+                      <h2 className="text-lg font-semibold">{t('settings.teamMembers')}</h2>
                       <p className="text-sm text-muted-foreground">
-                        Διαχειριστείτε τα μέλη και τους ρόλους τους
+                        {t('settings.teamMembersSub')}
                       </p>
                     </div>
                     <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
                       <DialogTrigger asChild>
                         <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
                           <UserPlus className="h-4 w-4" />
-                          Πρόσκληση
+                          {t('settings.invite')}
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Πρόσκληση νέου μέλους</DialogTitle>
+                          <DialogTitle>{t('settings.inviteNewMember')}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                           <div className="space-y-2">
-                            <Label>Email</Label>
+                            <Label>{t('settings.email')}</Label>
                             <Input
                               type="email"
                               placeholder="user@example.com"
@@ -149,15 +151,15 @@ export default function SettingsPage() {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label>Ρόλος</Label>
+                            <Label>{t('settings.role')}</Label>
                             <Select value={inviteRole} onValueChange={setInviteRole}>
                               <SelectTrigger className="cursor-pointer">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="MEMBER" className="cursor-pointer">Μέλος</SelectItem>
+                                <SelectItem value="MEMBER" className="cursor-pointer">{t('roles.member')}</SelectItem>
                                 <SelectItem value="EXTERNAL_COLLABORATOR" className="cursor-pointer">
-                                  Εξωτερικός Συνεργάτης
+                                  {t('roles.externalCollaborator')}
                                 </SelectItem>
                               </SelectContent>
                             </Select>
@@ -175,7 +177,7 @@ export default function SettingsPage() {
                             className="cursor-pointer"
                           >
                             <Mail className="mr-2 h-4 w-4" />
-                            Αποστολή Πρόσκλησης
+                            {t('settings.sendInvite')}
                           </Button>
                         </DialogFooter>
                       </DialogContent>
@@ -211,7 +213,7 @@ export default function SettingsPage() {
                                   {member.user.name || member.user.email}
                                   {member.user.id === session?.user?.id && (
                                     <Badge variant="outline" className="text-[10px]">
-                                      Εσείς
+                                      {t('settings.you')}
                                     </Badge>
                                   )}
                                 </div>
@@ -236,23 +238,23 @@ export default function SettingsPage() {
                 <TabsContent value="profile" className="space-y-4 mt-0">
                   <div className="rounded-xl border border-border/60 bg-card p-6">
                     <div className="mb-1">
-                      <h3 className="text-base font-semibold">Πληροφορίες Λογαριασμού</h3>
+                      <h3 className="text-base font-semibold">{t('settings.accountInfo')}</h3>
                       <p className="text-sm text-muted-foreground">
-                        Βασικά στοιχεία του λογαριασμού σας
+                        {t('settings.accountInfoSub')}
                       </p>
                     </div>
                     <Separator className="my-4 opacity-50" />
                     <div className="space-y-4">
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label>Όνομα</Label>
+                          <Label>{t('settings.name')}</Label>
                           <Input
                             defaultValue={session?.user?.name || ''}
-                            placeholder="Το όνομά σας"
+                            placeholder={t('settings.namePlaceholder')}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>Email</Label>
+                          <Label>{t('settings.email')}</Label>
                           <Input
                             defaultValue={session?.user?.email || ''}
                             disabled
@@ -260,7 +262,7 @@ export default function SettingsPage() {
                           />
                         </div>
                       </div>
-                      <Button className="cursor-pointer">Αποθήκευση Αλλαγών</Button>
+                      <Button className="cursor-pointer">{t('settings.saveChanges')}</Button>
                     </div>
                   </div>
                 </TabsContent>

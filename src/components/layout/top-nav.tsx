@@ -162,7 +162,7 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
             size="icon"
             className="text-muted-foreground hover:text-foreground/70 hover:bg-foreground/[0.04] cursor-pointer h-8 w-8"
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={resolvedTheme === 'dark' ? t('topNav.switchToLight') : t('topNav.switchToDark')}
           >
             {resolvedTheme === 'dark' ? (
               <Sun className="h-[15px] w-[15px]" />

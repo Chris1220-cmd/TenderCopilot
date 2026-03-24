@@ -12,7 +12,6 @@ import {
   Search,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -26,25 +25,13 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { EmptyStateIllustration } from '@/components/ui/empty-state';
 import Link from 'next/link';
 import { getInitials } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 
 const priorityColors: Record<string, string> = {
   LOW: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
   MEDIUM: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
   HIGH: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
   URGENT: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
-};
-
-const priorityLabels: Record<string, string> = {
-  LOW: 'Χαμηλή',
-  MEDIUM: 'Μεσαία',
-  HIGH: 'Υψηλή',
-  URGENT: 'Επείγον',
-};
-
-const statusLabels: Record<string, string> = {
-  TODO: 'Εκκρεμεί',
-  IN_PROGRESS: 'Σε Εξέλιξη',
-  DONE: 'Ολοκληρώθηκε',
 };
 
 const containerVariants = {
@@ -58,10 +45,24 @@ const itemVariants = {
 };
 
 export default function TasksPage() {
+  const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
 
   const { data: tasks, isLoading } = trpc.task.listMyTasks.useQuery();
+
+  const priorityLabels: Record<string, string> = {
+    LOW: t('priority.low'),
+    MEDIUM: t('priority.medium'),
+    HIGH: t('priority.high'),
+    URGENT: t('priority.urgent'),
+  };
+
+  const statusLabels: Record<string, string> = {
+    TODO: t('tasks.pending'),
+    IN_PROGRESS: t('tasks.inProgress'),
+    DONE: t('tasks.completed'),
+  };
 
   const filteredTasks = tasks?.filter((task) => {
     if (statusFilter !== 'all' && task.status !== statusFilter) return false;
@@ -82,9 +83,9 @@ export default function TasksPage() {
     >
       {/* Header */}
       <motion.div variants={itemVariants}>
-        <h1 className="text-headline text-foreground">Οι Εργασίες Μου</h1>
+        <h1 className="text-headline text-foreground">{t('tasks.title')}</h1>
         <p className="text-muted-foreground">
-          Διαχείριση εκκρεμών εργασιών από όλους τους διαγωνισμούς
+          {t('tasks.subtitle')}
         </p>
       </motion.div>
 
@@ -92,7 +93,7 @@ export default function TasksPage() {
       <motion.div variants={itemVariants} className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-border/60 bg-card p-5 transition-colors hover:border-primary/20">
           <div className="flex items-center justify-between">
-            <span className="text-overline">Εκκρεμείς</span>
+            <span className="text-overline">{t('tasks.pending')}</span>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-500/[0.08]">
               <Clock className="h-4 w-4 text-yellow-500" />
             </div>
@@ -101,7 +102,7 @@ export default function TasksPage() {
         </div>
         <div className="rounded-xl border border-border/60 bg-card p-5 transition-colors hover:border-primary/20">
           <div className="flex items-center justify-between">
-            <span className="text-overline">Σε Εξέλιξη</span>
+            <span className="text-overline">{t('tasks.inProgress')}</span>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/[0.08]">
               <AlertCircle className="h-4 w-4 text-blue-500" />
             </div>
@@ -110,7 +111,7 @@ export default function TasksPage() {
         </div>
         <div className="rounded-xl border border-border/60 bg-card p-5 transition-colors hover:border-primary/20">
           <div className="flex items-center justify-between">
-            <span className="text-overline">Ολοκληρωμένες</span>
+            <span className="text-overline">{t('tasks.completed')}</span>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/[0.08]">
               <CheckSquare className="h-4 w-4 text-green-500" />
             </div>
@@ -124,7 +125,7 @@ export default function TasksPage() {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Αναζήτηση εργασιών..."
+            placeholder={t('tasks.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
@@ -133,13 +134,13 @@ export default function TasksPage() {
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px] cursor-pointer">
             <Filter className="mr-2 h-4 w-4" />
-            <SelectValue placeholder="Κατάσταση" />
+            <SelectValue placeholder={t('tasks.status')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" className="cursor-pointer">Όλες</SelectItem>
-            <SelectItem value="TODO" className="cursor-pointer">Εκκρεμείς</SelectItem>
-            <SelectItem value="IN_PROGRESS" className="cursor-pointer">Σε Εξέλιξη</SelectItem>
-            <SelectItem value="DONE" className="cursor-pointer">Ολοκληρωμένες</SelectItem>
+            <SelectItem value="all" className="cursor-pointer">{t('tasks.all')}</SelectItem>
+            <SelectItem value="TODO" className="cursor-pointer">{t('tasks.pending')}</SelectItem>
+            <SelectItem value="IN_PROGRESS" className="cursor-pointer">{t('tasks.inProgress')}</SelectItem>
+            <SelectItem value="DONE" className="cursor-pointer">{t('tasks.completed')}</SelectItem>
           </SelectContent>
         </Select>
       </motion.div>
@@ -187,7 +188,7 @@ export default function TasksPage() {
                     href={`/tenders/${task.tenderId}`}
                     className="hover:text-primary transition-colors cursor-pointer"
                   >
-                    {(task as any).tender?.title || 'Διαγωνισμός'}
+                    {(task as any).tender?.title || t('tasks.tender')}
                   </Link>
                   {task.dueDate && (
                     <span className="flex items-center gap-1">
@@ -218,9 +219,9 @@ export default function TasksPage() {
         <motion.div variants={itemVariants}>
           <div className="rounded-xl border border-border/60 bg-card p-12 text-center">
             <EmptyStateIllustration variant="tasks" className="mb-5" />
-            <h3 className="mt-4 text-title text-foreground">Καμία εργασία</h3>
+            <h3 className="mt-4 text-title text-foreground">{t('tasks.noTasks')}</h3>
             <p className="mt-2 text-body text-muted-foreground">
-              Δεν έχετε εκκρεμείς εργασίες αυτή τη στιγμή
+              {t('tasks.noTasksSub')}
             </p>
           </div>
         </motion.div>

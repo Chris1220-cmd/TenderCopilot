@@ -9,6 +9,7 @@ import { CertificatesList } from '@/components/company/certificates-list';
 import { LegalDocsList } from '@/components/company/legal-docs-list';
 import { ProjectsList } from '@/components/company/projects-list';
 import { ContentLibrary } from '@/components/company/content-library';
+import { useTranslation } from '@/lib/i18n';
 import {
   Building2,
   ShieldCheck,
@@ -17,12 +18,12 @@ import {
   BookOpen,
 } from 'lucide-react';
 
-const tabs = [
-  { value: 'profile', label: 'Προφίλ', icon: Building2 },
-  { value: 'certificates', label: 'Πιστοποιητικά', icon: ShieldCheck },
-  { value: 'legal', label: 'Νομικά Έγγραφα', icon: FileCheck },
-  { value: 'projects', label: 'Έργα Εμπειρίας', icon: Briefcase },
-  { value: 'library', label: 'Βιβλιοθήκη Κειμένων', icon: BookOpen },
+const tabKeys = [
+  { value: 'profile', labelKey: 'company.profileTab', icon: Building2 },
+  { value: 'certificates', labelKey: 'company.certificatesTab', icon: ShieldCheck },
+  { value: 'legal', labelKey: 'company.legalDocsTab', icon: FileCheck },
+  { value: 'projects', labelKey: 'company.projectsTab', icon: Briefcase },
+  { value: 'library', labelKey: 'company.libraryTab', icon: BookOpen },
 ] as const;
 
 const containerVariants = {
@@ -35,6 +36,7 @@ const itemVariants = {
 };
 
 export default function CompanyPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('profile');
 
   return (
@@ -46,9 +48,9 @@ export default function CompanyPage() {
     >
       {/* Header */}
       <motion.div variants={itemVariants}>
-        <h1 className="text-headline text-foreground">Εταιρεία</h1>
+        <h1 className="text-headline text-foreground">{t('company.title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Διαχειριστείτε το προφίλ, τα πιστοποιητικά και τη βιβλιοθήκη της εταιρείας σας
+          {t('company.subtitle')}
         </p>
       </motion.div>
 
@@ -56,10 +58,10 @@ export default function CompanyPage() {
       <motion.div variants={itemVariants}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="border-b border-border/50 bg-transparent p-0 h-auto rounded-none flex-wrap gap-0">
-            {tabs.map(({ value, label, icon: Icon }) => (
+            {tabKeys.map(({ value, labelKey, icon: Icon }) => (
               <AnimatedTabsTrigger key={value} value={value} activeValue={activeTab}>
                 <Icon className="h-3.5 w-3.5" />
-                {label}
+                {t(labelKey)}
               </AnimatedTabsTrigger>
             ))}
           </TabsList>

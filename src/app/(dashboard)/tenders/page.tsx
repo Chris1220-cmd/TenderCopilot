@@ -32,32 +32,18 @@ import {
   Plus,
   Search,
   Trash2,
-  FileText,
 } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
-const statusConfig: Record<
-  string,
-  { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' }
-> = {
-  DRAFT: { label: 'Προχειρο', variant: 'secondary' },
-  DISCOVERY: { label: 'Ευρεση', variant: 'default' },
-  GO_NO_GO: { label: 'Go/No-Go', variant: 'default' },
-  IN_PROGRESS: { label: 'Σε εξελιξη', variant: 'warning' },
-  REVIEW: { label: 'Αξιολογηση', variant: 'default' },
-  SUBMITTED: { label: 'Υποβληθηκε', variant: 'success' },
-  WON: { label: 'Κερδηθηκε', variant: 'success' },
-  LOST: { label: 'Χαθηκε', variant: 'destructive' },
-};
-
-const platformConfig: Record<string, { label: string }> = {
-  ESIDIS: { label: 'ΕΣΗΔΗΣ' },
-  KIMDIS: { label: 'ΚΗΜΔΗΣ' },
-  PROMITHEUS: { label: 'ΠΡΟΜΗΘΕΥΣ' },
-  DIAVGEIA: { label: 'ΔΙΑΥΓΕΙΑ' },
-  TED: { label: 'TED Europa' },
-  COSMOONE: { label: 'cosmoONE' },
-  PRIVATE: { label: 'Ιδιωτικος' },
-  OTHER: { label: 'Αλλο' },
+const statusVariants: Record<string, 'default' | 'secondary' | 'success' | 'warning' | 'destructive'> = {
+  DRAFT: 'secondary',
+  DISCOVERY: 'default',
+  GO_NO_GO: 'default',
+  IN_PROGRESS: 'warning',
+  REVIEW: 'default',
+  SUBMITTED: 'success',
+  WON: 'success',
+  LOST: 'destructive',
 };
 
 const containerVariants = {
@@ -78,11 +64,34 @@ const itemVariants = {
 };
 
 export default function TendersPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const statusLabels: Record<string, string> = {
+    DRAFT: t('tenders.statusDraft'),
+    DISCOVERY: t('tenders.statusDiscovery'),
+    GO_NO_GO: t('tenders.statusGoNoGo'),
+    IN_PROGRESS: t('tenders.statusInProgress'),
+    REVIEW: t('tenders.statusReview'),
+    SUBMITTED: t('tenders.statusSubmitted'),
+    WON: t('tenders.statusWon'),
+    LOST: t('tenders.statusLost'),
+  };
+
+  const platformLabels: Record<string, string> = {
+    ESIDIS: t('platforms.ESIDIS'),
+    KIMDIS: t('platforms.KIMDIS'),
+    PROMITHEUS: t('platforms.PROMITHEUS'),
+    DIAVGEIA: t('platforms.DIAVGEIA'),
+    TED: t('platforms.TED'),
+    COSMOONE: t('platforms.COSMOONE'),
+    PRIVATE: t('platforms.PRIVATE'),
+    OTHER: t('platforms.OTHER'),
+  };
 
   const utils = trpc.useUtils();
 
@@ -126,9 +135,9 @@ export default function TendersPage() {
       <BlurFade delay={0.1}>
         <motion.div variants={itemVariants} className="flex items-center justify-between">
           <div>
-            <h1 className="text-display text-foreground">Διαγωνισμοι</h1>
+            <h1 className="text-display text-foreground">{t('tenders.title')}</h1>
             <p className="mt-1 text-body text-muted-foreground">
-              Διαχειριστειτε τους διαγωνισμους σας
+              {t('tenders.subtitle')}
             </p>
           </div>
           <Button
@@ -137,7 +146,7 @@ export default function TendersPage() {
           >
             <Link href="/tenders/new">
               <Plus className="h-4 w-4" />
-              Νεος Διαγωνισμος
+              {t('tenders.newTender')}
             </Link>
           </Button>
         </motion.div>
@@ -150,7 +159,7 @@ export default function TendersPage() {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Αναζητηση..."
+                placeholder={t('tenders.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 h-9 bg-card border-border/60 focus-visible:ring-primary/30 focus-visible:border-primary/40"
@@ -159,11 +168,11 @@ export default function TendersPage() {
 
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[160px] cursor-pointer bg-card border-border/60">
-                <SelectValue placeholder="Κατασταση" />
+                <SelectValue placeholder={t('tenders.status')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Ολες οι καταστασεις</SelectItem>
-                {Object.entries(statusConfig).map(([key, { label }]) => (
+                <SelectItem value="all">{t('tenders.allStatuses')}</SelectItem>
+                {Object.entries(statusLabels).map(([key, label]) => (
                   <SelectItem key={key} value={key}>
                     {label}
                   </SelectItem>
@@ -173,11 +182,11 @@ export default function TendersPage() {
 
             <Select value={platformFilter} onValueChange={setPlatformFilter}>
               <SelectTrigger className="w-[160px] cursor-pointer bg-card border-border/60">
-                <SelectValue placeholder="Πλατφορμα" />
+                <SelectValue placeholder={t('tenders.platform')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Ολες οι πλατφορμες</SelectItem>
-                {Object.entries(platformConfig).map(([key, { label }]) => (
+                <SelectItem value="all">{t('tenders.allPlatforms')}</SelectItem>
+                {Object.entries(platformLabels).map(([key, label]) => (
                   <SelectItem key={key} value={key}>
                     {label}
                   </SelectItem>
@@ -209,11 +218,11 @@ export default function TendersPage() {
               <Ripple mainCircleSize={100} mainCircleOpacity={0.06} numCircles={5} />
               <div className="relative z-10">
               <EmptyStateIllustration variant="tenders" className="mb-5" />
-              <h3 className="text-title text-foreground">Κανενας διαγωνισμος</h3>
+              <h3 className="text-title text-foreground">{t('tenders.noTenders')}</h3>
               <p className="text-body text-muted-foreground mt-1">
                 {searchQuery || statusFilter !== 'all' || platformFilter !== 'all'
-                  ? 'Δεν βρεθηκαν αποτελεσματα. Δοκιμαστε διαφορετικα φιλτρα.'
-                  : 'Δημιουργηστε τον πρωτο σας διαγωνισμο για να ξεκινησετε.'}
+                  ? t('tenders.noResultsFilters')
+                  : t('tenders.createFirst')}
               </p>
               {!searchQuery && statusFilter === 'all' && platformFilter === 'all' && (
                 <Button
@@ -222,7 +231,7 @@ export default function TendersPage() {
                   size="sm"
                   className="mt-4 cursor-pointer rounded-full"
                 >
-                  <Link href="/tenders/new">Νεος Διαγωνισμος</Link>
+                  <Link href="/tenders/new">{t('tenders.newTender')}</Link>
                 </Button>
               )}
               </div>
@@ -231,18 +240,19 @@ export default function TendersPage() {
             <div className="rounded-xl border border-border/60 bg-card overflow-hidden transition-colors hover:border-primary/20">
               {/* Table Header */}
               <div className="flex items-center gap-4 px-6 py-2.5 border-b border-border/40 bg-muted/30">
-                <span className="text-overline w-24 shrink-0">Κατασταση</span>
-                <span className="text-overline flex-1">Τιτλος</span>
-                <span className="text-overline w-28 shrink-0 hidden md:block">Πλατφορμα</span>
-                <span className="text-overline w-28 shrink-0 hidden lg:block">Deadline</span>
-                <span className="text-overline w-20 shrink-0 text-right">Score</span>
+                <span className="text-overline w-24 shrink-0">{t('tenders.tableStatus')}</span>
+                <span className="text-overline flex-1">{t('tenders.tableTitle')}</span>
+                <span className="text-overline w-28 shrink-0 hidden md:block">{t('tenders.tablePlatform')}</span>
+                <span className="text-overline w-28 shrink-0 hidden lg:block">{t('tenders.tableDeadline')}</span>
+                <span className="text-overline w-20 shrink-0 text-right">{t('tenders.tableScore')}</span>
                 <span className="w-8 shrink-0" />
               </div>
 
               {/* Table Rows */}
               {filteredTenders.map((tender, i) => {
-                const status = statusConfig[tender.status] || statusConfig.DRAFT;
-                const platform = platformConfig[tender.platform] || platformConfig.OTHER;
+                const statusVariant = statusVariants[tender.status] || 'secondary';
+                const statusLabel = statusLabels[tender.status] || tender.status;
+                const platformLabel = platformLabels[tender.platform] || tender.platform;
                 const score = tender.complianceScore ?? 0;
                 const complianceColor =
                   score >= 80
@@ -267,8 +277,8 @@ export default function TendersPage() {
                   >
                     {/* Status */}
                     <div className="w-24 shrink-0">
-                      <Badge variant={status.variant} className="text-[10px]">
-                        {status.label}
+                      <Badge variant={statusVariant} className="text-[10px]">
+                        {statusLabel}
                       </Badge>
                     </div>
 
@@ -282,7 +292,7 @@ export default function TendersPage() {
 
                     {/* Platform */}
                     <span className="text-caption w-28 shrink-0 hidden md:block">
-                      {platform.label}
+                      {platformLabel}
                     </span>
 
                     {/* Deadline */}
@@ -304,7 +314,7 @@ export default function TendersPage() {
                         setDeleteId(tender.id);
                       }}
                       className="w-8 shrink-0 flex items-center justify-center h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive/10 text-destructive cursor-pointer"
-                      title="Διαγραφη"
+                      title={t('tenders.delete')}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -320,17 +330,17 @@ export default function TendersPage() {
       <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Διαγραφη Διαγωνισμου</DialogTitle>
+            <DialogTitle>{t('tenders.deleteTitle')}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Θελετε να διαγραψετε τον διαγωνισμο{' '}
-            <strong className="text-foreground">{tenderToDelete?.title}</strong>;
-            Η ενεργεια ειναι μη αναστρεψιμη.
+            {t('tenders.deleteConfirm')}{' '}
+            <strong className="text-foreground">{tenderToDelete?.title}</strong>;{' '}
+            {t('tenders.deleteIrreversible')}
           </p>
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline" className="cursor-pointer">
-                Ακυρωση
+                {t('tenders.cancel')}
               </Button>
             </DialogClose>
             <Button
@@ -340,7 +350,7 @@ export default function TendersPage() {
               onClick={() => deleteId && deleteMutation.mutate({ id: deleteId })}
             >
               <Trash2 className="h-4 w-4 mr-1.5" />
-              Διαγραφη
+              {t('tenders.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
