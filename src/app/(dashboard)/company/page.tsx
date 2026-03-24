@@ -10,6 +10,8 @@ import { LegalDocsList } from '@/components/company/legal-docs-list';
 import { ProjectsList } from '@/components/company/projects-list';
 import { ContentLibrary } from '@/components/company/content-library';
 import { useTranslation } from '@/lib/i18n';
+import { BlurFade } from '@/components/ui/blur-fade';
+import { Particles } from '@/components/ui/particles';
 import {
   Building2,
   ShieldCheck,
@@ -47,14 +49,24 @@ export default function CompanyPage() {
       animate="visible"
     >
       {/* Header */}
-      <motion.div variants={itemVariants}>
-        <h1 className="text-headline text-foreground">{t('company.title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('company.subtitle')}
-        </p>
-      </motion.div>
+      <BlurFade delay={0.1}>
+        <motion.div variants={itemVariants} className="relative">
+          <Particles
+            className="absolute inset-0 -m-4 rounded-xl"
+            quantity={30}
+            color="#48A4D6"
+            size={0.5}
+            staticity={40}
+          />
+          <h1 className="text-headline text-foreground">{t('company.title')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t('company.subtitle')}
+          </p>
+        </motion.div>
+      </BlurFade>
 
       {/* Tabs */}
+      <BlurFade delay={0.15} inView>
       <motion.div variants={itemVariants}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="border-b border-border/50 bg-transparent p-0 h-auto rounded-none flex-wrap gap-0">
@@ -95,6 +107,7 @@ export default function CompanyPage() {
           </div>
         </Tabs>
       </motion.div>
+      </BlurFade>
     </motion.div>
   );
 }
