@@ -31,11 +31,10 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 const fieldVariants = {
-  hidden: { opacity: 0, y: 16, filter: 'blur(4px)' },
+  hidden: { opacity: 0, y: 16 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    filter: 'blur(0px)',
     transition: {
       duration: 0.4,
       delay: 0.15 + i * 0.08,
