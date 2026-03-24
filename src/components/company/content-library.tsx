@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { cn, truncate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslation } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -75,6 +76,7 @@ const categoryColors: Record<string, string> = {
 
 export function ContentLibrary() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -88,23 +90,23 @@ export function ContentLibrary() {
 
   const createMutation = trpc.company.createContentItem.useMutation({
     onSuccess: () => {
-      toast({ title: 'Επιτυχία', description: 'Το κείμενο αποθηκεύτηκε.' });
+      toast({ title: t('common.success'), description: t('contentLibrary.contentSaved') });
       contentQuery.refetch();
       closeDialog();
     },
     onError: () => {
-      toast({ title: 'Σφάλμα', description: 'Αποτυχία αποθήκευσης.', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('contentLibrary.saveFailed'), variant: 'destructive' });
     },
   });
 
   const deleteMutation = trpc.company.deleteContentItem.useMutation({
     onSuccess: () => {
-      toast({ title: 'Διαγράφηκε', description: 'Το κείμενο διαγράφηκε.' });
+      toast({ title: t('common.deleted'), description: t('contentLibrary.contentDeleted') });
       contentQuery.refetch();
       setDeleteConfirmId(null);
     },
     onError: () => {
-      toast({ title: 'Σφάλμα', description: 'Αποτυχία διαγραφής.', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('contentLibrary.deleteFailed'), variant: 'destructive' });
     },
   });
 
@@ -191,10 +193,10 @@ export function ContentLibrary() {
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-primary" />
-            Βιβλιοθήκη Κειμένων
+            {t('contentLibrary.title')}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {items.length} κείμεν{items.length === 1 ? 'ο' : 'α'} αποθηκευμένα
+            {items.length} {items.length === 1 ? t('contentLibrary.countSingular') : t('contentLibrary.countPlural')}
           </p>
         </div>
         <Button
@@ -207,7 +209,7 @@ export function ContentLibrary() {
           )}
         >
           <Plus className="h-4 w-4" />
-          Νέο Κείμενο
+          {t('contentLibrary.newContent')}
         </Button>
       </div>
 
@@ -218,7 +220,7 @@ export function ContentLibrary() {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Αναζήτηση κειμένων..."
+                placeholder={t('contentLibrary.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-9 pl-9"
@@ -226,10 +228,10 @@ export function ContentLibrary() {
             </div>
             <Select value={filterCategory} onValueChange={setFilterCategory}>
               <SelectTrigger className="w-[180px] cursor-pointer">
-                <SelectValue placeholder="Κατηγορία" />
+                <SelectValue placeholder={t('contentLibrary.categoryFilter')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Όλες οι κατηγορίες</SelectItem>
+                <SelectItem value="all">{t('contentLibrary.allCategories')}</SelectItem>
                 {categories.map((c) => (
                   <SelectItem key={c.value} value={c.value}>
                     {c.label}
@@ -249,13 +251,13 @@ export function ContentLibrary() {
           </div>
           <h3 className="mt-4 text-lg font-semibold">
             {searchQuery || filterCategory !== 'all'
-              ? 'Κανένα αποτέλεσμα'
-              : 'Κανένα κείμενο'}
+              ? t('common.noResults')
+              : t('contentLibrary.noContent')}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
             {searchQuery || filterCategory !== 'all'
-              ? 'Δοκιμάστε διαφορετικά φίλτρα.'
-              : 'Προσθέστε κείμενα για επαναχρησιμοποίηση στις προσφορές σας.'}
+              ? t('common.tryDifferentFilters')
+              : t('contentLibrary.noContentSub')}
           </p>
         </Card>
       ) : (
@@ -328,7 +330,7 @@ export function ContentLibrary() {
                         size="icon"
                         onClick={() => openEdit(item)}
                         className="cursor-pointer h-8 w-8"
-                        title="Επεξεργασία"
+                        title={t('common.edit')}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -337,7 +339,7 @@ export function ContentLibrary() {
                         size="icon"
                         onClick={() => setDeleteConfirmId(item.id)}
                         className="cursor-pointer h-8 w-8 text-destructive hover:text-destructive"
-                        title="Διαγραφή"
+                        title={t('common.delete')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -355,23 +357,23 @@ export function ContentLibrary() {
         <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto border-white/10 bg-gradient-to-br from-card to-card/95 backdrop-blur-xl">
           <DialogHeader>
             <DialogTitle>
-              {editingId ? 'Επεξεργασία Κειμένου' : 'Νέο Κείμενο'}
+              {editingId ? t('contentLibrary.editContent') : t('contentLibrary.newContentTitle')}
             </DialogTitle>
             <DialogDescription>
-              Τα κείμενα χρησιμοποιούνται ως βάση για τη σύνταξη προσφορών.
+              {t('contentLibrary.dialogDescription')}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label>Κατηγορία *</Label>
+              <Label>{t('contentLibrary.category')}</Label>
               <Controller
                 control={control}
                 name="category"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger className="cursor-pointer">
-                      <SelectValue placeholder="Επιλέξτε κατηγορία" />
+                      <SelectValue placeholder={t('contentLibrary.selectCategory')} />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((c) => (
@@ -389,10 +391,10 @@ export function ContentLibrary() {
             </div>
 
             <div className="space-y-2">
-              <Label>Τίτλος *</Label>
+              <Label>{t('contentLibrary.contentTitle')}</Label>
               <Input
                 {...register('title')}
-                placeholder="π.χ. Γενική Παρουσίαση Εταιρείας"
+                placeholder={t('contentLibrary.contentTitlePlaceholder')}
               />
               {errors.title && (
                 <p className="text-xs text-destructive">{errors.title.message}</p>
@@ -400,10 +402,10 @@ export function ContentLibrary() {
             </div>
 
             <div className="space-y-2">
-              <Label>Περιεχόμενο *</Label>
+              <Label>{t('contentLibrary.content')}</Label>
               <Textarea
                 {...register('content')}
-                placeholder="Εισάγετε το κείμενο εδώ..."
+                placeholder={t('contentLibrary.contentPlaceholder')}
                 rows={12}
                 className="resize-y min-h-[200px] transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
@@ -413,13 +415,13 @@ export function ContentLibrary() {
             </div>
 
             <div className="space-y-2">
-              <Label>Ετικέτες</Label>
+              <Label>{t('contentLibrary.tags')}</Label>
               <Input
                 {...register('tags')}
-                placeholder="π.χ. εταιρεία, παρουσίαση, γενικά (χωρισμένες με κόμμα)"
+                placeholder={t('contentLibrary.tagsPlaceholder')}
               />
               <p className="text-[11px] text-muted-foreground">
-                Χωρίστε τις ετικέτες με κόμμα
+                {t('contentLibrary.tagsHelp')}
               </p>
             </div>
 
@@ -430,7 +432,7 @@ export function ContentLibrary() {
                 onClick={closeDialog}
                 className="cursor-pointer"
               >
-                Ακύρωση
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -442,7 +444,7 @@ export function ContentLibrary() {
                 )}
               >
                 {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editingId ? 'Ενημέρωση' : 'Δημιουργία'}
+                {editingId ? t('common.update') : t('common.create')}
               </Button>
             </DialogFooter>
           </form>
@@ -456,9 +458,9 @@ export function ContentLibrary() {
       >
         <DialogContent className="sm:max-w-[400px] border-white/10 bg-gradient-to-br from-card to-card/95 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle>Επιβεβαίωση Διαγραφής</DialogTitle>
+            <DialogTitle>{t('common.deleteConfirmTitle')}</DialogTitle>
             <DialogDescription>
-              Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το κείμενο; Η ενέργεια δεν αναιρείται.
+              {t('contentLibrary.deleteConfirm')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -467,7 +469,7 @@ export function ContentLibrary() {
               onClick={() => setDeleteConfirmId(null)}
               className="cursor-pointer"
             >
-              Ακύρωση
+              {t('common.cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -476,7 +478,7 @@ export function ContentLibrary() {
               className="cursor-pointer"
             >
               {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Διαγραφή
+              {t('common.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

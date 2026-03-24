@@ -19,6 +19,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslation } from '@/lib/i18n';
 import {
   Building2,
   Save,
@@ -112,6 +113,7 @@ const emptyProfile: ProfileFormValues = {
 };
 
 export function ProfileForm() {
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const profileQuery = trpc.company.getProfile.useQuery(undefined, {
@@ -122,14 +124,14 @@ export function ProfileForm() {
   const updateMutation = trpc.company.updateProfile.useMutation({
     onSuccess: () => {
       toast({
-        title: 'Επιτυχής αποθήκευση',
-        description: 'Το προφίλ ενημερώθηκε επιτυχώς.',
+        title: t('companyProfile.saveSuccess'),
+        description: t('companyProfile.profileUpdated'),
       });
     },
     onError: (err) => {
       toast({
-        title: 'Σφάλμα',
-        description: err.message || 'Αποτυχία αποθήκευσης. Δοκιμάστε ξανά.',
+        title: t('common.error'),
+        description: err.message || t('common.saveFailed'),
         variant: 'destructive',
       });
     },
@@ -198,10 +200,10 @@ export function ProfileForm() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-primary" />
-              Στοιχεία Εταιρείας
+              {t('companyProfile.title')}
             </CardTitle>
             <CardDescription>
-              Τα στοιχεία χρησιμοποιούνται αυτόματα στη σύνταξη προσφορών
+              {t('companyProfile.description')}
             </CardDescription>
           </div>
           <Button
@@ -220,7 +222,7 @@ export function ProfileForm() {
             ) : (
               <Save className="h-4 w-4" />
             )}
-            Αποθήκευση
+            {t('common.save')}
           </Button>
         </CardHeader>
 
@@ -228,27 +230,27 @@ export function ProfileForm() {
           {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <FormField
-              label="Επωνυμία *"
+              label={t('companyProfile.legalName')}
               error={errors.legalName?.message}
               icon={Building2}
             >
               <Input
                 {...register('legalName')}
-                placeholder="π.χ. ΕΤΑΙΡΕΙΑ Α.Ε."
+                placeholder={t('companyProfile.legalNamePlaceholder')}
                 className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </FormField>
 
-            <FormField label="Διακριτικός Τίτλος" error={errors.tradeName?.message}>
+            <FormField label={t('companyProfile.tradeName')} error={errors.tradeName?.message}>
               <Input
                 {...register('tradeName')}
-                placeholder="π.χ. BRAND NAME"
+                placeholder={t('companyProfile.tradeNamePlaceholder')}
                 className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </FormField>
 
             <FormField
-              label="ΑΦΜ *"
+              label={t('companyProfile.taxId')}
               error={errors.taxId?.message}
               icon={Hash}
             >
@@ -260,18 +262,18 @@ export function ProfileForm() {
               />
             </FormField>
 
-            <FormField label="ΔΟΥ *" error={errors.taxOffice?.message}>
+            <FormField label={t('companyProfile.taxOffice')} error={errors.taxOffice?.message}>
               <Input
                 {...register('taxOffice')}
-                placeholder="π.χ. ΦΑΕ Αθηνών"
+                placeholder={t('companyProfile.taxOfficePlaceholder')}
                 className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </FormField>
 
-            <FormField label="Αρ. ΓΕΜΗ" error={errors.registrationNumber?.message}>
+            <FormField label={t('companyProfile.registrationNumber')} error={errors.registrationNumber?.message}>
               <Input
                 {...register('registrationNumber')}
-                placeholder="π.χ. 123456789000"
+                placeholder={t('companyProfile.registrationNumberPlaceholder')}
                 className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </FormField>
@@ -281,33 +283,33 @@ export function ProfileForm() {
           <div>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-4">
               <MapPin className="h-4 w-4" />
-              Διεύθυνση
+              {t('companyProfile.addressSection')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <FormField
-                label="Οδός & Αριθμός *"
+                label={t('companyProfile.street')}
                 error={errors.address?.message}
                 className="md:col-span-2"
               >
                 <Input
                   {...register('address')}
-                  placeholder="π.χ. Λεωφ. Αλεξάνδρας 15"
+                  placeholder={t('companyProfile.streetPlaceholder')}
                   className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
 
-              <FormField label="Πόλη *" error={errors.city?.message}>
+              <FormField label={t('companyProfile.city')} error={errors.city?.message}>
                 <Input
                   {...register('city')}
-                  placeholder="π.χ. Αθήνα"
+                  placeholder={t('companyProfile.cityPlaceholder')}
                   className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
 
-              <FormField label="Τ.Κ. *" error={errors.postalCode?.message}>
+              <FormField label={t('companyProfile.postalCode')} error={errors.postalCode?.message}>
                 <Input
                   {...register('postalCode')}
-                  placeholder="π.χ. 11527"
+                  placeholder={t('companyProfile.postalCodePlaceholder')}
                   maxLength={5}
                   className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
@@ -319,23 +321,23 @@ export function ProfileForm() {
           <div>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-4">
               <Phone className="h-4 w-4" />
-              Στοιχεία Επικοινωνίας
+              {t('companyProfile.contactSection')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <FormField
-                label="Τηλέφωνο *"
+                label={t('companyProfile.phone')}
                 error={errors.phone?.message}
                 icon={Phone}
               >
                 <Input
                   {...register('phone')}
-                  placeholder="π.χ. 210 1234567"
+                  placeholder={t('companyProfile.phonePlaceholder')}
                   className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
 
               <FormField
-                label="Email *"
+                label={t('companyProfile.email')}
                 error={errors.email?.message}
                 icon={Mail}
               >
@@ -348,7 +350,7 @@ export function ProfileForm() {
               </FormField>
 
               <FormField
-                label="Ιστοσελίδα"
+                label={t('companyProfile.website')}
                 error={errors.website?.message}
                 icon={Globe}
               >
@@ -365,38 +367,38 @@ export function ProfileForm() {
           <div>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mb-4">
               <User className="h-4 w-4" />
-              Νόμιμος Εκπρόσωπος
+              {t('companyProfile.legalRepSection')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <FormField
-                label="Ονοματεπώνυμο *"
+                label={t('companyProfile.legalRepName')}
                 error={errors.legalRepName?.message}
               >
                 <Input
                   {...register('legalRepName')}
-                  placeholder="π.χ. Ιωάννης Παπαδόπουλος"
+                  placeholder={t('companyProfile.legalRepNamePlaceholder')}
                   className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
 
               <FormField
-                label="Ιδιότητα"
+                label={t('companyProfile.legalRepTitle')}
                 error={errors.legalRepTitle?.message}
               >
                 <Input
                   {...register('legalRepTitle')}
-                  placeholder="π.χ. Διευθύνων Σύμβουλος"
+                  placeholder={t('companyProfile.legalRepTitlePlaceholder')}
                   className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
 
               <FormField
-                label="Αρ. Ταυτότητας"
+                label={t('companyProfile.legalRepIdNumber')}
                 error={errors.legalRepIdNumber?.message}
               >
                 <Input
                   {...register('legalRepIdNumber')}
-                  placeholder="π.χ. ΑΕ 123456"
+                  placeholder={t('companyProfile.legalRepIdNumberPlaceholder')}
                   className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                 />
               </FormField>
@@ -406,23 +408,23 @@ export function ProfileForm() {
           {/* KAD & Description */}
           <div className="grid grid-cols-1 gap-5">
             <FormField
-              label="Κωδικοί ΚΑΔ"
+              label={t('companyProfile.kadCodes')}
               error={errors.kadCodes?.message}
             >
               <Input
                 {...register('kadCodes')}
-                placeholder="π.χ. 62.01, 62.02, 63.11 (χωρισμένοι με κόμμα)"
+                placeholder={t('companyProfile.kadCodesPlaceholder')}
                 className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </FormField>
 
             <FormField
-              label="Περιγραφή Εταιρείας"
+              label={t('companyProfile.companyDescription')}
               error={errors.description?.message}
             >
               <Textarea
                 {...register('description')}
-                placeholder="Σύντομη περιγραφή δραστηριοτήτων και εμπειρίας..."
+                placeholder={t('companyProfile.companyDescriptionPlaceholder')}
                 rows={4}
                 className="resize-none transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />

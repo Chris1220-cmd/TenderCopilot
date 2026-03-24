@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { cn, formatDate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslation } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,14 +56,13 @@ const certificateSchema = z.object({
 
 type CertificateFormValues = z.infer<typeof certificateSchema>;
 
-const certificateTypes = [
+const certificateTypesBase = [
   { value: 'ISO_9001', label: 'ISO 9001' },
   { value: 'ISO_14001', label: 'ISO 14001' },
   { value: 'ISO_27001', label: 'ISO 27001' },
   { value: 'ISO_45001', label: 'ISO 45001' },
   { value: 'EMAS', label: 'EMAS' },
   { value: 'MEEV', label: 'ΜΕΕΠ / Πτυχίο' },
-  { value: 'OTHER', label: 'Άλλο' },
 ];
 
 function isExpired(dateStr?: string | null) {
@@ -80,6 +80,9 @@ function isExpiringSoon(dateStr?: string | null) {
 
 export function CertificatesList() {
   const { toast } = useToast();
+  const { t } = useTranslation();
+
+  const certificateTypes = [...certificateTypesBase, { value: 'OTHER', label: t('certificates.typeOther') }];
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -91,34 +94,34 @@ export function CertificatesList() {
 
   const createMutation = trpc.company.createCertificate.useMutation({
     onSuccess: () => {
-      toast({ title: 'Επιτυχία', description: 'Το πιστοποιητικό δημιουργήθηκε.' });
+      toast({ title: t('common.success'), description: t('certificates.certificateCreated') });
       certsQuery.refetch();
       closeDialog();
     },
     onError: (err) => {
-      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     },
   });
 
   const updateMutation = trpc.company.updateCertificate.useMutation({
     onSuccess: () => {
-      toast({ title: 'Επιτυχία', description: 'Το πιστοποιητικό ενημερώθηκε.' });
+      toast({ title: t('common.success'), description: t('certificates.certificateUpdated') });
       certsQuery.refetch();
       closeDialog();
     },
     onError: (err) => {
-      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     },
   });
 
   const deleteMutation = trpc.company.deleteCertificate.useMutation({
     onSuccess: () => {
-      toast({ title: 'Διαγράφηκε', description: 'Το πιστοποιητικό διαγράφηκε.' });
+      toast({ title: t('common.deleted'), description: t('certificates.certificateDeleted') });
       certsQuery.refetch();
       setDeleteConfirmId(null);
     },
     onError: (err) => {
-      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     },
   });
 
@@ -197,10 +200,10 @@ export function CertificatesList() {
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
-            Πιστοποιητικά
+            {t('certificates.title')}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {certs.length} πιστοποιητικ{certs.length === 1 ? 'ό' : 'ά'} στο αρχείο
+            {certs.length} {certs.length === 1 ? t('certificates.countSingular') : t('certificates.countPlural')}
           </p>
         </div>
         <Button
@@ -213,7 +216,7 @@ export function CertificatesList() {
           )}
         >
           <Plus className="h-4 w-4" />
-          Νέο Πιστοποιητικό
+          {t('certificates.newCertificate')}
         </Button>
       </div>
 
@@ -223,9 +226,9 @@ export function CertificatesList() {
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
             <Inbox className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="mt-4 text-lg font-semibold">Κανένα πιστοποιητικό</h3>
+          <h3 className="mt-4 text-lg font-semibold">{t('certificates.noCertificates')}</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Προσθέστε τα πιστοποιητικά της εταιρείας σας.
+            {t('certificates.noCertificatesSub')}
           </p>
         </Card>
       ) : (
@@ -234,7 +237,7 @@ export function CertificatesList() {
             const expired = isExpired(cert.expiryDate);
             const expiringSoon = isExpiringSoon(cert.expiryDate);
             const typeLabel =
-              certificateTypes.find((t) => t.value === cert.type)?.label || cert.type;
+              certificateTypes.find((ct) => ct.value === cert.type)?.label || cert.type;
 
             return (
               <Card
@@ -285,17 +288,17 @@ export function CertificatesList() {
                       {expired ? (
                         <Badge variant="destructive" className="flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3" />
-                          Ληγμένο
+                          {t('common.expired')}
                         </Badge>
                       ) : expiringSoon ? (
                         <Badge variant="warning" className="flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3" />
-                          Λήγει σύντομα
+                          {t('common.expiringSoon')}
                         </Badge>
                       ) : (
                         <Badge variant="success" className="flex items-center gap-1">
                           <CheckCircle className="h-3 w-3" />
-                          Ενεργό
+                          {t('common.active')}
                         </Badge>
                       )}
                     </div>
@@ -309,7 +312,7 @@ export function CertificatesList() {
                         accept=".pdf,.jpg,.png,.doc,.docx"
                         onChange={(e) => {
                           if (e.target.files?.[0]) {
-                            toast({ title: 'Upload', description: 'Η μεταφόρτωση αρχείων θα υλοποιηθεί σύντομα.' });
+                            toast({ title: 'Upload', description: t('certificates.uploadComingSoon') });
                           }
                         }}
                       />
@@ -318,7 +321,7 @@ export function CertificatesList() {
                         size="icon"
                         onClick={() => fileInputRef.current?.click()}
                         className="cursor-pointer h-8 w-8"
-                        title="Μεταφόρτωση αρχείου"
+                        title={t('common.upload')}
                       >
                         <Upload className="h-4 w-4" />
                       </Button>
@@ -327,7 +330,7 @@ export function CertificatesList() {
                         size="icon"
                         onClick={() => openEdit(cert)}
                         className="cursor-pointer h-8 w-8"
-                        title="Επεξεργασία"
+                        title={t('common.edit')}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -336,7 +339,7 @@ export function CertificatesList() {
                         size="icon"
                         onClick={() => setDeleteConfirmId(cert.id)}
                         className="cursor-pointer h-8 w-8 text-destructive hover:text-destructive"
-                        title="Διαγραφή"
+                        title={t('common.delete')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -354,28 +357,28 @@ export function CertificatesList() {
         <DialogContent className="sm:max-w-[520px] border-white/10 bg-gradient-to-br from-card to-card/95 backdrop-blur-xl">
           <DialogHeader>
             <DialogTitle>
-              {editingId ? 'Επεξεργασία Πιστοποιητικού' : 'Νέο Πιστοποιητικό'}
+              {editingId ? t('certificates.editCertificate') : t('certificates.newCertificate')}
             </DialogTitle>
             <DialogDescription>
-              Συμπληρώστε τα στοιχεία του πιστοποιητικού.
+              {t('certificates.fillDetails')}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label>Τύπος *</Label>
+              <Label>{t('certificates.type')}</Label>
               <Controller
                 control={control}
                 name="type"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger className="cursor-pointer">
-                      <SelectValue placeholder="Επιλέξτε τύπο" />
+                      <SelectValue placeholder={t('certificates.selectType')} />
                     </SelectTrigger>
                     <SelectContent>
-                      {certificateTypes.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
+                      {certificateTypes.map((ct) => (
+                        <SelectItem key={ct.value} value={ct.value}>
+                          {ct.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -388,10 +391,10 @@ export function CertificatesList() {
             </div>
 
             <div className="space-y-2">
-              <Label>Τίτλος *</Label>
+              <Label>{t('certificates.certTitle')}</Label>
               <Input
                 {...register('title')}
-                placeholder="π.χ. ISO 9001:2015 Σύστημα Διαχείρισης Ποιότητας"
+                placeholder={t('certificates.certTitlePlaceholder')}
               />
               {errors.title && (
                 <p className="text-xs text-destructive">{errors.title.message}</p>
@@ -399,10 +402,10 @@ export function CertificatesList() {
             </div>
 
             <div className="space-y-2">
-              <Label>Εκδότης *</Label>
+              <Label>{t('certificates.issuer')}</Label>
               <Input
                 {...register('issuer')}
-                placeholder="π.χ. TUV Hellas"
+                placeholder={t('certificates.issuerPlaceholder')}
               />
               {errors.issuer && (
                 <p className="text-xs text-destructive">{errors.issuer.message}</p>
@@ -411,14 +414,14 @@ export function CertificatesList() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Ημ. Έκδοσης *</Label>
+                <Label>{t('certificates.issueDate')}</Label>
                 <Input type="date" {...register('issueDate')} className="cursor-pointer" />
                 {errors.issueDate && (
                   <p className="text-xs text-destructive">{errors.issueDate.message}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label>Ημ. Λήξης</Label>
+                <Label>{t('certificates.expiryDate')}</Label>
                 <Input type="date" {...register('expiryDate')} className="cursor-pointer" />
               </div>
             </div>
@@ -430,7 +433,7 @@ export function CertificatesList() {
                 onClick={closeDialog}
                 className="cursor-pointer"
               >
-                Ακύρωση
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -442,7 +445,7 @@ export function CertificatesList() {
                 )}
               >
                 {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editingId ? 'Ενημέρωση' : 'Δημιουργία'}
+                {editingId ? t('common.update') : t('common.create')}
               </Button>
             </DialogFooter>
           </form>
@@ -456,9 +459,9 @@ export function CertificatesList() {
       >
         <DialogContent className="sm:max-w-[400px] border-white/10 bg-gradient-to-br from-card to-card/95 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle>Επιβεβαίωση Διαγραφής</DialogTitle>
+            <DialogTitle>{t('common.deleteConfirmTitle')}</DialogTitle>
             <DialogDescription>
-              Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το πιστοποιητικό; Η ενέργεια δεν αναιρείται.
+              {t('certificates.deleteConfirm')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -467,7 +470,7 @@ export function CertificatesList() {
               onClick={() => setDeleteConfirmId(null)}
               className="cursor-pointer"
             >
-              Ακύρωση
+              {t('common.cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -476,7 +479,7 @@ export function CertificatesList() {
               className="cursor-pointer"
             >
               {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Διαγραφή
+              {t('common.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

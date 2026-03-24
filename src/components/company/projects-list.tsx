@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { cn, formatDate, formatCurrency } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslation } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,6 +60,7 @@ const categoryColors: Record<string, string> = {
 
 export function ProjectsList() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -70,34 +72,34 @@ export function ProjectsList() {
 
   const createMutation = trpc.company.createProject.useMutation({
     onSuccess: () => {
-      toast({ title: 'Επιτυχία', description: 'Το έργο δημιουργήθηκε.' });
+      toast({ title: t('common.success'), description: t('projects.projectCreated') });
       projectsQuery.refetch();
       closeDialog();
     },
     onError: (err) => {
-      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     },
   });
 
   const updateMutation = trpc.company.updateProject.useMutation({
     onSuccess: () => {
-      toast({ title: 'Επιτυχία', description: 'Το έργο ενημερώθηκε.' });
+      toast({ title: t('common.success'), description: t('projects.projectUpdated') });
       projectsQuery.refetch();
       closeDialog();
     },
     onError: (err) => {
-      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     },
   });
 
   const deleteMutation = trpc.company.deleteProject.useMutation({
     onSuccess: () => {
-      toast({ title: 'Διαγράφηκε', description: 'Το έργο διαγράφηκε.' });
+      toast({ title: t('common.deleted'), description: t('projects.projectDeleted') });
       projectsQuery.refetch();
       setDeleteConfirmId(null);
     },
     onError: (err) => {
-      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     },
   });
 
@@ -196,10 +198,10 @@ export function ProjectsList() {
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary" />
-            Έργα Εμπειρίας
+            {t('projects.title')}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {projects.length} έργ{projects.length === 1 ? 'ο' : 'α'} &middot; Συνολική αξία: {formatCurrency(totalValue)}
+            {projects.length} {projects.length === 1 ? t('projects.countSingular') : t('projects.countPlural')} &middot; {t('projects.totalValue')}: {formatCurrency(totalValue)}
           </p>
         </div>
         <Button
@@ -212,7 +214,7 @@ export function ProjectsList() {
           )}
         >
           <Plus className="h-4 w-4" />
-          Νέο Έργο
+          {t('projects.newProject')}
         </Button>
       </div>
 
@@ -222,9 +224,9 @@ export function ProjectsList() {
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
             <Inbox className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="mt-4 text-lg font-semibold">Κανένα έργο</h3>
+          <h3 className="mt-4 text-lg font-semibold">{t('projects.noProjects')}</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Προσθέστε τα έργα εμπειρίας της εταιρείας σας.
+            {t('projects.noProjectsSub')}
           </p>
         </Card>
       ) : (
@@ -261,7 +263,7 @@ export function ProjectsList() {
                           size="icon"
                           onClick={() => openEdit(project)}
                           className="cursor-pointer h-7 w-7"
-                          title="Επεξεργασία"
+                          title={t('common.edit')}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -270,7 +272,7 @@ export function ProjectsList() {
                           size="icon"
                           onClick={() => setDeleteConfirmId(project.id)}
                           className="cursor-pointer h-7 w-7 text-destructive hover:text-destructive"
-                          title="Διαγραφή"
+                          title={t('common.delete')}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -300,7 +302,7 @@ export function ProjectsList() {
                           {formatDate(project.startDate)}
                           {project.endDate
                             ? ` — ${formatDate(project.endDate)}`
-                            : ' — Σε εξέλιξη'}
+                            : ` — ${t('common.inProgress')}`}
                         </span>
                       </div>
                     </div>
@@ -324,19 +326,19 @@ export function ProjectsList() {
         <DialogContent className="sm:max-w-[560px] border-white/10 bg-gradient-to-br from-card to-card/95 backdrop-blur-xl">
           <DialogHeader>
             <DialogTitle>
-              {editingId ? 'Επεξεργασία Έργου' : 'Νέο Έργο Εμπειρίας'}
+              {editingId ? t('projects.editProject') : t('projects.newExperienceProject')}
             </DialogTitle>
             <DialogDescription>
-              Συμπληρώστε τα στοιχεία του έργου.
+              {t('projects.fillDetails')}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label>Τίτλος Έργου *</Label>
+              <Label>{t('projects.projectTitle')}</Label>
               <Input
                 {...register('title')}
-                placeholder="π.χ. Ολοκληρωμένο Σύστημα ERP"
+                placeholder={t('projects.projectTitlePlaceholder')}
               />
               {errors.title && (
                 <p className="text-xs text-destructive">{errors.title.message}</p>
@@ -345,20 +347,20 @@ export function ProjectsList() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Πελάτης / Αναθέτουσα Αρχή *</Label>
+                <Label>{t('projects.client')}</Label>
                 <Input
                   {...register('client')}
-                  placeholder="π.χ. Δήμος Αθηναίων"
+                  placeholder={t('projects.clientPlaceholder')}
                 />
                 {errors.client && (
                   <p className="text-xs text-destructive">{errors.client.message}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label>Κατηγορία *</Label>
+                <Label>{t('projects.category')}</Label>
                 <Input
                   {...register('category')}
-                  placeholder="π.χ. Πληροφορική"
+                  placeholder={t('projects.categoryPlaceholder')}
                 />
                 {errors.category && (
                   <p className="text-xs text-destructive">{errors.category.message}</p>
@@ -367,12 +369,12 @@ export function ProjectsList() {
             </div>
 
             <div className="space-y-2">
-              <Label>Ποσό Σύμβασης (EUR) *</Label>
+              <Label>{t('projects.contractAmount')}</Label>
               <Input
                 type="number"
                 step="0.01"
                 {...register('contractAmount')}
-                placeholder="π.χ. 250000"
+                placeholder={t('projects.contractAmountPlaceholder')}
               />
               {errors.contractAmount && (
                 <p className="text-xs text-destructive">{errors.contractAmount.message}</p>
@@ -381,23 +383,23 @@ export function ProjectsList() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Ημ. Έναρξης *</Label>
+                <Label>{t('projects.startDate')}</Label>
                 <Input type="date" {...register('startDate')} className="cursor-pointer" />
                 {errors.startDate && (
                   <p className="text-xs text-destructive">{errors.startDate.message}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label>Ημ. Λήξης</Label>
+                <Label>{t('projects.endDate')}</Label>
                 <Input type="date" {...register('endDate')} className="cursor-pointer" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Περιγραφή</Label>
+              <Label>{t('projects.description')}</Label>
               <Input
                 {...register('description')}
-                placeholder="Σύντομη περιγραφή του έργου..."
+                placeholder={t('projects.descriptionPlaceholder')}
               />
             </div>
 
@@ -408,7 +410,7 @@ export function ProjectsList() {
                 onClick={closeDialog}
                 className="cursor-pointer"
               >
-                Ακύρωση
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -420,7 +422,7 @@ export function ProjectsList() {
                 )}
               >
                 {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editingId ? 'Ενημέρωση' : 'Δημιουργία'}
+                {editingId ? t('common.update') : t('common.create')}
               </Button>
             </DialogFooter>
           </form>
@@ -434,9 +436,9 @@ export function ProjectsList() {
       >
         <DialogContent className="sm:max-w-[400px] border-white/10 bg-gradient-to-br from-card to-card/95 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle>Επιβεβαίωση Διαγραφής</DialogTitle>
+            <DialogTitle>{t('common.deleteConfirmTitle')}</DialogTitle>
             <DialogDescription>
-              Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το έργο; Η ενέργεια δεν αναιρείται.
+              {t('projects.deleteConfirm')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -445,7 +447,7 @@ export function ProjectsList() {
               onClick={() => setDeleteConfirmId(null)}
               className="cursor-pointer"
             >
-              Ακύρωση
+              {t('common.cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -454,7 +456,7 @@ export function ProjectsList() {
               className="cursor-pointer"
             >
               {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Διαγραφή
+              {t('common.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

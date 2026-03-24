@@ -1,42 +1,83 @@
 import type { AIProvider } from './types';
 import { ClaudeProvider } from './claude-provider';
 import { GeminiProvider } from './gemini-provider';
+import { FallbackProvider } from './fallback-provider';
 import { db } from '@/lib/db';
 
 /**
- * AI Provider factory.
- * Set AI_PROVIDER=gemini to use Google Gemini, or AI_PROVIDER=claude (default) for Anthropic Claude.
+ * Create a single AI provider instance from name + env vars.
  */
-export function getAIProvider(): AIProvider {
-  const provider = (process.env.AI_PROVIDER || 'claude').toLowerCase();
-
-  if (provider === 'gemini') {
+function createProvider(name: string): AIProvider | null {
+  if (name === 'gemini') {
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error(
-        'GEMINI_API_KEY is required when AI_PROVIDER=gemini. ' +
-        'Get an API key from https://aistudio.google.com/apikey'
-      );
-    }
+    if (!apiKey) return null;
     return new GeminiProvider({
       apiKey,
       model: process.env.AI_MODEL || 'gemini-2.0-flash',
     });
   }
 
-  // Default: Claude
-  const apiKey = process.env.AI_API_KEY;
-  if (!apiKey) {
+  if (name === 'claude') {
+    const apiKey = process.env.AI_API_KEY;
+    if (!apiKey) return null;
+    return new ClaudeProvider({
+      apiKey,
+      model: process.env.AI_MODEL || 'claude-sonnet-4-6',
+    });
+  }
+
+  return null;
+}
+
+/**
+ * AI Provider factory with automatic fallback.
+ *
+ * Config via env vars:
+ *   AI_PROVIDER=gemini            — primary provider
+ *   AI_FALLBACK_PROVIDERS=claude  — comma-separated fallback list (optional)
+ *
+ * If fallback providers are configured AND their API keys exist,
+ * returns a FallbackProvider that tries primary first, then fallbacks.
+ * Otherwise returns the primary provider directly (no overhead).
+ */
+export function getAIProvider(): AIProvider {
+  const primaryName = (process.env.AI_PROVIDER || 'gemini').toLowerCase();
+  const primary = createProvider(primaryName);
+
+  if (!primary) {
     throw new Error(
-      'AI_API_KEY is required. Set it in your .env file. ' +
-      'Get an API key from https://console.anthropic.com/'
+      `AI provider "${primaryName}" is not configured. ` +
+      'Check your API key environment variables (AI_API_KEY for Claude, GEMINI_API_KEY for Gemini).'
     );
   }
 
-  return new ClaudeProvider({
-    apiKey,
-    model: process.env.AI_MODEL || 'claude-sonnet-4-6',
-  });
+  // Check for fallback providers
+  const fallbackStr = (process.env.AI_FALLBACK_PROVIDERS || '').trim();
+  if (!fallbackStr) {
+    return primary;
+  }
+
+  const fallbackNames = fallbackStr.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const fallbacks: AIProvider[] = [];
+
+  for (const name of fallbackNames) {
+    if (name === primaryName) continue; // skip duplicate
+    const provider = createProvider(name);
+    if (provider) {
+      fallbacks.push(provider);
+    } else {
+      console.warn(`[AI] Fallback provider "${name}" skipped — API key not set.`);
+    }
+  }
+
+  if (fallbacks.length === 0) {
+    return primary;
+  }
+
+  console.log(
+    `[AI] Fallback chain: ${primary.name} → ${fallbacks.map((p) => p.name).join(' → ')}`
+  );
+  return new FallbackProvider([primary, ...fallbacks]);
 }
 
 // Singleton instance

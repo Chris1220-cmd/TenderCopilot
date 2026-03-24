@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { cn, formatDate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslation } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -87,6 +88,7 @@ function isExpiringSoon(dateStr?: string | null) {
 
 export function LegalDocsList() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -98,34 +100,34 @@ export function LegalDocsList() {
 
   const createMutation = trpc.company.createLegalDoc.useMutation({
     onSuccess: () => {
-      toast({ title: 'Επιτυχία', description: 'Το έγγραφο δημιουργήθηκε.' });
+      toast({ title: t('common.success'), description: t('legalDocs.documentCreated') });
       docsQuery.refetch();
       closeDialog();
     },
     onError: (err) => {
-      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     },
   });
 
   const updateMutation = trpc.company.updateLegalDoc.useMutation({
     onSuccess: () => {
-      toast({ title: 'Επιτυχία', description: 'Το έγγραφο ενημερώθηκε.' });
+      toast({ title: t('common.success'), description: t('legalDocs.documentUpdated') });
       docsQuery.refetch();
       closeDialog();
     },
     onError: (err) => {
-      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     },
   });
 
   const deleteMutation = trpc.company.deleteLegalDoc.useMutation({
     onSuccess: () => {
-      toast({ title: 'Διαγράφηκε', description: 'Το έγγραφο διαγράφηκε.' });
+      toast({ title: t('common.deleted'), description: t('legalDocs.documentDeleted') });
       docsQuery.refetch();
       setDeleteConfirmId(null);
     },
     onError: (err) => {
-      toast({ title: 'Σφάλμα', description: err.message, variant: 'destructive' });
+      toast({ title: t('common.error'), description: err.message, variant: 'destructive' });
     },
   });
 
@@ -203,10 +205,10 @@ export function LegalDocsList() {
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <FileCheck className="h-5 w-5 text-primary" />
-            Νομικά Έγγραφα
+            {t('legalDocs.title')}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {docs.length} έγγραφ{docs.length === 1 ? 'ο' : 'α'} στο αρχείο
+            {docs.length} {docs.length === 1 ? t('legalDocs.countSingular') : t('legalDocs.countPlural')}
           </p>
         </div>
         <Button
@@ -219,7 +221,7 @@ export function LegalDocsList() {
           )}
         >
           <Plus className="h-4 w-4" />
-          Νέο Έγγραφο
+          {t('legalDocs.newDocument')}
         </Button>
       </div>
 
@@ -229,9 +231,9 @@ export function LegalDocsList() {
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
             <Inbox className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="mt-4 text-lg font-semibold">Κανένα έγγραφο</h3>
+          <h3 className="mt-4 text-lg font-semibold">{t('legalDocs.noDocuments')}</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Προσθέστε τα νομικά έγγραφα της εταιρείας σας.
+            {t('legalDocs.noDocumentsSub')}
           </p>
         </Card>
       ) : (
@@ -293,17 +295,17 @@ export function LegalDocsList() {
                       {expired ? (
                         <Badge variant="destructive" className="flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3" />
-                          Ληγμένο
+                          {t('common.expired')}
                         </Badge>
                       ) : expiringSoon ? (
                         <Badge variant="warning" className="flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3" />
-                          Λήγει σύντομα
+                          {t('common.expiringSoon')}
                         </Badge>
                       ) : (
                         <Badge variant="success" className="flex items-center gap-1">
                           <CheckCircle className="h-3 w-3" />
-                          Ενεργό
+                          {t('common.active')}
                         </Badge>
                       )}
                     </div>
@@ -317,7 +319,7 @@ export function LegalDocsList() {
                         accept=".pdf,.jpg,.png,.doc,.docx"
                         onChange={(e) => {
                           if (e.target.files?.[0]) {
-                            toast({ title: 'Upload', description: 'Η μεταφόρτωση αρχείων θα υλοποιηθεί σύντομα.' });
+                            toast({ title: 'Upload', description: t('legalDocs.uploadComingSoon') });
                           }
                         }}
                       />
@@ -326,7 +328,7 @@ export function LegalDocsList() {
                         size="icon"
                         onClick={() => fileInputRef.current?.click()}
                         className="cursor-pointer h-8 w-8"
-                        title="Μεταφόρτωση αρχείου"
+                        title={t('common.upload')}
                       >
                         <Upload className="h-4 w-4" />
                       </Button>
@@ -335,7 +337,7 @@ export function LegalDocsList() {
                         size="icon"
                         onClick={() => openEdit(doc)}
                         className="cursor-pointer h-8 w-8"
-                        title="Επεξεργασία"
+                        title={t('common.edit')}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -344,7 +346,7 @@ export function LegalDocsList() {
                         size="icon"
                         onClick={() => setDeleteConfirmId(doc.id)}
                         className="cursor-pointer h-8 w-8 text-destructive hover:text-destructive"
-                        title="Διαγραφή"
+                        title={t('common.delete')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -362,23 +364,23 @@ export function LegalDocsList() {
         <DialogContent className="sm:max-w-[520px] border-white/10 bg-gradient-to-br from-card to-card/95 backdrop-blur-xl">
           <DialogHeader>
             <DialogTitle>
-              {editingId ? 'Επεξεργασία Εγγράφου' : 'Νέο Νομικό Έγγραφο'}
+              {editingId ? t('legalDocs.editDocument') : t('legalDocs.newLegalDocument')}
             </DialogTitle>
             <DialogDescription>
-              Συμπληρώστε τα στοιχεία του εγγράφου.
+              {t('legalDocs.fillDetails')}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label>Τύπος *</Label>
+              <Label>{t('legalDocs.type')}</Label>
               <Controller
                 control={control}
                 name="type"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger className="cursor-pointer">
-                      <SelectValue placeholder="Επιλέξτε τύπο" />
+                      <SelectValue placeholder={t('legalDocs.selectType')} />
                     </SelectTrigger>
                     <SelectContent>
                       {docTypes.map((t) => (
@@ -396,10 +398,10 @@ export function LegalDocsList() {
             </div>
 
             <div className="space-y-2">
-              <Label>Τίτλος *</Label>
+              <Label>{t('legalDocs.docTitle')}</Label>
               <Input
                 {...register('title')}
-                placeholder="π.χ. Φορολογική Ενημερότητα 2025"
+                placeholder={t('legalDocs.docTitlePlaceholder')}
               />
               {errors.title && (
                 <p className="text-xs text-destructive">{errors.title.message}</p>
@@ -408,14 +410,14 @@ export function LegalDocsList() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Ημ. Έκδοσης *</Label>
+                <Label>{t('legalDocs.issueDate')}</Label>
                 <Input type="date" {...register('issueDate')} className="cursor-pointer" />
                 {errors.issueDate && (
                   <p className="text-xs text-destructive">{errors.issueDate.message}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label>Ημ. Λήξης</Label>
+                <Label>{t('legalDocs.expiryDate')}</Label>
                 <Input type="date" {...register('expiryDate')} className="cursor-pointer" />
               </div>
             </div>
@@ -427,7 +429,7 @@ export function LegalDocsList() {
                 onClick={closeDialog}
                 className="cursor-pointer"
               >
-                Ακύρωση
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -439,7 +441,7 @@ export function LegalDocsList() {
                 )}
               >
                 {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editingId ? 'Ενημέρωση' : 'Δημιουργία'}
+                {editingId ? t('common.update') : t('common.create')}
               </Button>
             </DialogFooter>
           </form>
@@ -453,9 +455,9 @@ export function LegalDocsList() {
       >
         <DialogContent className="sm:max-w-[400px] border-white/10 bg-gradient-to-br from-card to-card/95 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle>Επιβεβαίωση Διαγραφής</DialogTitle>
+            <DialogTitle>{t('common.deleteConfirmTitle')}</DialogTitle>
             <DialogDescription>
-              Είστε σίγουροι ότι θέλετε να διαγράψετε αυτό το έγγραφο; Η ενέργεια δεν αναιρείται.
+              {t('legalDocs.deleteConfirm')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -464,7 +466,7 @@ export function LegalDocsList() {
               onClick={() => setDeleteConfirmId(null)}
               className="cursor-pointer"
             >
-              Ακύρωση
+              {t('common.cancel')}
             </Button>
             <Button
               variant="destructive"
@@ -473,7 +475,7 @@ export function LegalDocsList() {
               className="cursor-pointer"
             >
               {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Διαγραφή
+              {t('common.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
