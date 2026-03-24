@@ -150,6 +150,13 @@ export const aiRolesRouter = router({
       return aiBidOrchestrator.analyzeTeamRequirements(input.tenderId);
     }),
 
+  analyzeSubcontractorNeeds: protectedProcedure
+    .input(z.object({ tenderId: z.string(), language: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      return aiBidOrchestrator.analyzeSubcontractorNeeds(input.tenderId, input.language);
+    }),
+
   askQuestion: protectedProcedure
     .input(
       z.object({

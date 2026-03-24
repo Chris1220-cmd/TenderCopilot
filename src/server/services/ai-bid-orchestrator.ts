@@ -459,6 +459,38 @@ const TEAM_REQUIREMENTS_SYSTEM_PROMPT = `Είσαι ειδικός σε ανθρ
   ]
 }`;
 
+const SUBCONTRACTOR_NEEDS_SYSTEM_PROMPT = `Είσαι ειδικός σύμβουλος δημοσίων συμβάσεων στην Ελλάδα (Ν.4412/2016).
+Αναλύεις τεύχη διαγωνισμών και εντοπίζεις ΕΞΩΤΕΡΙΚΟΥΣ ΠΟΡΟΥΣ που θα χρειαστεί ο ανάδοχος:
+
+1. ΥΠΕΡΓΟΛΑΒΟΙ (SUBCONTRACTOR): Εξωτερικά συνεργεία/τεχνίτες για εκτέλεση εργασιών
+   - Υδραυλικοί, ηλεκτρολόγοι, ψυκτικοί, ελαιοχρωματιστές, κλπ.
+   - Εξειδικευμένοι τεχνικοί (πυροσβεστικά, ανελκυστήρες, κλιματισμός, κλπ.)
+
+2. ΠΡΟΜΗΘΕΥΤΕΣ (SUPPLIER): Προμηθευτές υλικών/εξοπλισμού
+   - Υλικά κατασκευής, ανταλλακτικά, εξοπλισμός
+   - Ειδικά υλικά που απαιτεί η σύμβαση
+
+ΔΕΝ περιλαμβάνεις:
+- Εσωτερικό προσωπικό/στελέχη (αυτά καλύπτονται από TeamRequirements)
+- Πιστοποιητικά/έγγραφα εταιρείας (αυτά καλύπτονται από TenderRequirements)
+- Εγγυητικές επιστολές
+- Χρηματοοικονομικά (budget, τιμολόγηση)
+
+Απάντησε ΜΟΝΟ σε JSON:
+{
+  "needs": [
+    {
+      "specialty": "Αδειούχος ηλεκτρολόγος εγκαταστάτης",
+      "kind": "SUBCONTRACTOR",
+      "reason": "Άρθρο 4.3 — Ηλεκτρολογικές εγκαταστάσεις νέου πίνακα",
+      "isMandatory": true,
+      "requiredCerts": ["Άδεια ηλεκτρολόγου Γ' ειδικότητας"]
+    }
+  ]
+}
+
+Αν δεν υπάρχουν εξωτερικοί πόροι, επέστρεψε {"needs": []}.`;
+
 const STATUS_SYSTEM_PROMPT = `Είσαι ο AI Bid Manager του TenderCopilot. Απαντάς σε ερωτήσεις κατάστασης
 σχετικά με τη διαδικασία προετοιμασίας προσφοράς. Μιλάς ελληνικά, σύντομα
 και περιεκτικά, σαν να μιλάς σε meeting ομάδας.
@@ -1365,6 +1397,112 @@ class AIBidOrchestrator {
     });
 
     return createdRequirements;
+  }
+
+  /**
+   * Analyze tender documents to identify external subcontractor and supplier needs.
+   * Graceful failure — returns empty array on AI error.
+   */
+  async analyzeSubcontractorNeeds(tenderId: string, language: string = 'el') {
+    const tender = await db.tender.findUniqueOrThrow({
+      where: { id: tenderId },
+      include: {
+        requirements: true,
+        brief: true,
+      },
+    });
+
+    // Build context (same pattern as analyzeTeamRequirements)
+    const contextParts: string[] = [];
+    contextParts.push(`Τίτλος Διαγωνισμού: ${tender.title}`);
+    if (tender.brief) {
+      contextParts.push(`Σύνοψη: ${tender.brief.summaryText}`);
+    }
+
+    if (tender.requirements.length > 0) {
+      contextParts.push('\n--- Απαιτήσεις Διαγωνισμού ---');
+      for (const req of tender.requirements) {
+        contextParts.push(`[${req.category}${req.mandatory ? ', ΥΠΟΧΡΕΩΤΙΚΟ' : ''}] ${req.text}`);
+      }
+    }
+
+    const contextText = contextParts.join('\n');
+
+    let extractedNeeds: Array<{
+      specialty: string;
+      kind: 'SUBCONTRACTOR' | 'SUPPLIER';
+      reason: string;
+      isMandatory: boolean;
+      requiredCerts: string[];
+    }> = [];
+
+    try {
+      const aiResult = await ai().complete({
+        messages: [
+          { role: 'system', content: SUBCONTRACTOR_NEEDS_SYSTEM_PROMPT },
+          {
+            role: 'user',
+            content: `Εξάγαγε τους εξωτερικούς πόρους (υπεργολάβους & προμηθευτές) από τον διαγωνισμό:\n\n${contextText}`,
+          },
+        ],
+        maxTokens: 2000,
+        temperature: 0.2,
+        responseFormat: 'json',
+      });
+
+      const parsed = JSON.parse(aiResult.content);
+      extractedNeeds = parsed.needs || parsed;
+      if (!Array.isArray(extractedNeeds)) {
+        extractedNeeds = [];
+      }
+      // Log token usage
+      await logTokenUsage(tenderId, 'analyzeSubcontractorNeeds', {
+        input: aiResult.inputTokens || 0,
+        output: aiResult.outputTokens || 0,
+        total: aiResult.totalTokens || 0,
+      });
+    } catch (err) {
+      console.error('[BidOrchestrator] SubcontractorNeeds AI extraction failed:', err);
+      // Graceful failure — return empty, don't block pipeline
+      return [];
+    }
+
+    // Delete existing AI-generated needs (preserve manually added)
+    await db.subcontractorNeed.deleteMany({
+      where: {
+        tenderId,
+        isAiGenerated: true,
+      },
+    });
+
+    // Create SubcontractorNeed records
+    const createdNeeds = [];
+    for (const need of extractedNeeds) {
+      const validKind = need.kind === 'SUPPLIER' ? 'SUPPLIER' : 'SUBCONTRACTOR';
+      const record = await db.subcontractorNeed.create({
+        data: {
+          tenderId,
+          specialty: need.specialty || 'Άγνωστη ειδικότητα',
+          kind: validKind,
+          reason: need.reason || '',
+          isMandatory: need.isMandatory ?? false,
+          requiredCerts: Array.isArray(need.requiredCerts) ? need.requiredCerts : [],
+          isAiGenerated: true,
+        },
+      });
+      createdNeeds.push(record);
+    }
+
+    // Log activity
+    await db.activity.create({
+      data: {
+        tenderId,
+        action: 'subcontractor_needs_analyzed',
+        details: `Εντοπίστηκαν ${createdNeeds.length} εξωτερικοί πόροι (${createdNeeds.filter(n => n.isMandatory).length} υποχρεωτικοί)`,
+      },
+    });
+
+    return createdNeeds;
   }
 
   /**
