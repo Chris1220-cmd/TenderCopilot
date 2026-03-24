@@ -291,8 +291,7 @@ export default function NewTenderPage() {
         sourceUrl: tender.sourceUrl || null,
       });
 
-      toast({ title: 'Επιτυχής εισαγωγή', description: 'Ο διαγωνισμός δημιουργήθηκε. Τα έγγραφα φορτώνονται στο background.' });
-      router.push(`/tenders/${result.id}`);
+      toast({ title: '✓ Εισαγωγή επιτυχής', description: `"${tender.title.slice(0, 60)}..." — τα έγγραφα φορτώνονται στο background.` });
     } catch (err: any) {
       console.error('Import failed:', err);
     }
