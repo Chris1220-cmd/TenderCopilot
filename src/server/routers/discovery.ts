@@ -63,7 +63,7 @@ export const discoveryRouter = router({
           minBudget: z.number().optional(),
           maxBudget: z.number().optional(),
           platforms: z
-            .array(z.enum(['KIMDIS', 'DIAVGEIA', 'TED', 'ESIDIS', 'OTHER', 'PRIVATE', 'GOOGLE']))
+            .array(z.enum(['KIMDIS', 'DIAVGEIA', 'TED', 'ESIDIS', 'OTHER', 'PRIVATE', 'GOOGLE', 'EU_MEMBER']))
             .optional(),
           sources: z.array(z.string()).optional(),
           showAll: z.boolean().optional(),

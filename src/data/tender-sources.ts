@@ -4,10 +4,10 @@
 export interface TenderSource {
   id: string;
   name: string;
-  category: 'public' | 'deko' | 'eu' | 'private';
+  category: 'public' | 'deko' | 'eu' | 'eu_member' | 'private';
   categoryLabel: string;
   url: string;
-  country: 'GR' | 'EU';
+  country: string; // ISO 2-letter: 'GR', 'EU', 'FR', 'IT', 'GB', 'PL', 'NL', 'ES', 'DE', 'FI', 'CH', 'CZ', 'PT', 'SE', 'UA'
   defaultEnabled: boolean;
   supportsCpvFilter: boolean;
 }
@@ -36,6 +36,23 @@ export const TENDER_SOURCES: TenderSource[] = [
   { id: 'ted_gr',    name: 'TED (Ελλάδα)',   category: 'eu', categoryLabel: 'Ευρωπαϊκή Ένωση', url: 'https://api.ted.europa.eu', country: 'GR', defaultEnabled: true,  supportsCpvFilter: true },
   { id: 'ted_eu',    name: 'TED (Όλη η EU)', category: 'eu', categoryLabel: 'Ευρωπαϊκή Ένωση', url: 'https://api.ted.europa.eu', country: 'EU', defaultEnabled: false, supportsCpvFilter: true },
 
+  // ── EU Member States ─────────────────────────────────────
+  // API-based
+  { id: 'boamp',         name: 'BOAMP (Γαλλία)',           category: 'eu_member', categoryLabel: 'Ευρωπαϊκές Χώρες', url: 'https://boamp-datadila.opendatasoft.com', country: 'FR', defaultEnabled: true,  supportsCpvFilter: true },
+  { id: 'anac',          name: 'ANAC (Ιταλία)',            category: 'eu_member', categoryLabel: 'Ευρωπαϊκές Χώρες', url: 'https://dati.anticorruzione.it',          country: 'IT', defaultEnabled: true,  supportsCpvFilter: true },
+  { id: 'fts_uk',        name: 'Find a Tender (UK)',       category: 'eu_member', categoryLabel: 'Ευρωπαϊκές Χώρες', url: 'https://www.find-tender.service.gov.uk',  country: 'GB', defaultEnabled: true,  supportsCpvFilter: true },
+  { id: 'ezamowienia',   name: 'e-Zamówienia (Πολωνία)',   category: 'eu_member', categoryLabel: 'Ευρωπαϊκές Χώρες', url: 'https://ezamowienia.gov.pl',             country: 'PL', defaultEnabled: true,  supportsCpvFilter: false },
+  { id: 'tenderned',     name: 'TenderNed (Ολλανδία)',     category: 'eu_member', categoryLabel: 'Ευρωπαϊκές Χώρες', url: 'https://www.tenderned.nl',               country: 'NL', defaultEnabled: false, supportsCpvFilter: true },
+  { id: 'prozorro',      name: 'ProZorro (Ουκρανία)',      category: 'eu_member', categoryLabel: 'Ευρωπαϊκές Χώρες', url: 'https://prozorro.gov.ua',                country: 'UA', defaultEnabled: false, supportsCpvFilter: true },
+  // Scraping-based
+  { id: 'placsp',        name: 'PLACSP (Ισπανία)',         category: 'eu_member', categoryLabel: 'Ευρωπαϊκές Χώρες', url: 'https://contrataciondelestado.es/sindicacion/sindicacion_1143/licitacionesPerique.atom', country: 'ES', defaultEnabled: true,  supportsCpvFilter: false },
+  { id: 'bund_de',       name: 'Bund.de (Γερμανία)',       category: 'eu_member', categoryLabel: 'Ευρωπαϊκές Χώρες', url: 'https://www.service.bund.de/IMPORTE/Ausschreibungen/editor/Vergabe/index.html', country: 'DE', defaultEnabled: true,  supportsCpvFilter: false },
+  { id: 'hilma',         name: 'Hilma (Φινλανδία)',        category: 'eu_member', categoryLabel: 'Ευρωπαϊκές Χώρες', url: 'https://www.hankintailmoitukset.fi/en/',  country: 'FI', defaultEnabled: false, supportsCpvFilter: false },
+  { id: 'simap_ch',      name: 'simap.ch (Ελβετία)',       category: 'eu_member', categoryLabel: 'Ευρωπαϊκές Χώρες', url: 'https://www.simap.ch/shabforms/COMMON/search/searchresultList.jsf', country: 'CH', defaultEnabled: false, supportsCpvFilter: false },
+  { id: 'vestnik_cz',    name: 'Věstník (Τσεχία)',         category: 'eu_member', categoryLabel: 'Ευρωπαϊκές Χώρες', url: 'https://vvestnik.cz/',                   country: 'CZ', defaultEnabled: false, supportsCpvFilter: false },
+  { id: 'base_pt',       name: 'BASE.gov (Πορτογαλία)',    category: 'eu_member', categoryLabel: 'Ευρωπαϊκές Χώρες', url: 'https://www.base.gov.pt/Base4/en/Pesquisa/Search', country: 'PT', defaultEnabled: false, supportsCpvFilter: false },
+  { id: 'mercell',       name: 'Mercell (Σκανδιναβία)',    category: 'eu_member', categoryLabel: 'Ευρωπαϊκές Χώρες', url: 'https://www.mercell.com/en/tenders/search', country: 'SE', defaultEnabled: false, supportsCpvFilter: false },
+
   // ── Ιδιωτικοί / Aggregators ──────────────────────────────
   { id: 'contracts',    name: 'contracts.gr',     category: 'private',    categoryLabel: 'Ιδιωτικοί & Aggregators', url: 'https://www.contracts.gr/',                                country: 'GR', defaultEnabled: true,  supportsCpvFilter: false },
   { id: 'isupplies',    name: 'iSupplies',        category: 'private',    categoryLabel: 'Ιδιωτικοί & Aggregators', url: 'https://www.isupplies.gr/',                                country: 'GR', defaultEnabled: true,  supportsCpvFilter: false },
@@ -50,6 +67,7 @@ export const SOURCE_CATEGORIES = [
   { id: 'public',     label: 'Δημόσιος Τομέας' },
   { id: 'deko',       label: 'ΔΕΚΟ' },
   { id: 'eu',         label: 'Ευρωπαϊκή Ένωση' },
+  { id: 'eu_member',  label: 'Ευρωπαϊκές Χώρες' },
   { id: 'private',    label: 'Ιδιωτικοί & Aggregators' },
 ] as const;
 

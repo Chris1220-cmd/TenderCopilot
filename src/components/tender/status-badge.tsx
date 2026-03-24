@@ -152,6 +152,7 @@ const platformMap: Record<string, { label: string; className: string }> = {
   KIMDIS: { label: 'ΚΗΜΔΗΣ', className: 'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20' },
   OTHER: { label: 'Άλλο', className: 'bg-gray-500/15 text-gray-700 dark:text-gray-400 border-gray-500/20' },
   PRIVATE: { label: 'Ιδιωτικός Τομέας', className: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20' },
+  EU_MEMBER: { label: 'EU Member State', className: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/20' },
 };
 
 // ─── Generic Badge Component ────────────────────────────────

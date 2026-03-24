@@ -334,6 +334,7 @@ enum TenderPlatform {
   OTHER
   PRIVATE
   GOOGLE
+  EU_MEMBER
 }
 
 enum TenderStatus {

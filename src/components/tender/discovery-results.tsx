@@ -49,6 +49,7 @@ const platformColors: Record<string, string> = {
   KIMDIS: 'bg-teal-500/15 text-teal-700 dark:text-teal-400 border-teal-500/20',
   PRIVATE: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20',
   GOOGLE: 'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20',
+  EU_MEMBER: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/20',
 };
 
 const platformLabels: Record<string, string> = {
@@ -60,6 +61,7 @@ const platformLabels: Record<string, string> = {
   KIMDIS: 'ΚΗΜΔΗΣ',
   PRIVATE: 'Ιδιωτικός Τομέας',
   GOOGLE: 'Google',
+  EU_MEMBER: 'EU Member State',
 };
 
 function getRelevanceColor(score: number) {

@@ -33,7 +33,7 @@ export interface DiscoveredTender {
   title: string;
   referenceNumber: string;
   contractingAuthority: string;
-  platform: 'KIMDIS' | 'DIAVGEIA' | 'TED' | 'ESIDIS' | 'PRIVATE' | 'GOOGLE';
+  platform: 'KIMDIS' | 'DIAVGEIA' | 'TED' | 'ESIDIS' | 'PRIVATE' | 'GOOGLE' | 'EU_MEMBER';
   budget?: number;
   submissionDeadline?: Date;
   cpvCodes: string[];
@@ -52,7 +52,7 @@ export interface TenderSearchParams {
   keywords?: string[];
   minBudget?: number;
   maxBudget?: number;
-  platforms?: Array<'KIMDIS' | 'DIAVGEIA' | 'TED' | 'ESIDIS' | 'OTHER' | 'PRIVATE' | 'GOOGLE'>;
+  platforms?: Array<'KIMDIS' | 'DIAVGEIA' | 'TED' | 'ESIDIS' | 'OTHER' | 'PRIVATE' | 'GOOGLE' | 'EU_MEMBER'>;
   sources?: string[];  // source IDs from TENDER_SOURCES registry
   showAll?: boolean;
   country?: 'GR' | 'EU' | 'international' | 'all';
@@ -651,6 +651,509 @@ function detectPlatformFromResultUrl(url: string): DiscoveredTender['platform'] 
   return 'GOOGLE';
 }
 
+// ─── EU Member State APIs ────────────────────────────────────
+
+/**
+ * BOAMP (France) — Bulletin Officiel des Annonces des Marchés Publics
+ * OpenDataSoft API, no auth required.
+ * Docs: https://boamp-datadila.opendatasoft.com/explore/dataset/boamp/api/
+ */
+async function getLatestFromBOAMP(cpvCodes?: string[]): Promise<DiscoveredTender[]> {
+  try {
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const dateStr = threeMonthsAgo.toISOString().slice(0, 10);
+
+    let where = `datepublication >= '${dateStr}' AND nature IN ('APPEL_OFFRE', 'MARCHE')`;
+    if (cpvCodes && cpvCodes.length > 0) {
+      const cpvFilter = cpvCodes.slice(0, 3).map(c => `codecpv LIKE '${c.split('-')[0]}%'`).join(' OR ');
+      where += ` AND (${cpvFilter})`;
+    }
+
+    const params = new URLSearchParams({
+      rows: '20',
+      sort: '-datepublication',
+      where,
+    });
+
+    const res = await fetch(
+      `https://boamp-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/boamp/records?${params}`,
+      { signal: AbortSignal.timeout(12000) }
+    );
+
+    if (!res.ok) {
+      console.error(`[BOAMP] API error: ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    const records = data.results || [];
+
+    return records.slice(0, 20).map((r: any) => ({
+      title: r.objet || r.intitule || 'BOAMP Notice',
+      referenceNumber: r.idweb || r.reference || '',
+      contractingAuthority: r.nomacheteur || r.denomination || '',
+      platform: 'EU_MEMBER' as const,
+      budget: r.montant ? parseFloat(r.montant) : undefined,
+      submissionDeadline: safeDateOrUndefined(r.datelimitereponse),
+      cpvCodes: r.codecpv ? [r.codecpv] : [],
+      sourceUrl: r.idweb
+        ? `https://www.boamp.fr/avis/detail/${r.idweb}`
+        : `https://www.boamp.fr/`,
+      summary: r.descriptif || r.objet || undefined,
+      publishedAt: safeDate(r.datepublication),
+      country: 'FR',
+      sourceLabel: 'BOAMP (France)',
+      isPrivate: false,
+    }));
+  } catch (err) {
+    console.error('[BOAMP] Fetch error:', err);
+    return [];
+  }
+}
+
+/**
+ * ANAC (Italy) — Uses TED API filtered by buyer-country=ITA.
+ * ANAC's own data portal only offers bulk yearly JSON files (500MB+),
+ * so we use TED which indexes all Italian above-threshold tenders.
+ */
+async function getLatestFromANAC(cpvCodes?: string[]): Promise<DiscoveredTender[]> {
+  try {
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const dateStr = threeMonthsAgo.toISOString().slice(0, 10).replace(/-/g, '');
+
+    let query = `publication-date>=${dateStr} and buyer-country=ITA`;
+    if (cpvCodes && cpvCodes.length > 0) {
+      const cpvQ = cpvCodes.slice(0, 3).map(c => `cpv=${c.split('-')[0]}*`).join(' or ');
+      query += ` and (${cpvQ})`;
+    }
+
+    const res = await fetch('https://api.ted.europa.eu/v3/notices/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        query,
+        limit: 20,
+        page: 1,
+        fields: ['notice-title', 'publication-number', 'publication-date', 'deadline-receipt-tender-date-lot'],
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!res.ok) {
+      console.error(`[ANAC] TED-ITA API error: ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    const notices = data.notices || [];
+
+    return notices.slice(0, 20).map((n: any) => {
+      const pubNumber = n['publication-number'] || '';
+      const titleObj = n['notice-title'] || {};
+      const title = titleObj['ITA'] || titleObj['ENG'] || Object.values(titleObj)[0] as string || `TED-IT ${pubNumber}`;
+      const deadlineArr = n['deadline-receipt-tender-date-lot'];
+      const deadline = Array.isArray(deadlineArr) && deadlineArr.length > 0
+        ? safeDateOrUndefined(deadlineArr[0])
+        : undefined;
+
+      return {
+        title: typeof title === 'string' ? title.slice(0, 300) : `TED-IT ${pubNumber}`,
+        referenceNumber: pubNumber,
+        contractingAuthority: '',
+        platform: 'EU_MEMBER' as const,
+        budget: undefined,
+        submissionDeadline: deadline,
+        cpvCodes: [],
+        sourceUrl: `https://ted.europa.eu/en/notice/-/detail/${pubNumber}`,
+        summary: undefined,
+        publishedAt: safeDate(n['publication-date']),
+        country: 'IT',
+        sourceLabel: 'ANAC (Italy via TED)',
+        isPrivate: false,
+      };
+    });
+  } catch (err) {
+    console.error('[ANAC] Fetch error:', err);
+    return [];
+  }
+}
+
+/**
+ * Find a Tender (UK) — OCDS REST API
+ * No auth required. Post-Brexit UK procurement.
+ * Docs: https://www.find-tender.service.gov.uk/Developer/Documentation
+ */
+async function getLatestFromFTS(cpvCodes?: string[]): Promise<DiscoveredTender[]> {
+  try {
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const dateStr = threeMonthsAgo.toISOString().slice(0, 10);
+
+    const params = new URLSearchParams({
+      'publishedFrom': dateStr,
+      'publishedTo': new Date().toISOString().slice(0, 10),
+      'size': '20',
+      'sort': 'publishedDate:desc',
+    });
+
+    if (cpvCodes && cpvCodes.length > 0) {
+      params.set('cpvCodes', cpvCodes.slice(0, 5).map(c => c.split('-')[0]).join(','));
+    }
+
+    const res = await fetch(
+      `https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages?${params}`,
+      {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(12000),
+      }
+    );
+
+    if (!res.ok) {
+      console.error(`[FTS-UK] API error: ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    const releases = data.releases || [];
+
+    return releases.slice(0, 20).map((r: any) => {
+      const tender = r.tender || {};
+      const buyer = r.buyer || {};
+
+      return {
+        title: tender.title || tender.description || 'UK Tender',
+        referenceNumber: r.ocid || tender.id || '',
+        contractingAuthority: buyer.name || '',
+        platform: 'EU_MEMBER' as const,
+        budget: tender.value?.amount ?? undefined,
+        submissionDeadline: safeDateOrUndefined(tender.tenderPeriod?.endDate),
+        cpvCodes: tender.items?.flatMap((i: any) => i.classification?.id ? [i.classification.id] : []) || [],
+        sourceUrl: r.ocid
+          ? `https://www.find-tender.service.gov.uk/Notice/${r.ocid.split('-').pop()}`
+          : 'https://www.find-tender.service.gov.uk/',
+        summary: tender.description || undefined,
+        publishedAt: safeDate(r.date || r.publishedDate),
+        country: 'GB',
+        sourceLabel: 'Find a Tender (UK)',
+        isPrivate: false,
+      };
+    });
+  } catch (err) {
+    console.error('[FTS-UK] Fetch error:', err);
+    return [];
+  }
+}
+
+/**
+ * e-Zamówienia (Poland) — BZP notices
+ * Public REST API, no auth for reading.
+ * Docs: https://ezamowienia.gov.pl/pl/integracja/
+ */
+async function getLatestFromEZamowienia(): Promise<DiscoveredTender[]> {
+  try {
+    const res = await fetch(
+      'https://ezamowienia.gov.pl/mo-board/api/v1/notice?SortingColumnName=PublicationDate&SortingDirection=DESC&PageSize=20',
+      {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(12000),
+      }
+    );
+
+    if (!res.ok) {
+      console.error(`[eZam] API error: ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    const notices = data.elements || data.data || data.notices || [];
+
+    return notices.slice(0, 20).map((n: any) => ({
+      title: n.objectContract?.title || n.title || 'Polish Tender',
+      referenceNumber: n.bzpNumber || n.noticeNumber || '',
+      contractingAuthority: n.contractingAuthority?.officialName || n.organizationName || '',
+      platform: 'EU_MEMBER' as const,
+      budget: n.objectContract?.totalValue?.amount
+        ? parseFloat(n.objectContract.totalValue.amount)
+        : undefined,
+      submissionDeadline: safeDateOrUndefined(n.tenderSubmissionDeadlineDate),
+      cpvCodes: n.objectContract?.cpvMain?.code ? [n.objectContract.cpvMain.code] : [],
+      sourceUrl: n.bzpNumber
+        ? `https://ezamowienia.gov.pl/mo-public/bzp/notice/${n.bzpNumber}`
+        : 'https://ezamowienia.gov.pl/',
+      summary: n.objectContract?.shortDescription || undefined,
+      publishedAt: safeDate(n.publicationDate),
+      country: 'PL',
+      sourceLabel: 'e-Zamówienia (Poland)',
+      isPrivate: false,
+    }));
+  } catch (err) {
+    console.error('[eZam] Fetch error:', err);
+    return [];
+  }
+}
+
+/**
+ * TenderNed (Netherlands) — Dutch procurement platform
+ * REST API, account required (may fail without credentials).
+ * Docs: https://www.tenderned.nl/info/swagger/
+ */
+async function getLatestFromTenderNed(): Promise<DiscoveredTender[]> {
+  try {
+    const res = await fetch(
+      'https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties?pageSize=20&sort=-publicatiedatum',
+      {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+        signal: AbortSignal.timeout(12000),
+      }
+    );
+
+    if (!res.ok) {
+      console.error(`[TenderNed] API error: ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    const publications = data.publicaties || data.content || data.results || [];
+
+    return publications.slice(0, 20).map((p: any) => ({
+      title: p.omschrijving || p.titel || 'Dutch Tender',
+      referenceNumber: p.publicatienummer || p.referentienummer || '',
+      contractingAuthority: p.aanbestedendeDienst?.naam || '',
+      platform: 'EU_MEMBER' as const,
+      budget: p.geraamdTotaalBedrag ? parseFloat(p.geraamdTotaalBedrag) : undefined,
+      submissionDeadline: safeDateOrUndefined(p.sluitingsdatumInschrijving),
+      cpvCodes: p.cpvCodes || [],
+      sourceUrl: p.publicatienummer
+        ? `https://www.tenderned.nl/aankondigingen/overzicht/publicatie/${p.publicatienummer}`
+        : 'https://www.tenderned.nl/',
+      summary: p.omschrijving || undefined,
+      publishedAt: safeDate(p.publicatiedatum),
+      country: 'NL',
+      sourceLabel: 'TenderNed (Netherlands)',
+      isPrivate: false,
+    }));
+  } catch (err) {
+    console.error('[TenderNed] Fetch error:', err);
+    return [];
+  }
+}
+
+/**
+ * ProZorro (Ukraine) — Open procurement API
+ * Full REST API, OCDS-compliant, no auth.
+ * Docs: https://prozorro-api-docs.readthedocs.io/en/master/
+ */
+async function getLatestFromProZorro(cpvCodes?: string[]): Promise<DiscoveredTender[]> {
+  try {
+    // Use opt_fields to get actual tender data from the list endpoint
+    const params = new URLSearchParams({
+      descending: '1',
+      limit: '20',
+      mode: '_all_',
+      opt_fields: 'title,title_en,tenderID,procuringEntity,value,tenderPeriod,items,description,dateModified',
+    });
+
+    const res = await fetch(
+      `https://public.api.openprocurement.org/api/2.5/tenders?${params}`,
+      {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(15000),
+      }
+    );
+
+    if (!res.ok) {
+      console.error(`[ProZorro] API error: ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    const tenders = data.data || [];
+
+    return tenders.slice(0, 20).map((t: any) => ({
+      title: t.title_en || t.title || 'Ukrainian Tender',
+      referenceNumber: t.tenderID || t.id || '',
+      contractingAuthority: t.procuringEntity?.name || '',
+      platform: 'EU_MEMBER' as const,
+      budget: t.value?.amount ? parseFloat(String(t.value.amount)) : undefined,
+      submissionDeadline: safeDateOrUndefined(t.tenderPeriod?.endDate),
+      cpvCodes: t.items?.map((i: any) => i.classification?.id).filter(Boolean) || [],
+      sourceUrl: t.tenderID
+        ? `https://prozorro.gov.ua/tender/${t.tenderID}`
+        : 'https://prozorro.gov.ua/',
+      summary: t.description || t.title_en || undefined,
+      publishedAt: safeDate(t.dateModified || t.date),
+      country: 'UA',
+      sourceLabel: 'ProZorro (Ukraine)',
+      isPrivate: false,
+    }));
+  } catch (err) {
+    console.error('[ProZorro] Fetch error:', err);
+    return [];
+  }
+}
+
+// ─── EU Scraping Sources ─────────────────────────────────────
+
+/** Multilingual tender keywords for EU scraping */
+const EU_TENDER_KEYWORDS = [
+  // English
+  'tender', 'procurement', 'rfp', 'rfq', 'contract notice', 'call for',
+  // French
+  'appel d\'offres', 'marché public', 'avis de marché',
+  // German
+  'ausschreibung', 'vergabe', 'öffentliche', 'bekanntmachung',
+  // Italian
+  'gara', 'appalto', 'bando',
+  // Spanish
+  'licitación', 'contratación', 'concurso',
+  // Portuguese
+  'concurso público', 'contratação',
+  // Swedish/Nordic
+  'upphandling', 'anbud',
+  // Czech
+  'zakázka', 'veřejná',
+  // Dutch
+  'aanbesteding', 'opdracht',
+];
+
+/**
+ * Generic EU page scraper — uses multilingual keywords.
+ * Reuses the same pattern as scrapeDEKOSource but with EU tender terms.
+ */
+async function scrapeEUSource(source: { id: string; name: string; url: string; country: string }): Promise<DiscoveredTender[]> {
+  try {
+    let html = '';
+    try {
+      const response = await fetch(source.url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'en,fr,de,es,it,nl,pt,sv,cs;q=0.9',
+        },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (response.ok) {
+        html = await response.text();
+      }
+    } catch {
+      // Direct fetch failed — try Jina Reader
+    }
+
+    if (!html) {
+      try {
+        const jinaRes = await fetch(`https://r.jina.ai/${source.url}`, {
+          headers: { 'Accept': 'text/html', 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(20000),
+        });
+        if (jinaRes.ok) {
+          html = await jinaRes.text();
+          console.log(`[EU-Scrape] ${source.name}: Jina fallback succeeded`);
+        }
+      } catch {
+        console.warn(`[EU-Scrape] ${source.name}: both direct and Jina failed`);
+        return [];
+      }
+    }
+
+    if (!html) return [];
+
+    const results: DiscoveredTender[] = [];
+    const linkRegex = /<a[^>]+href="([^"]*)"[^>]*>([^<]{8,300})<\/a>/gi;
+    let match: RegExpExecArray | null;
+
+    while ((match = linkRegex.exec(html)) !== null) {
+      const [, href, text] = match;
+      const lowerText = text.toLowerCase();
+      if (EU_TENDER_KEYWORDS.some(kw => lowerText.includes(kw))) {
+        const fullUrl = href.startsWith('http') ? href : new URL(href, source.url).href;
+        if (results.length >= 20) break;
+        results.push({
+          title: text.trim().replace(/\s+/g, ' '),
+          referenceNumber: '',
+          contractingAuthority: source.name,
+          platform: 'EU_MEMBER',
+          cpvCodes: [],
+          sourceUrl: fullUrl,
+          publishedAt: new Date(),
+          country: source.country,
+          sourceLabel: source.name,
+          isPrivate: false,
+        });
+      }
+    }
+
+    return results;
+  } catch (err) {
+    console.warn(`[EU-Scrape] ${source.name} scrape failed:`, (err as Error).message);
+    return [];
+  }
+}
+
+/**
+ * PLACSP (Spain) — Atom/RSS feed for public procurement
+ * Parses the Atom feed for recent contract notices.
+ */
+async function getLatestFromPLACSP(): Promise<DiscoveredTender[]> {
+  try {
+    const res = await fetch(
+      'https://contrataciondelestado.es/sindicacion/sindicacion_1143/licitacionesPerique.atom',
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          Accept: 'application/atom+xml, application/xml, text/xml',
+        },
+        signal: AbortSignal.timeout(15000),
+      }
+    );
+
+    if (!res.ok) {
+      console.error(`[PLACSP] Feed error: ${res.status}`);
+      return [];
+    }
+
+    const xml = await res.text();
+    const results: DiscoveredTender[] = [];
+
+    // Parse Atom entries from XML
+    const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi;
+    let entryMatch: RegExpExecArray | null;
+
+    while ((entryMatch = entryRegex.exec(xml)) !== null && results.length < 20) {
+      const entry = entryMatch[1];
+      const title = entry.match(/<title[^>]*>([\s\S]*?)<\/title>/)?.[1]?.trim() || '';
+      const link = entry.match(/<link[^>]+href="([^"]+)"/)?.[1] || '';
+      const updated = entry.match(/<updated>([\s\S]*?)<\/updated>/)?.[1]?.trim();
+      const summary = entry.match(/<summary[^>]*>([\s\S]*?)<\/summary>/)?.[1]?.trim() || '';
+
+      if (title) {
+        results.push({
+          title: title.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/<[^>]+>/g, ''),
+          referenceNumber: '',
+          contractingAuthority: '',
+          platform: 'EU_MEMBER',
+          cpvCodes: [],
+          sourceUrl: link || 'https://contrataciondelestado.es/',
+          summary: summary.replace(/<[^>]+>/g, '').slice(0, 300) || undefined,
+          publishedAt: safeDate(updated),
+          country: 'ES',
+          sourceLabel: 'PLACSP (Spain)',
+          isPrivate: false,
+        });
+      }
+    }
+
+    return results;
+  } catch (err) {
+    console.error('[PLACSP] Fetch error:', err);
+    return [];
+  }
+}
+
 // ─── Relevance Scoring ──────────────────────────────────────
 
 /**
@@ -792,6 +1295,37 @@ class TenderDiscoveryService {
           break;
         case 'promitheies':
           fetchers.push(scrapePromitheies());
+          break;
+        // ── EU Member State APIs ──
+        case 'boamp':
+          fetchers.push(getLatestFromBOAMP(cpvFilter));
+          break;
+        case 'anac':
+          fetchers.push(getLatestFromANAC(cpvFilter));
+          break;
+        case 'fts_uk':
+          fetchers.push(getLatestFromFTS(cpvFilter));
+          break;
+        case 'ezamowienia':
+          fetchers.push(getLatestFromEZamowienia());
+          break;
+        case 'tenderned':
+          fetchers.push(getLatestFromTenderNed());
+          break;
+        case 'prozorro':
+          fetchers.push(getLatestFromProZorro(cpvFilter));
+          break;
+        // ── EU Scraping sources ──
+        case 'placsp':
+          fetchers.push(getLatestFromPLACSP());
+          break;
+        case 'bund_de':
+        case 'hilma':
+        case 'simap_ch':
+        case 'vestnik_cz':
+        case 'base_pt':
+        case 'mercell':
+          fetchers.push(scrapeEUSource({ id: source.id, name: source.name, url: source.url, country: source.country }));
           break;
         default:
           // All DEKO and private sources use the generic scraper
