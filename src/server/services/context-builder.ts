@@ -169,9 +169,9 @@ export async function buildContext(
     }
   }
 
-  // 3. Structured data (for status_check, mixed)
-  if (intent === 'status_check' || intent === 'mixed') {
-    const [tasks, requirements] = await Promise.all([
+  // 3. Structured data (for status_check, mixed, guidance)
+  if (intent === 'status_check' || intent === 'mixed' || intent === 'guidance') {
+    const [tasks, requirements, subcontractorNeeds] = await Promise.all([
       db.task.findMany({
         where: { tenderId },
         select: { title: true, status: true, priority: true, dueDate: true },
@@ -179,6 +179,10 @@ export async function buildContext(
       db.tenderRequirement.findMany({
         where: { tenderId },
         select: { text: true, category: true, coverageStatus: true, mandatory: true },
+      }),
+      db.subcontractorNeed.findMany({
+        where: { tenderId },
+        select: { specialty: true, kind: true, status: true, isMandatory: true, assignedName: true },
       }),
     ]);
 
@@ -205,6 +209,26 @@ export async function buildContext(
         `=== ΑΠΑΙΤΗΣΕΙΣ ===\nΣύνολο: ${requirements.length} | Καλυμμένες: ${covered} | Κενά: ${gaps} | Μη αντιστοιχισμένες: ${unmapped}`
       );
       sources.push({ type: 'structured_data', reference: 'Requirements', content: `${requirements.length} requirements` });
+    }
+
+    if (subcontractorNeeds.length > 0) {
+      const pending = subcontractorNeeds.filter((n) => n.status === 'PENDING').length;
+      const inProgress = subcontractorNeeds.filter((n) => n.status === 'IN_PROGRESS').length;
+      const covered = subcontractorNeeds.filter((n) => n.status === 'COVERED').length;
+
+      let subText = `=== ΥΠΕΡΓΟΛΑΒΟΙ & ΠΡΟΜΗΘΕΥΤΕΣ ===\nΣύνολο: ${subcontractorNeeds.length} | Εκκρεμούν: ${pending} | Σε αναζήτηση: ${inProgress} | Βρέθηκαν: ${covered}`;
+
+      const missingNeeds = subcontractorNeeds.filter((n) => n.status !== 'COVERED');
+      if (missingNeeds.length > 0) {
+        subText += '\nΛείπουν: ' + missingNeeds.map((n) => {
+          const kindLabel = n.kind === 'SUPPLIER' ? 'Προμηθευτής' : 'Υπεργολάβος';
+          const mandatory = n.isMandatory ? ' (ΥΠΟΧΡΕΩΤΙΚΟ)' : '';
+          return `${n.specialty} [${kindLabel}]${mandatory}`;
+        }).join(', ');
+      }
+
+      contextParts.push(subText);
+      sources.push({ type: 'structured_data', reference: 'Subcontractors', content: `${subcontractorNeeds.length} needs` });
     }
   }
 
