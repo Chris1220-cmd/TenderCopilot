@@ -154,10 +154,11 @@ export default function LoginPage() {
               transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
               className="relative"
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-[0_0_40px_rgba(72,164,214,0.25)]">
-                <svg width="24" height="22" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M1 3.5h20M11 3.5v13.5" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-                  <path d="M14.5 9.5c2.5-0.5 5 0.8 5.2 3.5 0.2 2.5-1.8 4.2-4 4" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none"/>
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent shadow-[0_0_40px_rgba(72,164,214,0.25)]">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" opacity="0.9"/>
+                  <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
               {/* Pulse ring */}

@@ -223,11 +223,11 @@ export default function AuthLayout({
             <motion.div variants={itemVariants} className="relative">
               <div className="relative inline-flex">
                 <PulseRings />
-                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80">
-                  <svg width="26" height="24" viewBox="0 0 26 24" fill="none">
-                    <path d="M3 5h20" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M13 5v15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M17 11c3.5 0 5.5 2 5.5 4.5S21 20 17.5 20" stroke="white" strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" opacity="0.9"/>
+                    <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
               </div>
