@@ -149,20 +149,13 @@ export default function LoginPage() {
             animate="visible"
           >
             <motion.div
-              initial={{ scale: 0.7, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-              className="relative"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.2 }}
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent shadow-[0_0_30px_rgba(72,164,214,0.2)]">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" fillOpacity="0.9"/>
-                  <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              {/* Pulse ring */}
-              <div className="absolute -inset-1 rounded-2xl bg-primary/20 animate-ping opacity-20" style={{ animationDuration: '3s' }} />
+              <span className="text-[22px] font-semibold tracking-[-0.03em] text-foreground">
+                Tender<span className="text-primary">Copilot</span>
+              </span>
             </motion.div>
             <div className="space-y-1.5 text-center">
               <h1 className="text-2xl font-bold tracking-tight text-foreground">

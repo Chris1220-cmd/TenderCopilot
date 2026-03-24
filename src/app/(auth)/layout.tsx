@@ -93,12 +93,12 @@ export default function AuthLayout({
     <div className="relative flex min-h-screen overflow-hidden bg-background dark">
       {/* ===== Particles — FULL PAGE ===== */}
       <Particles
-        className="absolute inset-0 z-0"
-        quantity={50}
+        className="absolute inset-0 z-[1]"
+        quantity={80}
         color="#48A4D6"
-        staticity={30}
-        size={0.5}
-        ease={50}
+        staticity={20}
+        size={1.2}
+        ease={60}
       />
 
       <div className="relative z-10 grid w-full grid-cols-1 lg:grid-cols-2">
@@ -118,18 +118,9 @@ export default function AuthLayout({
           >
             {/* Logo — same as top-nav but bigger */}
             <motion.div variants={itemVariants}>
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" fillOpacity="0.9"/>
-                    <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <span className="text-[17px] font-semibold text-foreground tracking-[-0.01em]">
-                  TenderCopilot
-                </span>
-              </div>
+              <span className="text-[20px] font-semibold tracking-[-0.03em] text-foreground">
+                Tender<span className="text-primary">Copilot</span>
+              </span>
             </motion.div>
 
             {/* Title */}
