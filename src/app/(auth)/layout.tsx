@@ -19,13 +19,13 @@ const GLOBE_CONFIG = {
   devicePixelRatio: 2,
   phi: 0,
   theta: 0.25,
-  dark: 1,
-  diffuse: 1.2,
+  dark: 0,
+  diffuse: 0.4,
   mapSamples: 40000,
-  mapBrightness: 6,
-  baseColor: [0.6, 0.65, 0.75],
+  mapBrightness: 1.2,
+  baseColor: [0.12, 0.15, 0.2],
   markerColor: [72 / 255, 164 / 255, 214 / 255],
-  glowColor: [0.05, 0.1, 0.2],
+  glowColor: [0.06, 0.1, 0.18],
   markers: [
     { location: [37.9838, 23.7275], size: 0.08 },  // Athens
     { location: [40.6401, 22.9444], size: 0.06 },  // Thessaloniki
@@ -158,7 +158,10 @@ export default function AuthLayout({
             {/* Logo */}
             <motion.div variants={itemVariants}>
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-[0_0_30px_rgba(72,164,214,0.2)]">
-                <span className="text-base font-bold text-white tracking-tight">TC</span>
+                <svg width="22" height="20" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 3.5h20M11 3.5v13.5" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+                  <path d="M14.5 9.5c2.5-0.5 5 0.8 5.2 3.5 0.2 2.5-1.8 4.2-4 4" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none"/>
+                </svg>
               </div>
             </motion.div>
 

@@ -155,7 +155,10 @@ export default function LoginPage() {
               className="relative"
             >
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-[0_0_40px_rgba(72,164,214,0.25)]">
-                <span className="text-lg font-bold text-white tracking-tight">TC</span>
+                <svg width="24" height="22" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 3.5h20M11 3.5v13.5" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+                  <path d="M14.5 9.5c2.5-0.5 5 0.8 5.2 3.5 0.2 2.5-1.8 4.2-4 4" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none"/>
+                </svg>
               </div>
               {/* Pulse ring */}
               <div className="absolute -inset-1 rounded-2xl bg-primary/20 animate-ping opacity-20" style={{ animationDuration: '3s' }} />
