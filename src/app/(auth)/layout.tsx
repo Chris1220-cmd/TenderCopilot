@@ -1,117 +1,11 @@
 'use client';
 
-import { useRef, useCallback, useEffect, useState } from 'react';
+import { useRef, useCallback } from 'react';
 import { motion, useMotionValue, useMotionTemplate, useSpring } from 'motion/react';
 import { useTranslation } from '@/lib/i18n';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { BorderBeam } from '@/components/ui/border-beam';
-import { Layers } from 'lucide-react';
-
-/* ------------------------------------------------------------------ */
-/*  Animated grid — subtle perspective lines                           */
-/* ------------------------------------------------------------------ */
-function AnimatedGrid() {
-  return (
-    <div className="absolute inset-0 overflow-hidden">
-      {/* Horizontal lines */}
-      <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="line-fade" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="transparent" />
-            <stop offset="30%" stopColor="rgba(72,164,214,0.06)" />
-            <stop offset="70%" stopColor="rgba(72,164,214,0.06)" />
-            <stop offset="100%" stopColor="transparent" />
-          </linearGradient>
-        </defs>
-        {Array.from({ length: 12 }).map((_, i) => (
-          <line
-            key={`h-${i}`}
-            x1="0"
-            y1={`${(i + 1) * 8}%`}
-            x2="100%"
-            y2={`${(i + 1) * 8}%`}
-            stroke="url(#line-fade)"
-            strokeWidth="0.5"
-          />
-        ))}
-        {Array.from({ length: 8 }).map((_, i) => (
-          <line
-            key={`v-${i}`}
-            x1={`${(i + 1) * 12.5}%`}
-            y1="0"
-            x2={`${(i + 1) * 12.5}%`}
-            y2="100%"
-            stroke="rgba(72,164,214,0.03)"
-            strokeWidth="0.5"
-          />
-        ))}
-      </svg>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Floating orbs — abstract data points                               */
-/* ------------------------------------------------------------------ */
-function FloatingOrbs() {
-  const orbs = [
-    { x: '15%', y: '20%', size: 180, delay: 0, duration: 20 },
-    { x: '70%', y: '65%', size: 240, delay: 5, duration: 25 },
-    { x: '45%', y: '80%', size: 120, delay: 10, duration: 18 },
-  ];
-
-  return (
-    <>
-      {orbs.map((orb, i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full"
-          style={{
-            left: orb.x,
-            top: orb.y,
-            width: orb.size,
-            height: orb.size,
-            background: `radial-gradient(circle, rgba(72,164,214,0.06) 0%, transparent 70%)`,
-          }}
-          animate={{
-            x: [0, 30, -20, 0],
-            y: [0, -25, 15, 0],
-          }}
-          transition={{
-            duration: orb.duration,
-            repeat: Infinity,
-            delay: orb.delay,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
-    </>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Pulse rings — emanating from logo                                  */
-/* ------------------------------------------------------------------ */
-function PulseRings() {
-  return (
-    <div className="absolute -inset-8">
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute inset-0 rounded-2xl border border-primary/[0.08]"
-          initial={{ scale: 1, opacity: 0.15 }}
-          animate={{ scale: 1.8 + i * 0.3, opacity: 0 }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            delay: i * 1,
-            ease: 'easeOut',
-          }}
-        />
-      ))}
-    </div>
-  );
-}
+import { Particles } from '@/components/ui/particles';
 
 /* ------------------------------------------------------------------ */
 /*  Animation variants                                                 */
@@ -133,16 +27,15 @@ const itemVariants = {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Metric bar — animated horizontal bar                               */
+/*  Metric bar                                                         */
 /* ------------------------------------------------------------------ */
-function MetricBar({ value, max, color, delay }: { value: number; max: number; color: string; delay: number }) {
+function MetricBar({ value, delay }: { value: number; delay: number }) {
   return (
     <div className="h-1 w-full rounded-full bg-white/[0.04] overflow-hidden">
       <motion.div
-        className="h-full rounded-full"
-        style={{ background: color }}
+        className="h-full rounded-full bg-primary/25"
         initial={{ width: 0 }}
-        animate={{ width: `${(value / max) * 100}%` }}
+        animate={{ width: `${value}%` }}
         transition={{ duration: 1.2, delay, ease: [0.16, 1, 0.3, 1] }}
       />
     </div>
@@ -198,20 +91,23 @@ export default function AuthLayout({
 
   return (
     <div className="relative flex min-h-screen overflow-hidden bg-background dark">
+      {/* ===== Particles — FULL PAGE ===== */}
+      <Particles
+        className="absolute inset-0 z-0"
+        quantity={50}
+        color="#48A4D6"
+        staticity={30}
+        size={0.5}
+        ease={50}
+      />
+
       <div className="relative z-10 grid w-full grid-cols-1 lg:grid-cols-2">
         {/* ============================================= */}
         {/* LEFT: Brand panel                              */}
         {/* ============================================= */}
-        <div className="hidden lg:flex flex-col items-center justify-center relative border-r border-border/30 overflow-hidden">
-          {/* Animated grid */}
-          <AnimatedGrid />
-
-          {/* Floating orbs */}
-          <FloatingOrbs />
-
-          {/* Radial gradient ambience */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_25%_40%,rgba(72,164,214,0.05),transparent_55%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_75%_70%,rgba(72,164,214,0.03),transparent_50%)]" />
+        <div className="hidden lg:flex flex-col items-center justify-center relative border-r border-border/20 overflow-hidden">
+          {/* Radial ambience */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_25%_40%,rgba(72,164,214,0.04),transparent_55%)]" />
 
           {/* Content */}
           <motion.div
@@ -220,13 +116,19 @@ export default function AuthLayout({
             initial="hidden"
             animate="visible"
           >
-            {/* Logo mark */}
-            <motion.div variants={itemVariants} className="relative">
-              <div className="relative inline-flex">
-                <PulseRings />
-                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent">
-                  <Layers className="h-6 w-6 text-white" />
+            {/* Logo — same as top-nav but bigger */}
+            <motion.div variants={itemVariants}>
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" fillOpacity="0.9"/>
+                    <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
+                <span className="text-[17px] font-semibold text-foreground tracking-[-0.01em]">
+                  TenderCopilot
+                </span>
               </div>
             </motion.div>
 
@@ -253,14 +155,14 @@ export default function AuthLayout({
                       <span className="text-primary/60 text-sm">{stat.suffix}</span>
                     </span>
                   </div>
-                  <MetricBar value={stat.bar} max={100} color="rgba(72,164,214,0.25)" delay={0.8 + i * 0.2} />
+                  <MetricBar value={stat.bar} delay={0.8 + i * 0.2} />
                 </div>
               ))}
             </motion.div>
 
-            {/* Separator + badge */}
+            {/* Separator + live badge */}
             <motion.div variants={itemVariants} className="space-y-5">
-              <div className="h-px w-full bg-border/20" />
+              <div className="h-px w-full bg-border/15" />
               <div className="flex items-center gap-2.5">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-40" />
@@ -272,18 +174,12 @@ export default function AuthLayout({
               </div>
             </motion.div>
           </motion.div>
-
-          {/* Bottom fade */}
-          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent" />
-          <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-background to-transparent" />
         </div>
 
         {/* ============================================= */}
         {/* RIGHT: Auth form with premium card             */}
         {/* ============================================= */}
         <div className="flex items-center justify-center p-4 py-8 lg:p-12 relative">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(72,164,214,0.02),transparent_70%)]" />
-
           <motion.div
             className="w-full max-w-[420px] relative"
             initial={{ opacity: 0 }}
