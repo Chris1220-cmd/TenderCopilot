@@ -292,17 +292,17 @@ export default function NewTenderPage() {
         notes: tender.summary || null,
       });
 
-      // After creating the tender, fetch documents from the source URL (await before redirect)
+      toast({ title: 'Επιτυχής εισαγωγή', description: 'Ο διαγωνισμός δημιουργήθηκε. Τα έγγραφα φορτώνονται στο background.' });
+      router.push(`/tenders/${result.id}`);
+
+      // Fetch documents in background — don't block the user
       if (tender.sourceUrl) {
-        await fetchDocsMutation.mutateAsync({
+        fetchDocsMutation.mutate({
           tenderId: result.id,
           sourceUrl: tender.sourceUrl,
           platform: tender.platform || 'OTHER',
         });
       }
-
-      toast({ title: 'Επιτυχής εισαγωγή', description: 'Ο διαγωνισμός δημιουργήθηκε.' });
-      router.push(`/tenders/${result.id}`);
     } catch (err: any) {
       console.error('Import failed:', err);
     }
