@@ -21,6 +21,7 @@ import {
   ArrowRight,
   Wand2,
   Loader2,
+  Layers,
 } from 'lucide-react';
 
 const loginSchema = z.object({
@@ -155,11 +156,7 @@ export default function LoginPage() {
               className="relative"
             >
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent shadow-[0_0_40px_rgba(72,164,214,0.25)]">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" opacity="0.9"/>
-                  <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <Layers className="h-6 w-6 text-white" />
               </div>
               {/* Pulse ring */}
               <div className="absolute -inset-1 rounded-2xl bg-primary/20 animate-ping opacity-20" style={{ animationDuration: '3s' }} />

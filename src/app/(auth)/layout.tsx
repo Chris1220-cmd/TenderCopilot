@@ -5,6 +5,7 @@ import { motion, useMotionValue, useMotionTemplate, useSpring } from 'motion/rea
 import { useTranslation } from '@/lib/i18n';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { BorderBeam } from '@/components/ui/border-beam';
+import { Layers } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
 /*  Animated grid — subtle perspective lines                           */
@@ -224,11 +225,7 @@ export default function AuthLayout({
               <div className="relative inline-flex">
                 <PulseRings />
                 <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" opacity="0.9"/>
-                    <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                  <Layers className="h-6 w-6 text-white" />
                 </div>
               </div>
             </motion.div>
