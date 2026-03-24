@@ -104,9 +104,13 @@ New method in `ai-bid-orchestrator.ts`:
 ```
 
 **Behavior:**
-- Called as part of "Full Analysis" pipeline (after summarize, before go/no-go)
-- Deletes existing AI-generated SubcontractorNeeds before re-analysis (preserves manually added)
+- Called as part of "Full Analysis" pipeline. The actual current pipeline in `page.tsx` is: summarize → extractLegalClauses → assessLegalRisks → extractFinancials → goNoGo. Insert `analyzeSubcontractorNeeds()` after extractFinancials, before goNoGo.
+- Deletes existing AI-generated SubcontractorNeeds before re-analysis (preserves manually added via `isAiGenerated: false`). This deliberately diverges from `TeamRequirement` (which uses `mappedStaffName: null` heuristic) — the `isAiGenerated` flag is cleaner.
 - Generates guidance for each need (same pattern as fakelos guidance)
+- **Error handling:** Graceful failure — log error and return empty array. Do not block the rest of the analysis pipeline.
+- **Activity logging:** Create an Activity record like `analyzeTeamRequirements()` does.
+- **Token budget:** Follow existing `checkTokenBudget`/`logTokenUsage` pattern. Use requirements + brief as input (not full document text) to keep token usage low.
+- **Delete protection:** Router should check `tender.analysisInProgress` before allowing deletes of AI-generated items.
 
 ### 3. Fakelos Checker Integration
 
@@ -123,6 +127,11 @@ In `fakelos-checker.ts`, the `runCheck()` method:
 
 Update `classifyEnvelope()` — no change needed since SubcontractorNeeds are handled separately.
 
+**Type widening required:**
+- `FakelosEnvelope.id` union: `'A' | 'B' | 'C'` → `'A' | 'B' | 'C' | 'D'`
+- `envelopeMap` initialization: add `D: []`
+- **Critical — `FakelosItem` discriminator:** Add `itemType: 'requirement' | 'subcontractor'` field to `FakelosItem`. The `requirementId` field becomes `itemId` (or keep `requirementId` and add `itemType`). The `markStatus` mutation in the UI must route to the correct table based on `itemType`. For subcontractor items, `requirementId` holds the `SubcontractorNeed.id`.
+
 Update `ENVELOPE_TITLES`:
 ```typescript
 const ENVELOPE_TITLES: Record<'A' | 'B' | 'C' | 'D', string> = {
@@ -134,6 +143,10 @@ const ENVELOPE_TITLES: Record<'A' | 'B' | 'C' | 'D', string> = {
 ```
 
 ### 4. UI — Fakelos Tab Updates
+
+#### Config updates
+- `envelopeConfig`: Add `D: { letter: 'Δ', gradient: 'from-orange-600 to-amber-500', ring: 'ring-orange-500/30' }`
+- `openEnvelopes` default: `new Set(['A', 'B', 'C', 'D'])`
 
 #### Envelope Δ appearance
 Same card style as A/B/C envelopes but with distinct icon/color:
@@ -186,16 +199,15 @@ No changes to the assistant's system prompt needed — it already responds to co
 
 ### 7. Analysis Pipeline Integration
 
-In the "Full Analysis" button flow (tender detail page), add `analyzeSubcontractorNeeds()` as a step:
+In the "Full Analysis" button flow (tender detail page `runFullAnalysis()`), add `analyzeSubcontractorNeeds()` as a step. The actual current pipeline is:
 
 ```
-1. summarizeTender()
-2. analyzeRequirements()        ← existing
-3. analyzeTeamRequirements()    ← existing
-4. analyzeSubcontractorNeeds()  ← NEW
-5. analyzeLegalClauses()        ← existing
-6. analyzeFinancials()          ← existing
-7. goNoGoAnalysis()             ← existing
+1. summarizeTender()             ← existing
+2. extractLegalClauses()         ← existing
+3. assessLegalRisks()            ← existing
+4. extractFinancials()           ← existing
+5. analyzeSubcontractorNeeds()   ← NEW (insert here)
+6. goNoGoAnalysis()              ← existing
 ```
 
 ### 8. i18n
