@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { NoDocumentsAlert } from './no-documents-alert';
+import { PublishedClarifications } from './published-clarifications';
 import { LanguageModal, type AnalysisLanguage } from './language-modal';
 import {
   GlassCard,
@@ -630,6 +631,11 @@ export function LegalTab({ tenderId, sourceUrl, platform }: LegalTabProps) {
           </div>
         </GlassCardContent>
       </GlassCard>
+
+      {/* Published Clarifications (Feature 3) */}
+      <BlurFade delay={0.2} inView>
+        <PublishedClarifications tenderId={tenderId} />
+      </BlurFade>
 
       {/* Clause Detail Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
