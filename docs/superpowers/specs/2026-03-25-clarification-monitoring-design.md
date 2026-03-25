@@ -50,9 +50,10 @@ model Tender {
 }
 ```
 
-**`TenderAlert`** — two new type values (no schema change):
-- `CLARIFICATION_CHECK_REMINDER` — "Time to check for new clarifications"
-- `CLARIFICATION_NEW_UNREAD` — "X new published clarifications added"
+**`TenderAlert`** — one new type value (no schema change):
+- `CLARIFICATION_NEW_UNREAD` — created by `addPublishedClarification` to notify the user. Dismissed when user reads all clarifications.
+
+Note: Reminders for checking portals are computed on-the-fly by `getClarificationReminders` — no stored alerts needed.
 
 ### Reminder Escalation Logic
 
@@ -79,12 +80,12 @@ All added to the existing `ai-roles.ts` router (same router that manages Clarifi
 
 | Procedure | Type | Description |
 |-----------|------|-------------|
-| `addPublishedClarification` | mutation | Create ClarificationQuestion with source="AUTHORITY_PUBLISHED", publishedAt, sourceUrl, isRead=false |
+| `addPublishedClarification` | mutation | Create ClarificationQuestion with source="AUTHORITY_PUBLISHED", status="ANSWERED", publishedAt, sourceUrl, isRead=false. Also creates a `CLARIFICATION_NEW_UNREAD` TenderAlert for the tender. |
 | `listPublishedClarifications` | query | Return all published clarifications for a tender, ordered by publishedAt desc |
 | `markClarificationRead` | mutation | Set isRead=true on a specific clarification |
-| `markClarificationsChecked` | mutation | Set tender.lastClarificationCheckAt=now, dismiss CLARIFICATION_CHECK_REMINDER alerts for that tender |
-| `getClarificationReminders` | query | Return list of active tenders needing a clarification check (for dashboard widget) |
-| `getUnreadCount` | query | Return count of unread published clarifications per tender (for tab badge) |
+| `markClarificationsChecked` | mutation | Set tender.lastClarificationCheckAt=now |
+| `getClarificationReminders` | query | Return list of active tenders needing a clarification check (computed on-the-fly, no stored alerts) |
+| `getUnreadCount` | query | Input: `{ tenderId: string }`. Return count of unread published clarifications for that tender (for tab badge) |
 
 ### Input/Output
 
@@ -202,6 +203,15 @@ New keys under `clarifications.*`:
 | `clarifications.allChecked` | Όλοι οι διαγωνισμοί είναι ενήμεροι | All tenders are up to date |
 | `clarifications.daysSinceCheck` | {{days}} ημ. από τελευταίο έλεγχο | {{days}} days since last check |
 | `clarifications.checkedNow` | Σημειώθηκε ως ελεγμένο | Marked as checked |
+
+---
+
+## Implementation Notes
+
+- **Existing query update required:** The `getLegalClauses` query in `ai-roles.ts` currently returns all ClarificationQuestion records for a tender. After adding the `source` field, update it to filter `where: { source: 'AI_GENERATED' }` so the existing draft clarifications section in LegalTab continues to show only AI-generated items.
+- **Status for published clarifications:** Always set `status: 'ANSWERED'` when creating via `addPublishedClarification`, since these are published authority responses.
+- **Loading/pending states:** All mutation buttons should show spinner + disabled state while pending, following the existing `isPending` pattern from tRPC mutations used throughout the codebase.
+- **`getUnreadCount` input:** Takes `{ tenderId: string }` — used by the tab badge in tender detail page.
 
 ---
 
