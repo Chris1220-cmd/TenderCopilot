@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '@/server/trpc';
 import { fetchDocumentsForTender } from '@/server/services/document-fetcher';
+import { generateDeadlinePlanForTender } from './deadline-plan';
 
 const tenderStatusEnum = z.enum([
   'DISCOVERY',
@@ -130,6 +131,13 @@ export const tenderRouter = router({
           cpvCodes: tenderData.cpvCodes ?? [],
         },
       });
+
+      if (tender.submissionDeadline) {
+        // Fire-and-forget — don't block tender creation
+        generateDeadlinePlanForTender(tender.id, ctx.tenantId!).catch((e) =>
+          console.error('Deadline plan auto-generation failed:', e)
+        );
+      }
 
       // Fire-and-forget: fetch documents in background (don't block the response)
       if (sourceUrl) {
