@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { ExpiringCertsWidget } from '@/components/dashboard/expiring-certs-widget';
+import { ClarificationRemindersWidget } from '@/components/dashboard/clarification-reminders-widget';
 import { EmptyStateIllustration } from '@/components/ui/empty-state';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { Particles } from '@/components/ui/particles';
@@ -333,6 +334,7 @@ export default function DashboardPage() {
       <BlurFade delay={0.25} inView>
         <div className="grid gap-6 lg:grid-cols-5">
           <ExpiringCertsWidget />
+          <ClarificationRemindersWidget />
         </div>
       </BlurFade>
     </motion.div>
