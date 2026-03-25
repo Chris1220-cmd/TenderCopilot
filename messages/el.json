@@ -692,5 +692,29 @@
     "noExpiring": "Όλα τα πιστοποιητικά είναι ενήμερα",
     "affectedTenders": "{{count}} διαγωνισμοί επηρεάζονται",
     "allGood": "Κανένα πιστοποιητικό δεν λήγει σύντομα"
+  },
+  "clarifications": {
+    "publishedTitle": "Δημοσιευμένες Διευκρινίσεις",
+    "addNew": "Προσθήκη",
+    "markChecked": "Έλεγξα για νέες",
+    "lastChecked": "Τελευταίος έλεγχος: {{date}}",
+    "questionLabel": "Ερώτηση",
+    "answerLabel": "Απάντηση",
+    "publishedAt": "Δημοσιεύτηκε {{date}}",
+    "sourceLink": "Πηγή",
+    "aiAnalysis": "Ανάλυση AI",
+    "comingSoon": "Σύντομα διαθέσιμο",
+    "noPublished": "Δεν υπάρχουν δημοσιευμένες διευκρινίσεις",
+    "checkPortal": "Ελέγξτε το ΕΣΗΔΗΣ για νέες",
+    "newUnread": "{{count}} νέες διευκρινίσεις",
+    "seeInLegal": "Δες τες στο tab Νομικά",
+    "remindersTitle": "Έλεγχος Διευκρινίσεων",
+    "allChecked": "Όλοι οι διαγωνισμοί είναι ενήμεροι",
+    "daysSinceCheck": "{{days}} ημ. από τελευταίο έλεγχο",
+    "checkedNow": "Σημειώθηκε ως ελεγμένο",
+    "publishedDate": "Ημ. Δημοσίευσης",
+    "sourceLinkPlaceholder": "https://portal.eprocurement.gov.gr/...",
+    "questionPlaceholder": "Η ερώτηση που υποβλήθηκε...",
+    "answerPlaceholder": "Η απάντηση της αναθέτουσας..."
   }
 }

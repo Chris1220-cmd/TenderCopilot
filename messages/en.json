@@ -692,5 +692,29 @@
     "noExpiring": "All certificates are up to date",
     "affectedTenders": "{{count}} tenders affected",
     "allGood": "No certificates expiring soon"
+  },
+  "clarifications": {
+    "publishedTitle": "Published Clarifications",
+    "addNew": "Add",
+    "markChecked": "Checked for new",
+    "lastChecked": "Last checked: {{date}}",
+    "questionLabel": "Question",
+    "answerLabel": "Answer",
+    "publishedAt": "Published {{date}}",
+    "sourceLink": "Source",
+    "aiAnalysis": "AI Analysis",
+    "comingSoon": "Coming soon",
+    "noPublished": "No published clarifications",
+    "checkPortal": "Check ESIDIS for new ones",
+    "newUnread": "{{count}} new clarifications",
+    "seeInLegal": "See them in Legal tab",
+    "remindersTitle": "Clarification Checks",
+    "allChecked": "All tenders are up to date",
+    "daysSinceCheck": "{{days}} days since last check",
+    "checkedNow": "Marked as checked",
+    "publishedDate": "Published Date",
+    "sourceLinkPlaceholder": "https://portal.eprocurement.gov.gr/...",
+    "questionPlaceholder": "The question submitted...",
+    "answerPlaceholder": "The authority's answer..."
   }
 }
