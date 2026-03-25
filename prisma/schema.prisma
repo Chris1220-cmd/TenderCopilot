@@ -325,6 +325,9 @@ model Tender {
   // Deadline Planner
   deadlinePlanItems DeadlinePlanItem[]
 
+  // Clarification Monitoring
+  lastClarificationCheckAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -716,6 +719,12 @@ model ClarificationQuestion {
   tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
   clauseId String?
   clause   LegalClause? @relation(fields: [clauseId], references: [id], onDelete: SetNull)
+
+  // Clarification Monitoring (Feature 3)
+  source      String    @default("AI_GENERATED") // "AI_GENERATED" | "AUTHORITY_PUBLISHED"
+  publishedAt DateTime?
+  sourceUrl   String?
+  isRead      Boolean   @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
