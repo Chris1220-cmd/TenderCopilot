@@ -222,10 +222,9 @@ export function OverviewTab({ tender }: OverviewTabProps) {
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3">
           <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
           <span className="text-sm text-destructive font-medium">
-            {t('deadline.healthBanner', {
-              overdue: String(healthCheck.overdue),
-              expired: String(healthCheck.expired),
-            })}
+            {t('deadline.healthBanner')
+              .replace('{overdue}', String(healthCheck.overdue))
+              .replace('{expired}', String(healthCheck.expired))}
           </span>
           <button
             className="ml-auto text-xs text-destructive underline cursor-pointer"
