@@ -35,6 +35,7 @@ import { AIAssistantButton, AIAssistantPanel } from '@/components/tender/ai-assi
 import { OutcomePanel } from '@/components/tender/outcome-panel';
 import { MissingInfoPanel } from '@/components/tender/missing-info-panel';
 import { FakelosTab } from '@/components/tender/fakelos-tab';
+import { DeadlinePlannerTab } from '@/components/tender/deadline-planner-tab';
 import { useTranslation } from '@/lib/i18n';
 import {
   ChevronRight,
@@ -53,6 +54,7 @@ import {
   Wrench,
   Loader2,
   FolderCheck,
+  CalendarClock,
 } from 'lucide-react';
 
 const containerVariants = {
@@ -168,6 +170,9 @@ export default function TenderDetailPage() {
   const assessLegalMutation = trpc.aiRoles.assessLegalRisks.useMutation({ onError: handleAiError('tender.riskError') });
   const extractFinancialMutation = trpc.aiRoles.extractFinancials.useMutation({ onError: handleAiError('tender.financialError') });
   const goNoGoMutation = trpc.aiRoles.goNoGo.useMutation({ onError: handleAiError('tender.goNoGoError') });
+  const generateDeadlinePlanMutation = trpc.deadlinePlan.generate.useMutation({
+    onError: handleAiError('deadline.error'),
+  });
   const analyzeSubcontractorsMutation = trpc.aiRoles.analyzeSubcontractorNeeds.useMutation({
     onError: handleAiError('tender.subcontractorError'),
   });
@@ -192,12 +197,15 @@ export default function TenderDetailPage() {
       await analyzeSubcontractorsMutation.mutateAsync({ tenderId, language });
       setAnalysisStep(t('tender.goNoGoAssessment'));
       await goNoGoMutation.mutateAsync({ tenderId, language });
+      setAnalysisStep('Δημιουργία χρονοδιαγράμματος...');
+      await generateDeadlinePlanMutation.mutateAsync({ tenderId });
       setAnalysisStep(null);
       utils.aiRoles.getBrief.invalidate({ tenderId });
       utils.aiRoles.getGoNoGo.invalidate({ tenderId });
       utils.aiRoles.getLegalClauses.invalidate({ tenderId });
       utils.tender.getById.invalidate({ id: tenderId });
       utils.fakelos.getReport.invalidate({ tenderId });
+      utils.deadlinePlan.listByTender.invalidate({ tenderId });
       toast({ title: t('tender.analysisComplete') });
     } catch (err: any) {
       setAnalysisStep(null);
@@ -367,6 +375,7 @@ export default function TenderDetailPage() {
             <AnimatedTabsTrigger value="requirements" activeValue={activeTab}><ClipboardList className="h-3.5 w-3.5" />{t('tender.requirementsTab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="documents" activeValue={activeTab}><FileText className="h-3.5 w-3.5" />{t('tender.documentsTab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="fakelos" activeValue={activeTab}><FolderCheck className="h-3.5 w-3.5" />{t('tender.dossierTab')}</AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="deadline" activeValue={activeTab}><CalendarClock className="h-3.5 w-3.5" />{t('deadline.tab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="tasks" activeValue={activeTab}><ListTodo className="h-3.5 w-3.5" />{t('tender.tasksTab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="legal" activeValue={activeTab}><Scale className="h-3.5 w-3.5" />{t('tender.legalTab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="financial" activeValue={activeTab}><Banknote className="h-3.5 w-3.5" />{t('tender.financialTab')}</AnimatedTabsTrigger>
@@ -405,6 +414,14 @@ export default function TenderDetailPage() {
                 </TabsContent>
                 <TabsContent value="fakelos" forceMount={activeTab === 'fakelos' ? true : undefined}>
                   <FakelosTab tenderId={tenderId} />
+                </TabsContent>
+                <TabsContent value="deadline" forceMount={activeTab === 'deadline' ? true : undefined}>
+                  <div className="p-6">
+                    <DeadlinePlannerTab
+                      tenderId={tenderId}
+                      submissionDeadline={tender.submissionDeadline}
+                    />
+                  </div>
                 </TabsContent>
                 <TabsContent value="tasks" forceMount={activeTab === 'tasks' ? true : undefined}>
                   <TasksTab tenderId={tenderId} />
