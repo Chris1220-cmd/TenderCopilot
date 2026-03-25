@@ -287,6 +287,11 @@ export function LegalDocsList() {
                           {formatDate(doc.issueDate)}
                           {doc.expiryDate && ` — ${formatDate(doc.expiryDate)}`}
                         </span>
+                        {doc._count?.deadlinePlanItems > 0 && (
+                          <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                            {t('certs.usedInTenders').replace('{{count}}', String(doc._count.deadlinePlanItems))}
+                          </span>
+                        )}
                       </div>
                     </div>
 

@@ -280,6 +280,11 @@ export function CertificatesList() {
                           {formatDate(cert.issueDate)}
                           {cert.expiryDate && ` — ${formatDate(cert.expiryDate)}`}
                         </span>
+                        {cert._count?.deadlinePlanItems > 0 && (
+                          <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                            {t('certs.usedInTenders').replace('{{count}}', String(cert._count.deadlinePlanItems))}
+                          </span>
+                        )}
                       </div>
                     </div>
 

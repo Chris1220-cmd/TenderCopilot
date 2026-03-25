@@ -61,6 +61,9 @@ export const companyRouter = router({
 
     return ctx.db.certificate.findMany({
       where: { tenantId: ctx.tenantId },
+      include: {
+        _count: { select: { deadlinePlanItems: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }),
@@ -180,6 +183,9 @@ export const companyRouter = router({
 
     return ctx.db.legalDocument.findMany({
       where: { tenantId: ctx.tenantId },
+      include: {
+        _count: { select: { deadlinePlanItems: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }),
