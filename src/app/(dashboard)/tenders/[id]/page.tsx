@@ -55,6 +55,7 @@ import {
   Loader2,
   FolderCheck,
   CalendarClock,
+  MessageSquare,
 } from 'lucide-react';
 
 const containerVariants = {
@@ -93,6 +94,12 @@ export default function TenderDetailPage() {
     { id: tenderId },
     { retry: false, refetchOnWindowFocus: false }
   );
+
+  const unreadClarifications = trpc.aiRoles.getUnreadClarificationCount.useQuery(
+    { tenderId },
+    { retry: false, refetchOnWindowFocus: false }
+  );
+  const unreadCount = unreadClarifications.data?.count ?? 0;
 
   const deleteMutation = trpc.tender.delete.useMutation({
     onSuccess: () => router.push('/tenders'),
@@ -377,7 +384,15 @@ export default function TenderDetailPage() {
             <AnimatedTabsTrigger value="fakelos" activeValue={activeTab}><FolderCheck className="h-3.5 w-3.5" />{t('tender.dossierTab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="deadline" activeValue={activeTab}><CalendarClock className="h-3.5 w-3.5" />{t('deadline.tab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="tasks" activeValue={activeTab}><ListTodo className="h-3.5 w-3.5" />{t('tender.tasksTab')}</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="legal" activeValue={activeTab}><Scale className="h-3.5 w-3.5" />{t('tender.legalTab')}</AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="legal" activeValue={activeTab}>
+              <Scale className="h-3.5 w-3.5" />
+              {t('tender.legalTab')}
+              {unreadCount > 0 && (
+                <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground">
+                  {unreadCount}
+                </span>
+              )}
+            </AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="financial" activeValue={activeTab}><Banknote className="h-3.5 w-3.5" />{t('tender.financialTab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="technical" activeValue={activeTab}><Wrench className="h-3.5 w-3.5" />{t('tender.technicalTab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="activity" activeValue={activeTab}><Activity className="h-3.5 w-3.5" />{t('tender.activityTab')}</AnimatedTabsTrigger>
@@ -398,6 +413,17 @@ export default function TenderDetailPage() {
                     <OverviewTabSkeleton />
                   ) : (
                     <div className="space-y-6">
+                      {unreadCount > 0 && (
+                        <div
+                          onClick={() => setActiveTab('legal')}
+                          className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm cursor-pointer hover:bg-amber-500/15 transition-colors"
+                        >
+                          <MessageSquare className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span className="text-amber-700 dark:text-amber-300">
+                            {t('clarifications.newUnread').replace('{{count}}', String(unreadCount))} — {t('clarifications.seeInLegal')}
+                          </span>
+                        </div>
+                      )}
                       <div className="grid gap-4 lg:grid-cols-2">
                         <AIBriefPanel tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
                         <GoNoGoPanel tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
