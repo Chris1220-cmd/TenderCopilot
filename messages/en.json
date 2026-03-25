@@ -682,5 +682,15 @@
     "envelopeLabel": "Envelope",
     "cancel": "Cancel",
     "add": "Add"
+  },
+  "certs": {
+    "expiringTitle": "Certificates at Risk",
+    "expired": "Expired",
+    "expiresIn": "Expires in {{days}} days",
+    "usedInTenders": "in {{count}} tenders",
+    "renew": "Renew",
+    "noExpiring": "All certificates are up to date",
+    "affectedTenders": "{{count}} tenders affected",
+    "allGood": "No certificates expiring soon"
   }
 }

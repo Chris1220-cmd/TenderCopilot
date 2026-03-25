@@ -430,4 +430,39 @@ export const companyRouter = router({
 
       return ctx.db.contentLibraryItem.delete({ where: { id: input.id } });
     }),
+
+  // ─── Expiring Documents ─────────────────────────────────────
+
+  getExpiringDocuments: protectedProcedure.query(async ({ ctx }) => {
+    if (!ctx.tenantId) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant.' });
+    }
+
+    const ninetyDaysFromNow = new Date(Date.now() + 90 * 86400000);
+
+    const [certificates, legalDocs] = await Promise.all([
+      ctx.db.certificate.findMany({
+        where: {
+          tenantId: ctx.tenantId,
+          expiryDate: { not: null, lte: ninetyDaysFromNow },
+        },
+        include: {
+          _count: { select: { deadlinePlanItems: true } },
+        },
+        orderBy: { expiryDate: 'asc' },
+      }),
+      ctx.db.legalDocument.findMany({
+        where: {
+          tenantId: ctx.tenantId,
+          expiryDate: { not: null, lte: ninetyDaysFromNow },
+        },
+        include: {
+          _count: { select: { deadlinePlanItems: true } },
+        },
+        orderBy: { expiryDate: 'asc' },
+      }),
+    ]);
+
+    return { certificates, legalDocs };
+  }),
 });
