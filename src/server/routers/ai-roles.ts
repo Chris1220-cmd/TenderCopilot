@@ -81,7 +81,7 @@ export const aiRolesRouter = router({
         orderBy: { createdAt: 'asc' },
       });
       const clarifications = await db.clarificationQuestion.findMany({
-        where: { tenderId: input.tenderId },
+        where: { tenderId: input.tenderId, source: 'AI_GENERATED' },
         orderBy: { createdAt: 'asc' },
       });
       const summary = await aiLegalAnalyzer.getLegalRiskSummary(input.tenderId);
@@ -245,6 +245,150 @@ export const aiRolesRouter = router({
         where: { id: input.id },
         data: { status: input.approved ? 'APPROVED' : 'DRAFT' },
       });
+    }),
+
+  // ═══════════════════════════════════════════════════════════
+  // Clarification Monitoring (Feature 3)
+  // ═══════════════════════════════════════════════════════════
+
+  addPublishedClarification: protectedProcedure
+    .input(z.object({
+      tenderId: z.string(),
+      questionText: z.string().min(1),
+      answerText: z.string().min(1),
+      publishedAt: z.string(),
+      sourceUrl: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { tenantId } = await ensureTenderAccess(input.tenderId, ctx.tenantId);
+
+      const clarification = await db.clarificationQuestion.create({
+        data: {
+          tenderId: input.tenderId,
+          questionText: input.questionText,
+          answerText: input.answerText,
+          status: 'ANSWERED',
+          source: 'AUTHORITY_PUBLISHED',
+          publishedAt: new Date(input.publishedAt),
+          sourceUrl: input.sourceUrl || null,
+          isRead: false,
+        },
+      });
+
+      // Create alert for unread clarification
+      await db.tenderAlert.create({
+        data: {
+          tenderId: input.tenderId,
+          tenantId,
+          type: 'CLARIFICATION_NEW_UNREAD',
+          severity: 'MEDIUM',
+          title: 'Νέα δημοσιευμένη διευκρίνιση',
+          detail: input.questionText.slice(0, 200),
+          source: 'clarification-monitor',
+        },
+      });
+
+      return clarification;
+    }),
+
+  listPublishedClarifications: protectedProcedure
+    .input(z.object({ tenderId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      return db.clarificationQuestion.findMany({
+        where: { tenderId: input.tenderId, source: 'AUTHORITY_PUBLISHED' },
+        orderBy: { publishedAt: 'desc' },
+      });
+    }),
+
+  markClarificationRead: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const clarification = await db.clarificationQuestion.findUnique({
+        where: { id: input.id },
+        select: { tenderId: true },
+      });
+      if (!clarification) throw new TRPCError({ code: 'NOT_FOUND', message: 'Clarification not found.' });
+      await ensureTenderAccess(clarification.tenderId, ctx.tenantId);
+
+      return db.clarificationQuestion.update({
+        where: { id: input.id },
+        data: { isRead: true },
+      });
+    }),
+
+  markClarificationsChecked: protectedProcedure
+    .input(z.object({ tenderId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      return db.tender.update({
+        where: { id: input.tenderId },
+        data: { lastClarificationCheckAt: new Date() },
+      });
+    }),
+
+  getUnreadClarificationCount: protectedProcedure
+    .input(z.object({ tenderId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      const count = await db.clarificationQuestion.count({
+        where: {
+          tenderId: input.tenderId,
+          source: 'AUTHORITY_PUBLISHED',
+          isRead: false,
+        },
+      });
+      return { count };
+    }),
+
+  getClarificationReminders: protectedProcedure
+    .query(async ({ ctx }) => {
+      if (!ctx.tenantId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant.' });
+
+      const now = new Date();
+      const tenders = await db.tender.findMany({
+        where: {
+          tenantId: ctx.tenantId,
+          status: { in: ['GO_NO_GO', 'IN_PROGRESS'] },
+          submissionDeadline: { gt: now },
+        },
+        select: {
+          id: true,
+          title: true,
+          submissionDeadline: true,
+          lastClarificationCheckAt: true,
+          createdAt: true,
+          notes: true,
+        },
+      });
+
+      return tenders
+        .map((t) => {
+          const deadline = t.submissionDeadline!;
+          const daysToDeadline = Math.ceil((deadline.getTime() - now.getTime()) / 86400000);
+          const interval = daysToDeadline > 14 ? 5 : daysToDeadline > 7 ? 2 : 1;
+          const lastCheck = t.lastClarificationCheckAt || t.createdAt;
+          const daysSinceCheck = Math.floor((now.getTime() - lastCheck.getTime()) / 86400000);
+          const needsReminder = daysSinceCheck >= interval;
+
+          if (!needsReminder) return null;
+
+          const ratio = daysSinceCheck / interval;
+          const urgency = ratio >= 2 ? 'critical' as const : ratio >= 1.5 ? 'warning' as const : 'normal' as const;
+
+          const platformUrl = t.notes?.match(/Imported from: (https?:\/\/\S+)/)?.[1] ?? null;
+
+          return {
+            tenderId: t.id,
+            tenderTitle: t.title,
+            daysToDeadline,
+            daysSinceCheck,
+            interval,
+            urgency,
+            platformUrl,
+          };
+        })
+        .filter(Boolean);
     }),
 
   selectPricingScenario: protectedProcedure
