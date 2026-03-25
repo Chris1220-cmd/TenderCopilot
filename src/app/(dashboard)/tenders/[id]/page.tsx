@@ -197,7 +197,7 @@ export default function TenderDetailPage() {
       await analyzeSubcontractorsMutation.mutateAsync({ tenderId, language });
       setAnalysisStep(t('tender.goNoGoAssessment'));
       await goNoGoMutation.mutateAsync({ tenderId, language });
-      setAnalysisStep('Δημιουργία χρονοδιαγράμματος...');
+      setAnalysisStep(t('deadline.createTimeline') + '...');
       await generateDeadlinePlanMutation.mutateAsync({ tenderId });
       setAnalysisStep(null);
       utils.aiRoles.getBrief.invalidate({ tenderId });

@@ -223,8 +223,8 @@ export function OverviewTab({ tender }: OverviewTabProps) {
           <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
           <span className="text-sm text-destructive font-medium">
             {t('deadline.healthBanner')
-              .replace('{overdue}', String(healthCheck.overdue))
-              .replace('{expired}', String(healthCheck.expired))}
+              .replace('{{overdue}}', String(healthCheck.overdue))
+              .replace('{{expired}}', String(healthCheck.expired))}
           </span>
           <button
             className="ml-auto text-xs text-destructive underline cursor-pointer"

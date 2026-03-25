@@ -28,6 +28,7 @@ async function ensureTenderAccess(tenderId: string, tenantId: string | null) {
 function classifyStatus(
   doc: DocumentDefault,
   latestStartDate: Date,
+  deadline: Date,
   existingCerts: Certificate[],
   existingLegalDocs: LegalDocument[],
 ): string {
@@ -35,7 +36,8 @@ function classifyStatus(
   if (legalDocType) {
     const match = existingLegalDocs.find((ld) => ld.type === legalDocType);
     if (match) {
-      if (match.expiryDate && match.expiryDate < new Date()) {
+      if (match.expiryDate && match.expiryDate < deadline) {
+        // Expires BEFORE submission deadline — needs renewal
         return 'EXPIRED';
       }
       return 'OBTAINED';
@@ -87,8 +89,17 @@ export async function generateDeadlinePlanForTender(tenderId: string, tenantId: 
   // Build plan items
   const itemsToCreate = GREEK_DOCUMENT_DEFAULTS.map((doc) => {
     const latestStartDate = subtractBusinessDays(deadline, doc.leadTimeDays);
-    const optimalStartDate = subtractBusinessDays(deadline, doc.leadTimeDays + 5);
-    const status = classifyStatus(doc, latestStartDate, existingCerts, existingLegalDocs);
+    const BUFFER_DAYS = 2;
+    let optimalStartDate: Date | null = null;
+    if (doc.validityDays) {
+      const earliestUseful = new Date(deadline);
+      earliestUseful.setDate(earliestUseful.getDate() - doc.validityDays);
+      optimalStartDate = subtractBusinessDays(deadline, doc.leadTimeDays + BUFFER_DAYS);
+      if (optimalStartDate < earliestUseful) {
+        optimalStartDate = earliestUseful;
+      }
+    }
+    const status = classifyStatus(doc, latestStartDate, deadline, existingCerts, existingLegalDocs);
 
     // Link to existing legal doc if matched
     const legalDocType = DOC_TYPE_TO_LEGAL_DOC_TYPE[doc.type] ?? null;
@@ -100,8 +111,8 @@ export async function generateDeadlinePlanForTender(tenderId: string, tenantId: 
       tenderId,
       tenantId,
       documentType: doc.type,
-      title: doc.titleEn,
-      description: doc.titleEl,
+      title: doc.titleEl,
+      description: doc.titleEn,
       envelope: doc.envelope,
       leadTimeDays: doc.leadTimeDays,
       validityDays: doc.validityDays,
