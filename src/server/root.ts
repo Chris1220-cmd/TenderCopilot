@@ -14,6 +14,7 @@ import { chatRouter } from './routers/chat';
 import { learningRouter } from './routers/learning';
 import { fakelosRouter } from '@/server/routers/fakelos';
 import { subcontractorNeedRouter } from '@/server/routers/subcontractor-need';
+import { deadlinePlanRouter } from '@/server/routers/deadline-plan';
 
 export const appRouter = router({
   auth: authRouter,
@@ -31,6 +32,7 @@ export const appRouter = router({
   learning: learningRouter,
   fakelos: fakelosRouter,
   subcontractorNeed: subcontractorNeedRouter,
+  deadlinePlan: deadlinePlanRouter,
 });
 
 export type AppRouter = typeof appRouter;
