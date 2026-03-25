@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
+import { useTranslation } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { GlassCard, GlassCardContent } from '@/components/ui/glass-card';
 import { BlurFade } from '@/components/ui/blur-fade';
@@ -107,9 +108,15 @@ function ComplianceScoreBar({ score }: { score: number | null }) {
 }
 
 export function OverviewTab({ tender }: OverviewTabProps) {
+  const { t } = useTranslation();
   const [notes, setNotes] = useState(tender.notes ?? '');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+
+  const { data: healthCheck } = trpc.deadlinePlan.getHealthCheck.useQuery(
+    { tenderId: tender.id },
+    { enabled: !!tender.id }
+  );
 
   // Edit form state
   const [editTitle, setEditTitle] = useState(tender.title);
@@ -211,6 +218,27 @@ export function OverviewTab({ tender }: OverviewTabProps) {
 
   return (
     <div className="space-y-6">
+      {healthCheck && (healthCheck.overdue > 0 || healthCheck.expired > 0) && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3">
+          <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
+          <span className="text-sm text-destructive font-medium">
+            {t('deadline.healthBanner', {
+              overdue: String(healthCheck.overdue),
+              expired: String(healthCheck.expired),
+            })}
+          </span>
+          <button
+            className="ml-auto text-xs text-destructive underline cursor-pointer"
+            onClick={() => {
+              const tabsList = document.querySelector('[role="tablist"]');
+              const deadlineTab = tabsList?.querySelector('[value="deadline"]') as HTMLElement;
+              deadlineTab?.click();
+            }}
+          >
+            {t('deadline.viewTimeline')} →
+          </button>
+        </div>
+      )}
       {/* Info Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {infoItems.map((item, i) => (
