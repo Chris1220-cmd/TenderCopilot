@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '@/server/trpc';
+import { DOC_TYPE_TO_LEGAL_DOC_TYPE } from '@/lib/greek-document-defaults';
 
 export const companyRouter = router({
   // ─── Company Profile ────────────────────────────────────────
@@ -82,12 +83,27 @@ export const companyRouter = router({
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
       }
 
-      return ctx.db.certificate.create({
+      const created = await ctx.db.certificate.create({
         data: {
           tenantId: ctx.tenantId,
           ...input,
         },
       });
+
+      // Auto-link to pending DeadlinePlanItems
+      if (created.type) {
+        await ctx.db.deadlinePlanItem.updateMany({
+          where: {
+            tenantId: ctx.tenantId!,
+            certificateId: null,
+            status: { in: ['PENDING', 'OVERDUE'] },
+            documentType: created.type.toUpperCase(),
+          },
+          data: { certificateId: created.id },
+        });
+      }
+
+      return created;
     }),
 
   updateCertificate: protectedProcedure
@@ -116,7 +132,28 @@ export const companyRouter = router({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Certificate not found.' });
       }
 
-      return ctx.db.certificate.update({ where: { id }, data });
+      const updated = await ctx.db.certificate.update({ where: { id }, data });
+
+      // Auto-update linked DeadlinePlanItems when certificate expiry changes
+      if (updated.expiryDate) {
+        const linkedItems = await ctx.db.deadlinePlanItem.findMany({
+          where: { certificateId: updated.id },
+          include: { tender: { select: { submissionDeadline: true } } },
+        });
+        for (const item of linkedItems) {
+          const deadline = item.tender?.submissionDeadline;
+          if (!deadline) continue;
+          const newStatus = updated.expiryDate > deadline ? 'OBTAINED' : 'EXPIRED';
+          if (item.status !== newStatus) {
+            await ctx.db.deadlinePlanItem.update({
+              where: { id: item.id },
+              data: { status: newStatus, obtainedAt: newStatus === 'OBTAINED' ? new Date() : null },
+            });
+          }
+        }
+      }
+
+      return updated;
     }),
 
   deleteCertificate: protectedProcedure
@@ -171,12 +208,33 @@ export const companyRouter = router({
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
       }
 
-      return ctx.db.legalDocument.create({
+      const created = await ctx.db.legalDocument.create({
         data: {
           tenantId: ctx.tenantId,
           ...input,
         },
       });
+
+      // Auto-link to pending DeadlinePlanItems
+      if (created.type) {
+        const matchingDocTypes = Object.entries(DOC_TYPE_TO_LEGAL_DOC_TYPE)
+          .filter(([, ldt]) => ldt === created.type)
+          .map(([dt]) => dt);
+
+        if (matchingDocTypes.length > 0) {
+          await ctx.db.deadlinePlanItem.updateMany({
+            where: {
+              tenantId: ctx.tenantId!,
+              legalDocId: null,
+              status: { in: ['PENDING', 'OVERDUE'] },
+              documentType: { in: matchingDocTypes },
+            },
+            data: { legalDocId: created.id },
+          });
+        }
+      }
+
+      return created;
     }),
 
   updateLegalDoc: protectedProcedure
@@ -213,7 +271,28 @@ export const companyRouter = router({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Legal document not found.' });
       }
 
-      return ctx.db.legalDocument.update({ where: { id }, data });
+      const updated = await ctx.db.legalDocument.update({ where: { id }, data });
+
+      // Auto-update linked DeadlinePlanItems when legal doc expiry changes
+      if (updated.expiryDate) {
+        const linkedItems = await ctx.db.deadlinePlanItem.findMany({
+          where: { legalDocId: updated.id },
+          include: { tender: { select: { submissionDeadline: true } } },
+        });
+        for (const item of linkedItems) {
+          const deadline = item.tender?.submissionDeadline;
+          if (!deadline) continue;
+          const newStatus = updated.expiryDate > deadline ? 'OBTAINED' : 'EXPIRED';
+          if (item.status !== newStatus) {
+            await ctx.db.deadlinePlanItem.update({
+              where: { id: item.id },
+              data: { status: newStatus, obtainedAt: newStatus === 'OBTAINED' ? new Date() : null },
+            });
+          }
+        }
+      }
+
+      return updated;
     }),
 
   deleteLegalDoc: protectedProcedure
