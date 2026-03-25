@@ -41,6 +41,9 @@ model Tenant {
 
   // Smart Chat Memory
   chatSessions     ChatSession[]
+
+  // Deadline Planner
+  deadlinePlanItems DeadlinePlanItem[]
 }
 
 model User {
@@ -183,6 +186,7 @@ model Certificate {
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   requirementMappings RequirementMapping[]
+  deadlinePlanItems   DeadlinePlanItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -202,6 +206,7 @@ model LegalDocument {
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   requirementMappings RequirementMapping[]
+  deadlinePlanItems   DeadlinePlanItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -317,6 +322,9 @@ model Tender {
   // Smart Chat Memory
   chatSessions     ChatSession[]
 
+  // Deadline Planner
+  deadlinePlanItems DeadlinePlanItem[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -376,8 +384,9 @@ model TenderRequirement {
   tenderId String
   tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
 
-  mappings RequirementMapping[]
-  tasks    Task[]
+  mappings          RequirementMapping[]
+  tasks             Task[]
+  deadlinePlanItems DeadlinePlanItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -589,6 +598,8 @@ model Task {
 
   requirementId String?
   requirement   TenderRequirement? @relation(fields: [requirementId], references: [id], onDelete: SetNull)
+
+  deadlinePlanItems DeadlinePlanItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -907,4 +918,48 @@ model ChatFeedback {
   createdAt DateTime @default(now())
 
   @@index([tenantId])
+}
+
+// ─── Deadline Planner ──────────────────────────────────────
+
+model DeadlinePlanItem {
+  id                String              @id @default(cuid())
+  tenderId          String
+  tenantId          String
+
+  documentType      String
+  title             String
+  description       String?
+  envelope          String?
+
+  leadTimeDays      Int
+  validityDays      Int?
+  latestStartDate   DateTime
+  optimalStartDate  DateTime?
+  dueDate           DateTime
+
+  status            String              @default("PENDING")
+  obtainedAt        DateTime?
+  source            String?
+  isMandatory       Boolean             @default(true)
+  isAiGenerated     Boolean             @default(false)
+
+  tender            Tender              @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenant            Tenant              @relation(fields: [tenantId], references: [id])
+  requirement       TenderRequirement?  @relation(fields: [requirementId], references: [id], onDelete: SetNull)
+  linkedTask        Task?               @relation(fields: [linkedTaskId], references: [id], onDelete: SetNull)
+  certificate       Certificate?        @relation(fields: [certificateId], references: [id], onDelete: SetNull)
+  legalDoc          LegalDocument?      @relation(fields: [legalDocId], references: [id], onDelete: SetNull)
+
+  requirementId     String?
+  linkedTaskId      String?
+  certificateId     String?
+  legalDocId        String?
+
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([tenderId, tenantId])
+  @@index([tenantId, status])
+  @@index([dueDate])
 }
