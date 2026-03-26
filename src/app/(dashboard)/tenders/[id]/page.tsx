@@ -36,6 +36,7 @@ import { OutcomePanel } from '@/components/tender/outcome-panel';
 import { MissingInfoPanel } from '@/components/tender/missing-info-panel';
 import { FakelosTab } from '@/components/tender/fakelos-tab';
 import { CriteriaTab } from '@/components/tender/criteria-tab';
+import { TenderIntelligencePanel } from '@/components/tender/intelligence-panel';
 import { DeadlinePlannerTab } from '@/components/tender/deadline-planner-tab';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -431,6 +432,7 @@ export default function TenderDetailPage() {
                         <AIBriefPanel tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
                         <GoNoGoPanel tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
                       </div>
+                      <TenderIntelligencePanel tenderId={tenderId} />
                       <OverviewTab tender={tender} />
                     </div>
                   )}

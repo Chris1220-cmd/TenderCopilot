@@ -7,6 +7,7 @@ import { aiTechnical } from '@/server/services/ai-technical';
 import { aiFinancial } from '@/server/services/ai-financial';
 import { aiCompliance } from '@/server/services/ai-compliance';
 import { aiCriteriaAnalyzer } from '@/server/services/ai-criteria-analyzer';
+import { tenderIntelligence } from '@/server/services/ai-tender-intelligence';
 import { aiOps } from '@/server/services/ai-ops';
 import { db } from '@/lib/db';
 import { ai, logTokenUsage } from '@/server/ai';
@@ -660,5 +661,23 @@ export const aiRolesRouter = router({
         where: { id: input.criterionId },
         data: { status: input.status },
       });
+    }),
+
+  // ─── Tender Intelligence ──────────────────────────────────
+
+  getIntelligence: protectedProcedure
+    .input(z.object({ tenderId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      return db.tenderIntelligence.findUnique({
+        where: { tenderId: input.tenderId },
+      });
+    }),
+
+  generateIntelligence: protectedProcedure
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
+    .mutation(async ({ ctx, input }) => {
+      const { tenantId } = await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      return tenderIntelligence.generateIntelligence(input.tenderId, tenantId, input.language);
     }),
 });
