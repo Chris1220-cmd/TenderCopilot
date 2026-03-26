@@ -6,6 +6,7 @@ import {
   teamMemberUpdateSchema,
 } from '@/lib/team-member-schemas';
 import { parseCv } from '@/server/services/cv-parser';
+import { suggestAssignments } from '@/server/services/team-suggest';
 
 export const teamMemberRouter = router({
   // ─── Queries ──────────────────────────────────────────────
@@ -253,5 +254,14 @@ export const teamMemberRouter = router({
           status: 'UNMAPPED',
         },
       });
+    }),
+
+  suggestAssignments: protectedProcedure
+    .input(z.object({ tenderId: z.string().cuid() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.tenantId) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
+      }
+      return suggestAssignments(input.tenderId, ctx.tenantId);
     }),
 });
