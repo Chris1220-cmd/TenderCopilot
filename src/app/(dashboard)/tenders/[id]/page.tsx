@@ -8,8 +8,9 @@ import { trpc } from '@/lib/trpc';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
-import { AnimatedTabsTrigger } from '@/components/ui/animated-tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { TenderPhaseSidebar } from '@/components/tender/tender-phase-sidebar';
 import { useToast } from '@/components/ui/use-toast';
 import {
   Dialog,
@@ -59,6 +60,7 @@ import {
   CalendarClock,
   MessageSquare,
   Award,
+  Menu,
 } from 'lucide-react';
 
 const containerVariants = {
@@ -77,6 +79,23 @@ const itemVariants = {
     transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as const },
   },
 };
+
+function DeadlineCountdown({ deadline, t }: { deadline: Date | null | undefined; t: (k: string) => string }) {
+  if (!deadline) return null;
+  const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
+  const text = days <= 0
+    ? t('tender.deadlineCountdown.expired')
+    : days === 1
+      ? t('tender.deadlineCountdown.oneDay')
+      : t('tender.deadlineCountdown.days').replace('{{count}}', String(days));
+  const color = days <= 0 ? 'text-[#ef4444]' : days <= 3 ? 'text-[#ef4444]' : days <= 7 ? 'text-[#f59e0b]' : 'text-emerald-500';
+  return (
+    <span className={cn('flex items-center gap-1.5 text-sm font-semibold tabular-nums', color)}>
+      <CalendarClock className="h-4 w-4" />
+      {text}
+    </span>
+  );
+}
 
 export default function TenderDetailPage() {
   const { t } = useTranslation();
@@ -103,6 +122,12 @@ export default function TenderDetailPage() {
     { retry: false, refetchOnWindowFocus: false }
   );
   const unreadCount = unreadClarifications.data?.count ?? 0;
+
+  const statusesQuery = trpc.tender.getSectionStatuses.useQuery(
+    { id: tenderId },
+    { retry: false, refetchOnWindowFocus: false }
+  );
+  const sectionStatuses = statusesQuery.data ?? {};
 
   const deleteMutation = trpc.tender.delete.useMutation({
     onSuccess: () => router.push('/tenders'),
@@ -300,6 +325,7 @@ export default function TenderDetailPage() {
                 {tender?.referenceNumber && (
                   <span className="text-xs font-mono text-muted-foreground">{tender.referenceNumber}</span>
                 )}
+                <DeadlineCountdown deadline={tender?.submissionDeadline} t={t} />
               </div>
             </div>
 
@@ -377,41 +403,51 @@ export default function TenderDetailPage() {
       <MissingInfoPanel tenderId={tenderId} />
       <OutcomePanel tenderId={tenderId} currentStatus={tender?.status || ''} />
 
-      {/* Tabs */}
-      <motion.div variants={itemVariants}>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="border-b border-border/50 bg-transparent p-0 h-auto rounded-none flex-wrap gap-0">
-            <AnimatedTabsTrigger value="overview" activeValue={activeTab}><Eye className="h-3.5 w-3.5" />{t('tender.overviewTab')}</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="requirements" activeValue={activeTab}><ClipboardList className="h-3.5 w-3.5" />{t('tender.requirementsTab')}</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="documents" activeValue={activeTab}><FileText className="h-3.5 w-3.5" />{t('tender.documentsTab')}</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="criteria" activeValue={activeTab}><Award className="h-3.5 w-3.5" />{t('tender.criteriaTab')}</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="fakelos" activeValue={activeTab}><FolderCheck className="h-3.5 w-3.5" />{t('tender.dossierTab')}</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="deadline" activeValue={activeTab}><CalendarClock className="h-3.5 w-3.5" />{t('deadline.tab')}</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="tasks" activeValue={activeTab}><ListTodo className="h-3.5 w-3.5" />{t('tender.tasksTab')}</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="legal" activeValue={activeTab}>
-              <Scale className="h-3.5 w-3.5" />
-              {t('tender.legalTab')}
-              {unreadCount > 0 && (
-                <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground">
-                  {unreadCount}
-                </span>
-              )}
-            </AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="financial" activeValue={activeTab}><Banknote className="h-3.5 w-3.5" />{t('tender.financialTab')}</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="technical" activeValue={activeTab}><Wrench className="h-3.5 w-3.5" />{t('tender.technicalTab')}</AnimatedTabsTrigger>
-            <AnimatedTabsTrigger value="activity" activeValue={activeTab}><Activity className="h-3.5 w-3.5" />{t('tender.activityTab')}</AnimatedTabsTrigger>
-          </TabsList>
+      {/* Sidebar + Content Layout */}
+      <motion.div variants={itemVariants} className="flex min-h-[600px] rounded-xl border border-border/40 bg-card/30 overflow-hidden">
+        {/* Sidebar - hidden on mobile */}
+        <div className="hidden lg:flex">
+          <TenderPhaseSidebar
+            activeSection={activeTab}
+            onSectionChange={setActiveTab}
+            statuses={sectionStatuses}
+            unreadClarifications={unreadCount}
+          />
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {/* Mobile section toggle */}
+          <div className="lg:hidden border-b border-border/40 px-4 py-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 cursor-pointer">
+                  <Menu className="h-4 w-4" />
+                  {t('tender.sidebar.toggle')}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[260px] p-0">
+                <TenderPhaseSidebar
+                  activeSection={activeTab}
+                  onSectionChange={setActiveTab}
+                  statuses={sectionStatuses}
+                  unreadClarifications={unreadCount}
+                />
+              </SheetContent>
+            </Sheet>
+          </div>
 
           {/* Tab content with crossfade */}
-          <div className="mt-6">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] as const }}
-              >
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <div className="p-6">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] as const }}
+                >
                 <TabsContent value="overview" forceMount={activeTab === 'overview' ? true : undefined}>
                   {isLoading ? (
                     <OverviewTabSkeleton />
@@ -473,9 +509,10 @@ export default function TenderDetailPage() {
                   <ActivityTab tenderId={tenderId} />
                 </TabsContent>
               </motion.div>
-            </AnimatePresence>
-          </div>
-        </Tabs>
+              </AnimatePresence>
+            </div>
+          </Tabs>
+        </div>
       </motion.div>
 
       {/* Delete Dialog */}
