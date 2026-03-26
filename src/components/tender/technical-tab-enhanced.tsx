@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { NoDocumentsAlert } from './no-documents-alert';
 import { LanguageModal, type AnalysisLanguage } from './language-modal';
+import { TeamAssignmentCell } from './team-assignment-cell';
 import {
   GlassCard,
   GlassCardHeader,
@@ -69,7 +71,15 @@ interface TeamRequirement {
   experienceYears: number;
   count: number;
   mappedStaff: string | null;
+  assignedMemberId: string | null;
   status: 'MAPPED' | 'PARTIAL' | 'UNMAPPED';
+}
+
+interface AssignmentSuggestion {
+  memberId: string;
+  memberName: string;
+  score: number;
+  reasoning: string;
 }
 
 interface ScoreCriterion {
@@ -127,10 +137,12 @@ interface TechnicalTabEnhancedProps {
 }
 
 export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: TechnicalTabEnhancedProps) {
+  const t = useTranslations('teamMembers');
   const [sections, setSections] = useState<ProposalSection[]>([]);
   const [risks, setRisks] = useState<TechRisk[]>([]);
   const [team, setTeam] = useState<TeamRequirement[]>([]);
   const [scoreCriteria, setScoreCriteria] = useState<ScoreCriterion[]>([]);
+  const [suggestions, setSuggestions] = useState<Record<string, AssignmentSuggestion>>({});
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -169,14 +181,15 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
         })));
       }
       if (dbTeam?.length > 0) {
-        setTeam(dbTeam.map((t: any) => ({
-          id: t.id,
-          role: t.role,
-          qualifications: t.qualifications || '',
-          experienceYears: t.minExperience ?? 0,
-          count: t.count ?? 1,
-          mappedStaff: t.mappedStaffName || null,
-          status: (t.status as 'MAPPED' | 'PARTIAL' | 'UNMAPPED') ?? 'UNMAPPED',
+        setTeam(dbTeam.map((req: any) => ({
+          id: req.id,
+          role: req.role,
+          qualifications: req.qualifications || '',
+          experienceYears: req.minExperience ?? 0,
+          count: req.count ?? 1,
+          mappedStaff: req.mappedStaffName || null,
+          assignedMemberId: req.assignedMemberId || null,
+          status: (req.status as 'MAPPED' | 'PARTIAL' | 'UNMAPPED') ?? 'UNMAPPED',
         })));
       }
     }
@@ -244,6 +257,28 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
     },
   });
 
+  const suggestMutation = trpc.teamMember.suggestAssignments.useMutation({
+    onSuccess: (data: any[]) => {
+      const map: Record<string, AssignmentSuggestion> = {};
+      for (const s of data) {
+        map[s.requirementId] = {
+          memberId: s.memberId,
+          memberName: s.memberName,
+          score: s.score,
+          reasoning: s.reasoning,
+        };
+      }
+      setSuggestions(map);
+      setSuccessMsg(`Προτάσεις ομάδας: ${data.length} αντιστοιχίσεις.`);
+      setLoadingAction(null);
+      setError(null);
+    },
+    onError: (err: any) => {
+      setError(err?.message || 'Σφάλμα πρότασης ομάδας');
+      setLoadingAction(null);
+    },
+  });
+
   const handleAnalyze = () => {
     setLangModalOpen(true);
   };
@@ -272,6 +307,13 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
     setLoadingAction('score');
     setError(null);
     scoreMutation.mutate({ tenderId });
+  };
+
+  const handleSuggestTeam = () => {
+    setLoadingAction('suggest');
+    setError(null);
+    setSuccessMsg(null);
+    suggestMutation.mutate({ tenderId });
   };
 
   const handleToggleSection = (id: string) => {
@@ -603,6 +645,24 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
             <Users className="h-4 w-4 text-blue-500" />
             Απαιτήσεις Ομάδας Έργου
           </GlassCardTitle>
+          {team.length > 0 && (
+            <GlassCardAction>
+              <Button
+                onClick={handleSuggestTeam}
+                disabled={loadingAction !== null}
+                variant="outline"
+                size="sm"
+                className="cursor-pointer gap-1.5 h-8 text-xs border-[#48A4D6]/30 text-[#48A4D6] hover:bg-[#48A4D6]/10 hover:border-[#48A4D6]/50"
+              >
+                {loadingAction === 'suggest' ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5" />
+                )}
+                {loadingAction === 'suggest' ? t('suggesting') : t('suggestTeam')}
+              </Button>
+            </GlassCardAction>
+          )}
         </GlassCardHeader>
         <GlassCardContent className="px-0">
           {team.length > 0 ? (
@@ -627,8 +687,14 @@ export function TechnicalTabEnhanced({ tenderId, sourceUrl, platform }: Technica
                         <td className="px-3 py-2.5 text-[11px] text-muted-foreground hidden md:table-cell">{req.qualifications}</td>
                         <td className="px-3 py-2.5 text-xs text-center text-muted-foreground tabular-nums">{req.experienceYears}+ έτη</td>
                         <td className="px-3 py-2.5 text-xs text-center font-bold tabular-nums">{req.count}</td>
-                        <td className="px-3 py-2.5 text-xs text-foreground">
-                          {req.mappedStaff ?? <span className="text-muted-foreground/50 italic">Κενό</span>}
+                        <td className="px-3 py-2.5">
+                          <TeamAssignmentCell
+                            requirementId={req.id}
+                            currentMemberId={req.assignedMemberId}
+                            currentMemberName={req.mappedStaff}
+                            suggestion={suggestions[req.id] ?? null}
+                            onAssigned={() => technicalDataQuery.refetch()}
+                          />
                         </td>
                         <td className="px-3 py-2.5 text-center">
                           <Badge
