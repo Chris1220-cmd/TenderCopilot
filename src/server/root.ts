@@ -18,6 +18,7 @@ import { deadlinePlanRouter } from '@/server/routers/deadline-plan';
 import { espdRouter } from '@/server/routers/espd';
 import { packageRouter } from '@/server/routers/package';
 import { teamMemberRouter } from '@/server/routers/team-member';
+import { resourcesRouter } from '@/server/routers/resources';
 
 export const appRouter = router({
   auth: authRouter,
@@ -39,6 +40,7 @@ export const appRouter = router({
   espd: espdRouter,
   package: packageRouter,
   teamMember: teamMemberRouter,
+  resources: resourcesRouter,
 });
 
 export type AppRouter = typeof appRouter;
