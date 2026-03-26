@@ -91,7 +91,7 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
       {/* Left: Logo + Nav Tabs */}
       <div className="flex items-center gap-1">
         <Link
-          href="/dashboard"
+          href="/"
           className="group mr-6 flex items-center gap-2.5 cursor-pointer"
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
