@@ -6,6 +6,7 @@ vi.mock('@/lib/db', () => ({
       findUniqueOrThrow: vi.fn(),
     },
     activity: { create: vi.fn() },
+    packageSubmission: { create: vi.fn() },
   },
 }));
 
@@ -132,30 +133,47 @@ describe('PackagingService', () => {
         referenceNumber: 'REF-001',
       } as any);
       vi.mocked(db.activity.create).mockResolvedValue({} as any);
+      vi.mocked((db as any).packageSubmission.create).mockResolvedValue({} as any);
 
-      const documents = [
-        {
-          name: 'test.pdf',
-          folder: 'Φάκελος Δικαιολογητικών Συμμετοχής',
-          fileKey: 'uploads/test.pdf',
-          source: 'company' as const,
-        },
-        {
-          name: 'proposal.md',
-          folder: 'Φάκελος Τεχνικής Προσφοράς',
-          content: '# Technical Proposal',
-          source: 'generated' as const,
-        },
-      ];
+      const validation = {
+        canProceed: true,
+        blockers: [],
+        warnings: [],
+        infos: [],
+        readinessScore: 100,
+        deadline: null,
+        envelopes: [
+          {
+            id: 'A' as const,
+            title: 'Φάκελος Α — Δικαιολογητικά Συμμετοχής',
+            documentCount: 2,
+            documents: [
+              {
+                name: 'test.pdf',
+                folder: 'Φάκελος Δικαιολογητικών Συμμετοχής',
+                fileKey: 'uploads/test.pdf',
+                source: 'company' as const,
+              },
+              {
+                name: 'proposal.md',
+                folder: 'Φάκελος Τεχνικής Προσφοράς',
+                content: '# Technical Proposal',
+                source: 'generated' as const,
+              },
+            ],
+          },
+        ],
+      };
 
-      const buffer = await service.buildPackage('tender-1', documents);
+      const result = await service.buildPackage('tender-1', 'tenant-1', validation);
 
-      expect(buffer).toBeInstanceOf(Buffer);
-      expect(buffer.length).toBeGreaterThan(0);
+      expect(result.buffer).toBeInstanceOf(Buffer);
+      expect(result.fileSize).toBeGreaterThan(0);
+      expect(result.documentCount).toBeGreaterThan(0);
 
       // Verify it's a valid ZIP (starts with PK signature)
-      expect(buffer[0]).toBe(0x50); // P
-      expect(buffer[1]).toBe(0x4b); // K
+      expect(result.buffer[0]).toBe(0x50); // P
+      expect(result.buffer[1]).toBe(0x4b); // K
     });
   });
 });

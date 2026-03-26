@@ -317,9 +317,78 @@ export class PackagingService {
     };
   }
 
-  // Temporary stub — will be replaced in Task 3
-  applyNamingAndOrdering(documents: PackageDocument[], _envelopeId: 'A' | 'B' | 'C' | 'D'): PackageDocument[] {
-    return documents;
+  /**
+   * Apply sequential naming and ordering to documents within an envelope.
+   * Pattern: {envelope}_{seq:02d}_{descriptive_name}.{ext}
+   */
+  applyNamingAndOrdering(
+    documents: PackageDocument[],
+    envelopeId: 'A' | 'B' | 'C' | 'D'
+  ): PackageDocument[] {
+    if (documents.length === 0) return [];
+
+    // Sort by priority: ESPD first, then declarations, then certificates, then rest
+    const priority = (doc: PackageDocument): number => {
+      const nameLower = doc.name.toLowerCase();
+      if (nameLower.includes('εσπδ') || nameLower.includes('espd')) return 0;
+      if (nameLower.includes('υευδ') || nameLower.includes('δήλωση') || nameLower.includes('declaration')) return 1;
+      if (doc.source === 'generated') return 2;
+      if (doc.source === 'company') return 3;
+      return 4;
+    };
+
+    const sorted = [...documents].sort((a, b) => priority(a) - priority(b));
+
+    // Apply sequential naming
+    return sorted.map((doc, index) => {
+      const seq = String(index + 1).padStart(2, '0');
+      const ext = doc.name.includes('.') ? doc.name.split('.').pop() : 'pdf';
+      // Clean the name: remove existing prefixes, normalize
+      const cleanName = doc.name
+        .replace(/^\d+[_\-.\s]+/, '') // remove leading numbers
+        .replace(/\.[^.]+$/, '')       // remove extension
+        .replace(/\s+/g, '_')         // spaces to underscores
+        .replace(/[^\w\u0370-\u03FF\u1F00-\u1FFF_\-]/g, ''); // keep Greek + alphanumeric
+
+      return {
+        ...doc,
+        name: `${envelopeId}_${seq}_${cleanName}.${ext}`,
+      };
+    });
+  }
+
+  /**
+   * Generate a plain-text table of contents for an envelope.
+   */
+  generateTableOfContents(envelope: EnvelopePreview): string {
+    const header = `ΠΙΝΑΚΑΣ ΠΕΡΙΕΧΟΜΕΝΩΝ — ${envelope.title.toUpperCase()}`;
+    const separator = '═'.repeat(Math.max(header.length, 60));
+
+    const rows = envelope.documents.map((doc, i) => {
+      const num = String(i + 1).padStart(3, ' ');
+      const name = doc.name.length > 45 ? doc.name.substring(0, 42) + '...' : doc.name.padEnd(45);
+      const source = doc.source === 'generated' ? 'AI Generated'
+        : doc.source === 'company' ? 'Εταιρεία'
+        : 'Επισυναπτόμενο';
+      return `  ${num} │ ${name} │ ${source}`;
+    });
+
+    const tableHeader = '  Α/Α │ Έγγραφο                                        │ Πηγή';
+    const tableSep =    '  ────┼────────────────────────────────────────────────┼──────────────';
+
+    return [
+      header,
+      separator,
+      '',
+      tableHeader,
+      tableSep,
+      ...rows,
+      '',
+      `  Σύνολο εγγράφων: ${envelope.documents.length}`,
+      `  Ημ/νία δημιουργίας: ${new Date().toLocaleDateString('el-GR')}`,
+      `  TenderCopilot GR — Αυτόματη δημιουργία`,
+      '',
+    ].join('\n');
   }
 
   /**
@@ -421,61 +490,73 @@ export class PackagingService {
 
   /**
    * Build a ZIP file with the submission package.
+   * Uses final validation data for naming, ordering, and TOC.
    */
   async buildPackage(
     tenderId: string,
-    documentMapping: PackageDocument[]
-  ): Promise<Buffer> {
+    tenantId: string,
+    validation: FinalValidation
+  ): Promise<{ buffer: Buffer; fileSize: number; documentCount: number; envelopeCount: number }> {
     const zip = new JSZip();
 
     const tender = await db.tender.findUniqueOrThrow({
       where: { id: tenderId },
     });
 
-    // Create folder structure
     const structure = this.getPlatformStructure(tender.platform);
-    for (const folder of structure.folders) {
-      zip.folder(folder);
-    }
+    let totalDocs = 0;
+    let envelopeCount = 0;
 
-    // Add documents to appropriate folders
-    for (const doc of documentMapping) {
-      const folderPath = doc.folder;
+    for (const envelope of validation.envelopes) {
+      if (envelope.documents.length === 0) continue;
+      envelopeCount++;
 
-      if (doc.fileKey) {
-        try {
-          const buffer = await getFileBuffer(doc.fileKey);
-          zip.file(`${folderPath}/${doc.name}`, buffer);
-        } catch (error) {
-          console.error(`Failed to fetch file ${doc.fileKey}:`, error);
-          // Add placeholder
-          zip.file(
-            `${folderPath}/${doc.name}.MISSING.txt`,
-            `Το αρχείο δεν βρέθηκε: ${doc.fileKey}`
-          );
+      const folderName = structure.folders[
+        envelope.id === 'A' ? 0 : envelope.id === 'B' ? 1 : envelope.id === 'C' ? 2 : 3
+      ] || structure.folders[structure.folders.length - 1];
+
+      // Add table of contents as first file
+      const toc = this.generateTableOfContents(envelope);
+      zip.file(`${folderName}/${envelope.id}_00_Πίνακας_Περιεχομένων.txt`, toc);
+      totalDocs++;
+
+      // Add documents
+      for (const doc of envelope.documents) {
+        if (doc.fileKey) {
+          try {
+            const buffer = await getFileBuffer(doc.fileKey);
+            zip.file(`${folderName}/${doc.name}`, buffer);
+            totalDocs++;
+          } catch (error) {
+            console.error(`Failed to fetch file ${doc.fileKey}:`, error);
+            zip.file(
+              `${folderName}/${doc.name}.MISSING.txt`,
+              `Το αρχείο δεν βρέθηκε: ${doc.fileKey}`
+            );
+            totalDocs++;
+          }
+        } else if (doc.content) {
+          zip.file(`${folderName}/${doc.name}`, doc.content);
+          totalDocs++;
         }
-      } else if (doc.content) {
-        zip.file(`${folderPath}/${doc.name}`, doc.content);
       }
     }
 
-    // Add README with package info
-    const readme = `# Πακέτο Υποβολής
-Διαγωνισμός: ${tender.title}
-Αριθμός Αναφοράς: ${tender.referenceNumber || 'N/A'}
-Πλατφόρμα: ${tender.platform}
-Ημ/νία Δημιουργίας: ${new Date().toLocaleDateString('el-GR')}
-
-## Δομή Φακέλων
-${structure.folders.map((f, i) => `${i + 1}. ${f}`).join('\n')}
-
-## Σημείωση
-Αυτό το πακέτο δημιουργήθηκε αυτόματα από το TenderCopilot GR.
-Παρακαλώ ελέγξτε όλα τα έγγραφα πριν την υποβολή.
-`;
+    // README
+    const readme = [
+      `ΠΑΚΕΤΟ ΥΠΟΒΟΛΗΣ`,
+      `${'═'.repeat(50)}`,
+      `Διαγωνισμός: ${tender.title}`,
+      `Αρ. Αναφοράς: ${tender.referenceNumber || 'N/A'}`,
+      `Πλατφόρμα: ${tender.platform}`,
+      `Ημ/νία: ${new Date().toLocaleDateString('el-GR')}`,
+      `Αρχεία: ${totalDocs}`,
+      `Φάκελοι: ${envelopeCount}`,
+      '',
+      `Δημιουργήθηκε από TenderCopilot GR`,
+    ].join('\n');
     zip.file('README.txt', readme);
 
-    // Generate ZIP buffer
     const buffer = await zip.generateAsync({
       type: 'nodebuffer',
       compression: 'DEFLATE',
@@ -487,11 +568,30 @@ ${structure.folders.map((f, i) => `${i + 1}. ${f}`).join('\n')}
       data: {
         tenderId,
         action: 'package_built',
-        details: `Δημιουργήθηκε πακέτο υποβολής με ${documentMapping.length} αρχεία`,
+        details: `Δημιουργήθηκε πακέτο υποβολής με ${totalDocs} αρχεία σε ${envelopeCount} φακέλους`,
       },
     });
 
-    return buffer;
+    // Save submission record
+    await db.packageSubmission.create({
+      data: {
+        tenderId,
+        documentCount: totalDocs,
+        envelopeCount,
+        fileSize: buffer.length,
+        blockerCount: 0,
+        warningCount: validation.warnings.length,
+        manifest: validation.envelopes as any,
+        createdBy: tenantId,
+      },
+    });
+
+    return {
+      buffer,
+      fileSize: buffer.length,
+      documentCount: totalDocs,
+      envelopeCount,
+    };
   }
 }
 
