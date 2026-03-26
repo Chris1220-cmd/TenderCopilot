@@ -328,6 +328,9 @@ model Tender {
   // Clarification Monitoring
   lastClarificationCheckAt DateTime?
 
+  // ESPD Auto-Generator
+  espdData Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -570,6 +573,7 @@ enum GeneratedDocType {
   METHODOLOGY               // Μεθοδολογία
   COVER_LETTER              // Συνοδευτική επιστολή
   OTHER
+  ESPD
 }
 
 enum DocGenStatus {

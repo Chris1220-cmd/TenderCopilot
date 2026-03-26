@@ -12,6 +12,7 @@ const generatedDocTypeEnum = z.enum([
   'METHODOLOGY',
   'COVER_LETTER',
   'OTHER',
+  'ESPD',
 ]);
 
 const docGenStatusEnum = z.enum(['DRAFT', 'REVIEWED', 'FINAL']);

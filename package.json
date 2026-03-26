@@ -95,6 +95,7 @@
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.183.2",
     "xlsx": "^0.18.5",
+    "xmlbuilder2": "^4.0.3",
     "zod": "^3.24.1"
   },
   "devDependencies": {
