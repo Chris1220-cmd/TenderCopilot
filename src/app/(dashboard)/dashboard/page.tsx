@@ -100,13 +100,13 @@ export default function DashboardPage() {
   const upcomingDeadlinesCount = tenderStats.data?.upcomingDeadlines ?? 0;
 
   const recentTenders = useMemo(() => {
-    if (tendersQuery.data && Array.isArray(tendersQuery.data)) return tendersQuery.data.slice(0, 5);
+    if (tendersQuery.data && Array.isArray(tendersQuery.data)) return tendersQuery.data.filter(Boolean).slice(0, 5);
     return [];
   }, [tendersQuery.data]);
 
   const upcomingDeadlines = useMemo(() => {
     return recentTenders
-      .filter((t: any) => t.submissionDeadline)
+      .filter((t: any) => t && t.submissionDeadline)
       .map((t: any) => {
         const deadline = new Date(t.submissionDeadline);
         const daysLeft = Math.max(0, Math.ceil((deadline.getTime() - Date.now()) / 86400000));
@@ -241,7 +241,8 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div>
-                  {recentTenders.map((tender: any) => {
+                  {recentTenders.filter(Boolean).map((tender: any) => {
+                    if (!tender) return null;
                     const variant = statusVariants[tender.status] || statusVariants.DRAFT;
                     const statusLabel = t(statusKeys[tender.status] || statusKeys.DRAFT);
                     return (
