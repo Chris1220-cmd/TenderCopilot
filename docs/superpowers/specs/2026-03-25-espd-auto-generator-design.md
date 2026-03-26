@@ -134,7 +134,30 @@ Add `xmlbuilder2` package for EU-compliant ESPD XML generation (UBL 2.1 based).
 
 ---
 
-## ESPD Wizard — 6 Steps
+## ESPD Wizard — Import + 6 Steps
+
+### Step 0: Import ESPD Request (Entry Point)
+
+**The killer feature.** Contracting authorities publish an ESPD Request XML alongside the tender documents. This step parses it and pre-populates the entire wizard.
+
+**UI:**
+- Two options on wizard entry:
+  - **"Εισαγωγή ESPD Request"** — Upload/drag-drop the authority's XML file. Parser extracts: contracting authority info (→ Part I), required criteria (→ Parts III-V), and any pre-set values.
+  - **"Δημιουργία από την αρχή"** — Skip import, manual wizard (existing flow).
+
+**Import logic:**
+1. Parse XML using `xmlbuilder2` (same library used for export)
+2. Extract `cac:ContractingParty` → pre-fill Part I
+3. Extract `cac:TenderingCriterion` elements → map to Parts III-IV criteria (which exclusion grounds apply, which selection criteria the authority requires)
+4. Merge with CompanyProfile data → auto-fill Part II + auto-answer criteria from linked documents
+5. Save parsed + merged data to `tender.espdData`
+6. Advance to Step 1 with everything pre-filled
+
+**Result:** Ο χρήστης κατεβάζει το ESPD Request, το ανεβάζει, και βλέπει τα πάντα γεμισμένα. Μόνο review + export.
+
+**Backend:** New procedure `importEspdRequest` — takes XML string, parses, merges with company data, returns pre-filled `EspdData`.
+
+---
 
 ### Step 1: Part I — Πληροφορίες Διαδικασίας
 
@@ -248,6 +271,7 @@ New `espd.ts` router (registered in app router). Separate from `document.ts` bec
 
 | Procedure | Type | Description |
 |-----------|------|-------------|
+| `importEspdRequest` | mutation | Parse authority's ESPD Request XML, merge with CompanyProfile data, return pre-filled EspdData |
 | `saveEspdData` | mutation | Save wizard state to `tender.espdData` (auto-save per step) |
 | `getEspdData` | query | Load wizard state from `tender.espdData` + pre-fill from CompanyProfile/Certificates/LegalDocs/Requirements |
 | `generateEspdXml` | mutation | Generate EU-compliant XML from espdData, upload to S3, create GeneratedDocument |
