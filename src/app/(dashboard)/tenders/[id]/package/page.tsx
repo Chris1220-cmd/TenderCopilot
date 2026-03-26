@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { trpc } from '@/lib/trpc';
+import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import {
   Package,
@@ -15,93 +17,70 @@ import {
   Folder,
   ArrowLeft,
   Loader2,
+  XCircle,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import Link from 'next/link';
 
-const steps = [
-  { id: 1, title: 'Αντιστοίχιση Εγγράφων', description: 'Ανά υποφάκελο' },
-  { id: 2, title: 'Έλεγχος Πληρότητας', description: 'Ελλείψεις & warnings' },
-  { id: 3, title: 'Δημιουργία Πακέτου', description: 'ZIP download' },
-];
+const STEPS = [
+  { id: 1, titleKey: 'step1Title', descKey: 'step1Desc' },
+  { id: 2, titleKey: 'step2Title', descKey: 'step2Desc' },
+  { id: 3, titleKey: 'step3Title', descKey: 'step3Desc' },
+] as const;
 
-const folderIcons: Record<string, string> = {
-  'Φάκελος Δικαιολογητικών Συμμετοχής': 'text-blue-500',
-  'Φάκελος Τεχνικής Προσφοράς': 'text-green-500',
-  'Φάκελος Οικονομικής Προσφοράς': 'text-yellow-500',
-  'Λοιπά Έγγραφα': 'text-gray-500',
-};
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export default function PackagePage() {
   const params = useParams();
   const router = useRouter();
+  const { t } = useTranslation();
   const tenderId = params.id as string;
   const [currentStep, setCurrentStep] = useState(1);
-  const [isBuilding, setIsBuilding] = useState(false);
 
   const { data: tender, isLoading: tenderLoading } =
     trpc.tender.getById.useQuery({ id: tenderId });
 
-  // For the validation step, we'd call the packaging service
-  // Here we mock the validation data structure
-  const [validation, setValidation] = useState<{
-    valid: boolean;
-    missingDocuments: string[];
-    warnings: string[];
-    documents: Array<{
-      name: string;
-      folder: string;
-      source: string;
-    }>;
-  } | null>(null);
+  // Step 1: Run validation
+  const validateMutation = trpc.package.validate.useMutation();
+  const assembleMutation = trpc.package.assemble.useMutation();
 
-  useEffect(() => {
-    if (tender) {
-      // Simulate validation — in production this would call the API
-      setValidation({
-        valid: true,
-        missingDocuments: [],
-        warnings: ['Ορισμένα έγγραφα είναι ακόμα σε DRAFT κατάσταση'],
-        documents: [
-          { name: 'Φορολογική Ενημερότητα.pdf', folder: 'Φάκελος Δικαιολογητικών Συμμετοχής', source: 'company' },
-          { name: 'Ασφαλιστική Ενημερότητα.pdf', folder: 'Φάκελος Δικαιολογητικών Συμμετοχής', source: 'company' },
-          { name: 'ISO 9001.pdf', folder: 'Φάκελος Δικαιολογητικών Συμμετοχής', source: 'company' },
-          { name: 'Υπεύθυνη Δήλωση.md', folder: 'Φάκελος Δικαιολογητικών Συμμετοχής', source: 'generated' },
-          { name: 'Τεχνική Προσφορά.md', folder: 'Φάκελος Τεχνικής Προσφοράς', source: 'generated' },
-          { name: 'Πίνακας Συμμόρφωσης.md', folder: 'Φάκελος Τεχνικής Προσφοράς', source: 'generated' },
-        ],
-      });
-    }
-  }, [tender]);
+  // Auto-validate on mount
+  const [hasValidated, setHasValidated] = useState(false);
+  if (!hasValidated && tender && !validateMutation.isPending && !validateMutation.data) {
+    setHasValidated(true);
+    validateMutation.mutate({ tenderId });
+  }
 
-  // Group documents by folder
-  const documentsByFolder = validation?.documents.reduce(
-    (acc, doc) => {
-      if (!acc[doc.folder]) acc[doc.folder] = [];
-      acc[doc.folder].push(doc);
-      return acc;
-    },
-    {} as Record<string, typeof validation.documents>
-  );
+  const validation = validateMutation.data;
 
-  const handleBuildPackage = async () => {
-    setIsBuilding(true);
-    // TODO: Call API to build package and trigger download
-    // const response = await fetch(`/api/tenders/${tenderId}/package`, { method: 'POST' });
-    // const blob = await response.blob();
-    // const url = window.URL.createObjectURL(blob);
-    // const a = document.createElement('a');
-    // a.href = url;
-    // a.download = `${tender?.title || 'package'}.zip`;
-    // a.click();
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsBuilding(false);
-    setCurrentStep(3);
+  const handleAssemble = async () => {
+    assembleMutation.mutate(
+      { tenderId },
+      {
+        onSuccess: (data) => {
+          // Trigger download
+          const byteArray = Uint8Array.from(atob(data.zipBase64), (c) => c.charCodeAt(0));
+          const blob = new Blob([byteArray], { type: 'application/zip' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${tender?.title || 'package'}_${new Date().toISOString().slice(0, 10)}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          setCurrentStep(3);
+        },
+      }
+    );
   };
 
   if (tenderLoading) {
@@ -124,8 +103,8 @@ export default function PackagePage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Package className="h-6 w-6 text-primary" />
-            Δημιουργία Πακέτου Υποβολής
+            <Package className="h-6 w-6 text-[#48A4D6]" />
+            {t('package.title')}
           </h1>
           <p className="text-muted-foreground">
             {tender?.title} — {tender?.platform}
@@ -135,15 +114,15 @@ export default function PackagePage() {
 
       {/* Stepper */}
       <div className="flex items-center gap-2">
-        {steps.map((step, index) => (
+        {STEPS.map((step, index) => (
           <div key={step.id} className="flex items-center gap-2 flex-1">
             <div
               className={cn(
                 'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 font-semibold transition-all duration-200',
                 currentStep === step.id
-                  ? 'border-primary bg-primary text-primary-foreground'
+                  ? 'border-[#48A4D6] bg-[#48A4D6] text-white'
                   : currentStep > step.id
-                    ? 'border-green-500 bg-green-500 text-white'
+                    ? 'border-emerald-500 bg-emerald-500 text-white'
                     : 'border-border text-muted-foreground'
               )}
             >
@@ -154,16 +133,16 @@ export default function PackagePage() {
               )}
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-medium">{step.title}</div>
+              <div className="text-sm font-medium">{t(`package.${step.titleKey}`)}</div>
               <div className="text-xs text-muted-foreground truncate">
-                {step.description}
+                {t(`package.${step.descKey}`)}
               </div>
             </div>
-            {index < steps.length - 1 && (
+            {index < STEPS.length - 1 && (
               <div
                 className={cn(
                   'h-0.5 flex-1 mx-2 transition-colors duration-200',
-                  currentStep > step.id ? 'bg-green-500' : 'bg-border'
+                  currentStep > step.id ? 'bg-emerald-500' : 'bg-border'
                 )}
               />
             )}
@@ -171,43 +150,182 @@ export default function PackagePage() {
         ))}
       </div>
 
-      {/* Step Content */}
+      {/* Step 1: Validation */}
       {currentStep === 1 && (
-        <Card>
+        <Card className="border-border/60">
           <CardHeader>
-            <CardTitle>Αντιστοίχιση Εγγράφων σε Υποφακέλους</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              {t('package.step1Title')}
+              {validation && (
+                <div className="flex gap-2">
+                  {validation.blockers.length > 0 && (
+                    <Badge variant="destructive">
+                      {validation.blockers.length} {t('package.blockers')}
+                    </Badge>
+                  )}
+                  {validation.warnings.length > 0 && (
+                    <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30">
+                      {validation.warnings.length} {t('package.warnings')}
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {documentsByFolder &&
-              Object.entries(documentsByFolder).map(([folder, docs]) => (
-                <div key={folder}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Folder
-                      className={cn(
-                        'h-5 w-5',
-                        folderIcons[folder] || 'text-gray-500'
-                      )}
-                    />
-                    <h3 className="font-semibold">{folder}</h3>
-                    <Badge variant="secondary">{docs.length} αρχεία</Badge>
-                  </div>
-                  <div className="space-y-2 ml-7">
-                    {docs.map((doc, i) => (
+          <CardContent className="space-y-4">
+            {validateMutation.isPending && (
+              <div className="flex items-center gap-3 py-8 justify-center text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                {t('package.validating')}
+              </div>
+            )}
+
+            {validation && (
+              <>
+                {/* Blockers */}
+                {validation.blockers.length > 0 && (
+                  <div className="space-y-2">
+                    {validation.blockers.map((issue, i) => (
                       <div
                         key={i}
-                        className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                        className="flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/[0.04] p-3.5"
                       >
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="flex-1 text-sm">{doc.name}</span>
+                        <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{issue.message}</p>
+                          {issue.action && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              → {issue.action}
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          {issue.envelope}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Warnings */}
+                {validation.warnings.length > 0 && (
+                  <div className="space-y-2">
+                    {validation.warnings.map((issue, i) => (
+                      <div
+                        key={i}
+                        className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3.5"
+                      >
+                        <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{issue.message}</p>
+                          {issue.action && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              → {issue.action}
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          {issue.envelope}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Infos */}
+                {validation.infos.length > 0 && (
+                  <div className="space-y-2">
+                    {validation.infos.map((issue, i) => (
+                      <div
+                        key={i}
+                        className="flex items-start gap-3 rounded-xl border border-border/60 p-3.5"
+                      >
+                        <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                        <p className="text-sm text-muted-foreground flex-1">{issue.message}</p>
+                        <Badge variant="outline" className="text-[10px] shrink-0">
+                          {issue.envelope}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Success state */}
+                {validation.canProceed && (
+                  <div className="flex items-center gap-3 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/20 p-4">
+                    <Check className="h-5 w-5 text-emerald-500" />
+                    <div>
+                      <p className="font-medium text-emerald-700 dark:text-emerald-400">
+                        {t('package.noBlockers')}
+                      </p>
+                      <p className="text-sm text-emerald-600/80 dark:text-emerald-500/80">
+                        {t('package.readyToProceed')}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-between pt-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => validateMutation.mutate({ tenderId })}
+                    className="cursor-pointer gap-2"
+                  >
+                    <Loader2 className={cn('h-4 w-4', validateMutation.isPending && 'animate-spin')} />
+                    {t('package.step1Title')}
+                  </Button>
+                  <Button
+                    onClick={() => setCurrentStep(2)}
+                    disabled={!validation.canProceed}
+                    className="cursor-pointer"
+                  >
+                    {t('package.proceed')}
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 2: Assembly Preview */}
+      {currentStep === 2 && validation && (
+        <Card className="border-border/60">
+          <CardHeader>
+            <CardTitle>{t('package.step2Title')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {validation.envelopes
+              .filter((env) => env.documents.length > 0)
+              .map((envelope) => (
+                <div key={envelope.id}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Folder className="h-5 w-5 text-[#48A4D6]" />
+                    <h3 className="font-semibold">{envelope.title}</h3>
+                    <Badge variant="secondary">
+                      {envelope.documentCount} {t('package.files')}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1.5 ml-7">
+                    {envelope.documents.map((doc, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-3 rounded-lg border border-border/60 p-2.5 transition-colors hover:bg-muted/50"
+                      >
+                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="flex-1 text-sm font-mono text-xs truncate">
+                          {doc.name}
+                        </span>
                         <Badge
                           variant="outline"
                           className={cn(
-                            'text-[10px]',
+                            'text-[10px] shrink-0',
                             doc.source === 'generated'
-                              ? 'border-blue-300 text-blue-600'
+                              ? 'border-[#48A4D6]/30 text-[#48A4D6]'
                               : doc.source === 'company'
-                                ? 'border-green-300 text-green-600'
-                                : 'border-gray-300'
+                                ? 'border-emerald-500/30 text-emerald-600'
+                                : 'border-border'
                           )}
                         >
                           {doc.source === 'generated'
@@ -223,91 +341,29 @@ export default function PackagePage() {
                 </div>
               ))}
 
-            <div className="flex justify-end">
-              <Button
-                onClick={() => setCurrentStep(2)}
-                className="cursor-pointer"
-              >
-                Συνέχεια
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {currentStep === 2 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Έλεγχος Πληρότητας</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Validation results */}
-            {validation?.valid ? (
-              <div className="flex items-center gap-3 rounded-lg bg-green-50 dark:bg-green-950/30 p-4 border border-green-200 dark:border-green-900">
-                <Check className="h-5 w-5 text-green-600" />
-                <div>
-                  <div className="font-medium text-green-800 dark:text-green-300">
-                    Όλα τα υποχρεωτικά έγγραφα είναι παρόντα
-                  </div>
-                  <div className="text-sm text-green-600 dark:text-green-400">
-                    Το πακέτο είναι έτοιμο για δημιουργία
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 rounded-lg bg-red-50 dark:bg-red-950/30 p-4 border border-red-200 dark:border-red-900">
-                  <AlertTriangle className="h-5 w-5 text-red-600" />
-                  <div>
-                    <div className="font-medium text-red-800 dark:text-red-300">
-                      Λείπουν {validation?.missingDocuments.length} έγγραφα
-                    </div>
-                  </div>
-                </div>
-                {validation?.missingDocuments.map((doc, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 rounded-lg border border-red-200 p-3 text-sm"
-                  >
-                    <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
-                    <span>{doc}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Warnings */}
-            {validation?.warnings && validation.warnings.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="font-medium text-yellow-700 dark:text-yellow-400">
-                  Προειδοποιήσεις
-                </h3>
-                {validation.warnings.map((warn, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-900 p-3 text-sm"
-                  >
-                    <AlertTriangle className="h-4 w-4 text-yellow-600 shrink-0" />
-                    <span>{warn}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
             {/* Summary */}
-            <div className="rounded-lg bg-muted/50 p-4">
-              <h3 className="font-medium mb-2">Περίληψη Πακέτου</h3>
-              <div className="grid gap-2 text-sm">
+            <div className="rounded-xl bg-muted/50 border border-border/60 p-4">
+              <h3 className="font-medium mb-2">{t('package.summary')}</h3>
+              <div className="grid gap-1.5 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Συνολικά αρχεία:</span>
+                  <span className="text-muted-foreground">{t('package.totalFiles')}:</span>
                   <span className="font-medium">
-                    {validation?.documents.length || 0}
+                    {validation.envelopes.reduce((sum, e) => sum + e.documentCount, 0)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Πλατφόρμα:</span>
+                  <span className="text-muted-foreground">{t('package.envelopes')}:</span>
+                  <span className="font-medium">
+                    {validation.envelopes.filter(e => e.documentCount > 0).length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('package.platform')}:</span>
                   <span className="font-medium">{tender?.platform}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t('package.readiness')}:</span>
+                  <span className="font-medium">{validation.readinessScore}%</span>
                 </div>
               </div>
             </div>
@@ -319,47 +375,93 @@ export default function PackagePage() {
                 className="cursor-pointer"
               >
                 <ChevronLeft className="mr-2 h-4 w-4" />
-                Πίσω
+                {t('package.back')}
               </Button>
               <Button
-                onClick={handleBuildPackage}
-                disabled={isBuilding}
+                onClick={handleAssemble}
+                disabled={assembleMutation.isPending}
                 className="cursor-pointer"
               >
-                {isBuilding ? (
+                {assembleMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Δημιουργία...
+                    {t('package.building')}
                   </>
                 ) : (
                   <>
                     <Package className="mr-2 h-4 w-4" />
-                    Δημιουργία ZIP
+                    {t('package.buildZip')}
                   </>
                 )}
               </Button>
             </div>
+
+            {assembleMutation.error && (
+              <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/[0.04] p-3.5">
+                <XCircle className="h-4 w-4 text-red-500 shrink-0" />
+                <p className="text-sm">{assembleMutation.error.message}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {currentStep === 3 && (
-        <Card>
+      {/* Step 3: Download */}
+      {currentStep === 3 && assembleMutation.data && (
+        <Card className="border-border/60">
           <CardContent className="flex flex-col items-center justify-center py-16 space-y-6">
-            <div className="h-20 w-20 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center">
-              <Check className="h-10 w-10 text-green-600" />
+            <div className="h-20 w-20 rounded-full bg-emerald-500/10 flex items-center justify-center">
+              <Check className="h-10 w-10 text-emerald-500" />
             </div>
             <div className="text-center">
-              <h2 className="text-2xl font-bold">Το πακέτο είναι έτοιμο!</h2>
+              <h2 className="text-2xl font-bold">{t('package.readyTitle')}</h2>
               <p className="text-muted-foreground mt-2">
-                Κατεβάστε το ZIP και ανεβάστε το χειροκίνητα στο{' '}
+                {t('package.readyDesc')}{' '}
                 <span className="font-medium">{tender?.platform}</span>
               </p>
             </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-6 text-center">
+              <div>
+                <div className="text-2xl font-bold">{assembleMutation.data.documentCount}</div>
+                <div className="text-xs text-muted-foreground">{t('package.totalFiles')}</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold">{assembleMutation.data.envelopeCount}</div>
+                <div className="text-xs text-muted-foreground">{t('package.envelopes')}</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold">
+                  {formatBytes(assembleMutation.data.fileSize)}
+                </div>
+                <div className="text-xs text-muted-foreground">{t('package.zipSize')}</div>
+              </div>
+            </div>
+
             <div className="flex gap-3">
-              <Button size="lg" className="cursor-pointer">
+              <Button
+                size="lg"
+                className="cursor-pointer"
+                onClick={() => {
+                  // Re-trigger download
+                  const byteArray = Uint8Array.from(
+                    atob(assembleMutation.data!.zipBase64),
+                    (c) => c.charCodeAt(0)
+                  );
+                  const blob = new Blob([byteArray], { type: 'application/zip' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${tender?.title || 'package'}_${new Date().toISOString().slice(0, 10)}.zip`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }}
+              >
                 <Download className="mr-2 h-5 w-5" />
-                Λήψη ZIP
+                {t('package.download')}
               </Button>
               <Button
                 variant="outline"
@@ -367,7 +469,7 @@ export default function PackagePage() {
                 onClick={() => router.push(`/tenders/${tenderId}`)}
                 className="cursor-pointer"
               >
-                Πίσω στο Διαγωνισμό
+                {t('package.backToTender')}
               </Button>
             </div>
           </CardContent>
