@@ -201,7 +201,25 @@ Check existing translation keys — there may already be relevant ones in the `t
 
 ---
 
-## 7. Edge Cases
+## 7. File Naming
+
+Exported DOCX files follow the pattern: `[DocType_Greek]_[tender_ref].docx`
+
+| Type | Filename |
+|------|----------|
+| SOLEMN_DECLARATION | `ΥΔ_Ν1599_[ref].docx` |
+| NON_EXCLUSION_DECLARATION | `Δήλωση_Μη_Αποκλεισμού_[ref].docx` |
+| TECHNICAL_COMPLIANCE | `Τεχνική_Συμμόρφωση_[ref].docx` |
+| TECHNICAL_PROPOSAL | `Τεχνική_Προσφορά_[ref].docx` |
+| COVER_LETTER | `Συνοδευτική_Επιστολή_[ref].docx` |
+| COMPANY_EXPERIENCE_TABLE | `Πίνακας_Εμπειρίας.docx` |
+| OTHER | `[document_title].docx` |
+
+Where `[ref]` = tender reference number or first 20 chars of tender title if no ref.
+
+---
+
+## 8. Edge Cases
 
 | Case | Handling |
 |------|----------|
