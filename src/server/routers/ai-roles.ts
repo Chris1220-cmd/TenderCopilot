@@ -364,7 +364,8 @@ export const aiRolesRouter = router({
 
       return tenders
         .map((t) => {
-          const deadline = t.submissionDeadline!;
+          if (!t.submissionDeadline) return null;
+          const deadline = t.submissionDeadline;
           const daysToDeadline = Math.ceil((deadline.getTime() - now.getTime()) / 86400000);
           const interval = daysToDeadline > 14 ? 5 : daysToDeadline > 7 ? 2 : 1;
           const lastCheck = t.lastClarificationCheckAt || t.createdAt;
