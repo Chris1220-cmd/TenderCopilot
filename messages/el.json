@@ -531,7 +531,23 @@
     "subcontractorPending": "Εκκρεμεί",
     "addSubcontractor": "Προσθήκη Υπεργολάβου/Προμηθευτή",
     "subcontractorKindSub": "Υπεργολάβος",
-    "subcontractorKindSup": "Προμηθευτής"
+    "subcontractorKindSup": "Προμηθευτής",
+    "phase": {
+      "understand": "Κατανόηση",
+      "prepare": "Προετοιμασία",
+      "assemble": "Συλλογή",
+      "submit": "Υποβολή"
+    },
+    "sidebar": {
+      "progress": "{{count}}/11 ολοκληρωμένα",
+      "toggle": "Πλοήγηση φακέλου"
+    },
+    "deadlineCountdown": {
+      "days": "{{count}} ημέρες",
+      "oneDay": "1 ημέρα",
+      "today": "ΣΗΜΕΡΑ",
+      "expired": "ΕΛΗΞΕ"
+    }
   },
   "roles": {
     "admin": "Διαχειριστής",

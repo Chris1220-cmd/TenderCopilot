@@ -531,7 +531,23 @@
     "subcontractorPending": "Pending",
     "addSubcontractor": "Add Subcontractor/Supplier",
     "subcontractorKindSub": "Subcontractor",
-    "subcontractorKindSup": "Supplier"
+    "subcontractorKindSup": "Supplier",
+    "phase": {
+      "understand": "Understand",
+      "prepare": "Prepare",
+      "assemble": "Assemble",
+      "submit": "Submit"
+    },
+    "sidebar": {
+      "progress": "{{count}}/11 complete",
+      "toggle": "Dossier navigation"
+    },
+    "deadlineCountdown": {
+      "days": "{{count}} days",
+      "oneDay": "1 day",
+      "today": "TODAY",
+      "expired": "EXPIRED"
+    }
   },
   "roles": {
     "admin": "Administrator",
