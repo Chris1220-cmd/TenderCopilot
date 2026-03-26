@@ -9,6 +9,7 @@ import { CertificatesList } from '@/components/company/certificates-list';
 import { LegalDocsList } from '@/components/company/legal-docs-list';
 import { ProjectsList } from '@/components/company/projects-list';
 import { ContentLibrary } from '@/components/company/content-library';
+import { TeamMembersList } from '@/components/company/team-members-list';
 import { useTranslation } from '@/lib/i18n';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { Particles } from '@/components/ui/particles';
@@ -18,6 +19,7 @@ import {
   FileCheck,
   Briefcase,
   BookOpen,
+  Users,
 } from 'lucide-react';
 
 const tabKeys = [
@@ -26,6 +28,7 @@ const tabKeys = [
   { value: 'legal', labelKey: 'company.legalDocsTab', icon: FileCheck },
   { value: 'projects', labelKey: 'company.projectsTab', icon: Briefcase },
   { value: 'library', labelKey: 'company.libraryTab', icon: BookOpen },
+  { value: 'team', labelKey: 'company.teamTab', icon: Users },
 ] as const;
 
 const containerVariants = {
@@ -101,6 +104,9 @@ export default function CompanyPage() {
                 </TabsContent>
                 <TabsContent value="library" forceMount={activeTab === 'library' ? true : undefined}>
                   <ContentLibrary />
+                </TabsContent>
+                <TabsContent value="team" forceMount={activeTab === 'team' ? true : undefined}>
+                  <TeamMembersList />
                 </TabsContent>
               </motion.div>
             </AnimatePresence>
