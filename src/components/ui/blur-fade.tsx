@@ -2,7 +2,6 @@
 
 import { useRef } from "react"
 import {
-  AnimatePresence,
   motion,
   useInView,
   useReducedMotion,
@@ -77,24 +76,21 @@ export function BlurFade({
     hiddenFilter !== visibleFilter
 
   return (
-    <AnimatePresence>
-      <motion.div
-        ref={ref}
-        initial="hidden"
-        animate={isInView ? "visible" : "hidden"}
-        exit="hidden"
-        variants={combinedVariants}
-        transition={{
-          delay: 0.04 + delay,
-          duration,
-          ease: "easeOut",
-          ...(shouldTransitionFilter ? { filter: { duration } } : {}),
-        }}
-        className={className}
-        {...props}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <motion.div
+      ref={ref}
+      initial="hidden"
+      animate={isInView ? "visible" : "hidden"}
+      variants={combinedVariants}
+      transition={{
+        delay: 0.04 + delay,
+        duration,
+        ease: "easeOut",
+        ...(shouldTransitionFilter ? { filter: { duration } } : {}),
+      }}
+      className={className}
+      {...props}
+    >
+      {children}
+    </motion.div>
   )
 }
