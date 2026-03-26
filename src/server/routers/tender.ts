@@ -222,4 +222,97 @@ export const tenderRouter = router({
         data: { status: input.status },
       });
     }),
+
+  getSectionStatuses: protectedProcedure
+    .input(z.object({ id: z.string().cuid() }))
+    .query(async ({ ctx, input }) => {
+      if (!ctx.tenantId) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
+      }
+
+      const tender = await ctx.db.tender.findUnique({
+        where: { id: input.id },
+        include: {
+          brief: { select: { id: true } },
+          goNoGoDecision: { select: { id: true } },
+          requirements: { select: { id: true, coverageStatus: true } },
+          evaluationCriteria: { select: { id: true, status: true } },
+          legalClauses: { select: { id: true } },
+          clarifications: {
+            where: { source: 'AUTHORITY_PUBLISHED', isRead: false },
+            select: { id: true },
+          },
+          technicalSections: { select: { id: true, status: true } },
+          pricingScenarios: { select: { id: true, isSelected: true } },
+          generatedDocuments: { select: { id: true } },
+          tasks: { select: { id: true, status: true, dueDate: true } },
+          deadlinePlanItems: { select: { id: true, status: true, isMandatory: true } },
+        },
+      });
+
+      if (!tender || tender.tenantId !== ctx.tenantId) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Tender not found.' });
+      }
+
+      type S = 'not_started' | 'in_progress' | 'complete' | 'has_issues';
+      const now = new Date();
+
+      const hasBrief = !!tender.brief;
+      const hasGoNoGo = !!tender.goNoGoDecision;
+      const overview: S = hasBrief && hasGoNoGo ? 'complete' : hasBrief || hasGoNoGo ? 'in_progress' : 'not_started';
+
+      const reqCount = tender.requirements.length;
+      const coveredReqs = tender.requirements.filter((r) => r.coverageStatus === 'COVERED').length;
+      const requirements: S = reqCount === 0 ? 'not_started' : coveredReqs === reqCount ? 'complete' : 'in_progress';
+
+      const criteriaCount = tender.evaluationCriteria.length;
+      const finalCriteria = tender.evaluationCriteria.filter((c) => c.status === 'FINAL').length;
+      const criteria: S = criteriaCount === 0 ? 'not_started' : finalCriteria === criteriaCount ? 'complete' : 'in_progress';
+
+      const hasUnread = tender.clarifications.length > 0;
+      const hasClauses = tender.legalClauses.length > 0;
+      const legal: S = hasUnread ? 'has_issues' : hasClauses ? 'complete' : 'not_started';
+
+      const techCount = tender.technicalSections.length;
+      const approvedTech = tender.technicalSections.filter((s) => s.status === 'APPROVED').length;
+      const technical: S = techCount === 0 ? 'not_started' : approvedTech === techCount ? 'complete' : 'in_progress';
+
+      const hasScenarios = tender.pricingScenarios.length > 0;
+      const hasSelected = tender.pricingScenarios.some((s) => s.isSelected);
+      const financial: S = !hasScenarios ? 'not_started' : hasSelected ? 'complete' : 'in_progress';
+
+      const docCount = tender.generatedDocuments.length;
+      const documents: S = docCount === 0 ? 'not_started' : docCount >= 2 ? 'complete' : 'in_progress';
+
+      const fakelosReport = tender.fakelosReport as any;
+      const fakelosScore = fakelosReport?.score ?? 0;
+      const fakelos: S = fakelosScore >= 80 ? 'complete' : fakelosScore > 0 ? 'in_progress' : 'not_started';
+
+      const taskCount = tender.tasks.length;
+      const doneTasks = tender.tasks.filter((t) => t.status === 'DONE').length;
+      const overdueTasks = tender.tasks.filter(
+        (t) => t.status !== 'DONE' && t.dueDate && t.dueDate < now
+      ).length;
+      const tasks: S = taskCount === 0 ? 'not_started' : overdueTasks > 0 ? 'has_issues' : doneTasks === taskCount ? 'complete' : 'in_progress';
+
+      const dlItems = tender.deadlinePlanItems;
+      const mandatoryItems = dlItems.filter((d) => d.isMandatory);
+      const obtainedMandatory = mandatoryItems.filter((d) => d.status === 'OBTAINED').length;
+      const overdueItems = dlItems.filter((d) => d.status === 'OVERDUE').length;
+      const deadline: S =
+        dlItems.length === 0
+          ? 'not_started'
+          : overdueItems > 0
+            ? 'has_issues'
+            : mandatoryItems.length > 0 && obtainedMandatory === mandatoryItems.length
+              ? 'complete'
+              : 'in_progress';
+
+      const activity: S = 'complete';
+
+      return {
+        overview, requirements, criteria, legal, technical, financial,
+        documents, fakelos, tasks, deadline, activity,
+      };
+    }),
 });
