@@ -6,6 +6,7 @@ import { aiLegalAnalyzer } from '@/server/services/ai-legal-analyzer';
 import { aiTechnical } from '@/server/services/ai-technical';
 import { aiFinancial } from '@/server/services/ai-financial';
 import { aiCompliance } from '@/server/services/ai-compliance';
+import { aiCriteriaAnalyzer } from '@/server/services/ai-criteria-analyzer';
 import { aiOps } from '@/server/services/ai-ops';
 import { db } from '@/lib/db';
 import { ai, logTokenUsage } from '@/server/ai';
@@ -622,5 +623,42 @@ export const aiRolesRouter = router({
       await tenderAnalysisService.saveRequirements(input.tenderId, analysis);
 
       return { requirementsCount: analysis.requirements.length };
+    }),
+
+  // ─── Evaluation Criteria Writing Assistant ────────────────
+
+  analyzeCriteria: protectedProcedure
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
+    .mutation(async ({ ctx, input }) => {
+      const { tenantId } = await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      return aiCriteriaAnalyzer.analyzeCriteria(input.tenderId, tenantId, input.language);
+    }),
+
+  getCriteria: protectedProcedure
+    .input(z.object({ tenderId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      await ensureTenderAccess(input.tenderId, ctx.tenantId);
+      return db.evaluationCriterion.findMany({
+        where: { tenderId: input.tenderId, parentId: null },
+        include: { children: { orderBy: { sortOrder: 'asc' } } },
+        orderBy: { sortOrder: 'asc' },
+      });
+    }),
+
+  updateCriterionStatus: protectedProcedure
+    .input(z.object({
+      criterionId: z.string(),
+      status: z.enum(['NOT_STARTED', 'IN_PROGRESS', 'DRAFT_READY', 'FINAL']),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const criterion = await db.evaluationCriterion.findUniqueOrThrow({
+        where: { id: input.criterionId },
+        select: { tenderId: true },
+      });
+      await ensureTenderAccess(criterion.tenderId, ctx.tenantId);
+      return db.evaluationCriterion.update({
+        where: { id: input.criterionId },
+        data: { status: input.status },
+      });
     }),
 });
