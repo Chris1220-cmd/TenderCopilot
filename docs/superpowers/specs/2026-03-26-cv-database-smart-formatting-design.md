@@ -15,7 +15,7 @@
 | Location | `/company` — tab "Ομάδα Έργου" |
 | Data model | Normalized (Approach B) — separate tables per data category |
 | CV parsing | Smart — AI parse → auto-fill → user confirms/corrects |
-| CV formatting | 2-3 templates: Europass, Ελληνικό Δημόσιο, Πίνακας Στελέχωσης |
+| CV formatting | 3 CV templates (Europass, Ελληνικό Δημόσιο, Συνοπτικό) + Πίνακας Στελέχωσης |
 | Assignment | Suggested + manual — AI proposes best matches, user decides |
 | Tracking | Basic — list of tenders per member (read-only) |
 
@@ -216,10 +216,13 @@ Location: Tender detail page (after team is assigned)
 
 Uses `docx` library (already in project) + `JSZip` (already in project).
 
-**Templates:**
+**CV Templates (per member):**
 - **Europass:** EU standard format — sidebar layout, structured sections, specific styling
 - **Ελληνικό Δημόσιο:** Clean table-based format — Σπουδές, Εμπειρία, Πιστοποιήσεις sections
-- **Πίνακας Στελέχωσης:** Single DOCX, one table — all assigned members summarized
+- **Συνοπτικό:** One-page summary — key qualifications and experience only
+
+**Team Deliverable:**
+- **Πίνακας Στελέχωσης:** Single DOCX, one table — all assigned members summarized (always included in export)
 
 **Flow:** Generate DOCX files → bundle in ZIP → upload to S3 → return presigned download URL.
 
