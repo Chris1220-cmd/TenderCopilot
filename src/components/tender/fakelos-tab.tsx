@@ -764,14 +764,15 @@ export function FakelosTab({ tenderId }: { tenderId: string }) {
                   )}
                   Τρέξε Έλεγχο Ξανά
                 </ShimmerButton>
-                <Button
-                  variant="outline"
-                  disabled
-                  className="cursor-not-allowed gap-2 h-9 px-4 text-sm opacity-50"
-                >
-                  <Package className="h-3.5 w-3.5" />
-                  Δημιουργία Πακέτου
-                </Button>
+                <Link href={`/tenders/${tenderId}/package`}>
+                  <Button
+                    variant="outline"
+                    className="cursor-pointer gap-2 h-9 px-4 text-sm border-[#48A4D6]/30 text-[#48A4D6] hover:bg-[#48A4D6]/5"
+                  >
+                    <Package className="h-3.5 w-3.5" />
+                    Ετοίμασε Φάκελο Υποβολής
+                  </Button>
+                </Link>
               </div>
             </div>
           </GlassCardContent>
