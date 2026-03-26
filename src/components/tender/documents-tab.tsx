@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import { useTranslation } from '@/lib/i18n';
+import { EspdWizard } from './espd-wizard';
 import { cn, fileSize, formatDate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
@@ -49,6 +51,7 @@ const generatedDocTypes = [
   { type: 'NON_EXCLUSION_DECLARATION' as const, label: 'Δήλωση Μη Αποκλεισμού', icon: ShieldCheck },
   { type: 'TECHNICAL_COMPLIANCE' as const, label: 'Πίνακας Τεχνικής Συμμόρφωσης', icon: Table2 },
   { type: 'TECHNICAL_PROPOSAL' as const, label: 'Τεχνική Προσφορά', icon: FileCode },
+  { type: 'ESPD' as const, label: 'ΕΕΕΣ/ESPD', icon: FileText },
 ];
 
 function ExtractionBadge({ doc }: { doc: any }) {
@@ -80,9 +83,11 @@ function ExtractionBadge({ doc }: { doc: any }) {
 }
 
 export function DocumentsTab({ tenderId }: DocumentsTabProps) {
+  const { t } = useTranslation();
   const [isDragActive, setIsDragActive] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<any>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [espdOpen, setEspdOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
@@ -372,6 +377,15 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
       {/* ── Generated Documents ───────────────────────────── */}
       <TabsContent value="generated" className="space-y-4">
         {/* Generate New */}
+        <div className="flex items-center gap-2">
+        <Button
+          onClick={() => setEspdOpen(true)}
+          variant="outline"
+          className="cursor-pointer gap-2"
+        >
+          <FileText className="h-4 w-4" />
+          {t('espd.title')}
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -409,6 +423,7 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
 
         {/* Generated List */}
         {generatedQuery.isLoading ? (
@@ -539,6 +554,12 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <EspdWizard
+        tenderId={tenderId}
+        open={espdOpen}
+        onOpenChange={setEspdOpen}
+      />
     </Tabs>
   );
 }
