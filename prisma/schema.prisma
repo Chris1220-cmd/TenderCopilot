@@ -47,6 +47,9 @@ model Tenant {
 
   // CV Database
   teamMembers    TeamMember[]
+
+  // Guarantee Letters
+  guaranteeLetters GuaranteeLetter[]
 }
 
 model User {
@@ -166,6 +169,7 @@ model CompanyProfile {
   legalRepIdNumber    String?
   kadCodes            String[] // ΚΑΔ codes array
   description         String?  @db.Text
+  guaranteeCreditLine Float?   // Total credit line for guarantee letters (EUR)
 
   tenantId String @unique
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -342,6 +346,9 @@ model Tender {
 
   // Smart Document Assembly
   packageSubmissions PackageSubmission[]
+
+  // Guarantee Letters
+  guaranteeLetters GuaranteeLetter[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1131,4 +1138,44 @@ model DeadlinePlanItem {
   @@index([tenderId, tenantId])
   @@index([tenantId, status])
   @@index([dueDate])
+}
+
+// ─── Guarantee Letters ───────────────────────────────────────
+
+enum GuaranteeType {
+  PARTICIPATION    // Εγγυητική Συμμετοχής (2%)
+  PERFORMANCE      // Εγγυητική Καλής Εκτέλεσης (4%)
+  ADVANCE_PAYMENT  // Εγγυητική Προκαταβολής
+}
+
+enum GuaranteeStatus {
+  REQUESTED
+  ISSUED
+  ACTIVE
+  RELEASED
+  EXPIRED
+}
+
+model GuaranteeLetter {
+  id              String          @id @default(cuid())
+  tenderId        String
+  tenantId        String
+  type            GuaranteeType   @default(PARTICIPATION)
+  amount          Float
+  bank            String?
+  referenceNumber String?
+  status          GuaranteeStatus @default(REQUESTED)
+  requestedAt     DateTime?
+  issuedAt        DateTime?
+  validUntil      DateTime?
+  releasedAt      DateTime?
+  notes           String?         @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenderId])
 }
