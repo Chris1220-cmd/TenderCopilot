@@ -44,6 +44,9 @@ model Tenant {
 
   // Deadline Planner
   deadlinePlanItems DeadlinePlanItem[]
+
+  // CV Database
+  teamMembers    TeamMember[]
 }
 
 model User {
@@ -839,11 +842,78 @@ model TeamRequirement {
   cvFileKey      String?
   status         CoverageStatus @default(UNMAPPED)
 
+  assignedMemberId String?
+  assignedMember   TeamMember? @relation("AssignedMember", fields: [assignedMemberId], references: [id], onDelete: SetNull)
+
   tenderId String
   tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── CV Database ─────────────────────────────────────────────
+
+model TeamMember {
+  id              String   @id @default(cuid())
+  fullName        String
+  title           String
+  email           String?
+  phone           String?
+  totalExperience Int      @default(0)
+  bio             String?  @db.Text
+  cvFileKey       String?
+  cvFileName      String?
+  isActive        Boolean  @default(true)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  education      TeamMemberEducation[]
+  experience     TeamMemberExperience[]
+  certifications TeamMemberCertification[]
+  assignments    TeamRequirement[]         @relation("AssignedMember")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model TeamMemberEducation {
+  id          String @id @default(cuid())
+  degree      String
+  institution String
+  year        Int?
+
+  memberId String
+  member   TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model TeamMemberExperience {
+  id          String   @id @default(cuid())
+  projectName String
+  client      String
+  role        String
+  budget      Decimal? @db.Decimal(14, 2)
+  startYear   Int
+  endYear     Int?
+  description String?  @db.Text
+  category    String?
+
+  memberId String
+  member   TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model TeamMemberCertification {
+  id         String    @id @default(cuid())
+  name       String
+  issuer     String
+  issueDate  DateTime?
+  expiryDate DateTime?
+
+  memberId String
+  member   TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }
 
 // ─── Subcontractor & Supplier Needs ─────────────────────────
