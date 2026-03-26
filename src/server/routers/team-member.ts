@@ -7,6 +7,7 @@ import {
 } from '@/lib/team-member-schemas';
 import { parseCv } from '@/server/services/cv-parser';
 import { suggestAssignments } from '@/server/services/team-suggest';
+import { exportCvs } from '@/server/services/cv-export';
 
 export const teamMemberRouter = router({
   // ─── Queries ──────────────────────────────────────────────
@@ -263,5 +264,22 @@ export const teamMemberRouter = router({
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
       }
       return suggestAssignments(input.tenderId, ctx.tenantId);
+    }),
+
+  exportCvs: protectedProcedure
+    .input(z.object({
+      tenderId: z.string().cuid(),
+      templateId: z.enum(['europass', 'greekPublic', 'summary']),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.tenantId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
+      try {
+        return await exportCvs(input.tenderId, ctx.tenantId, input.templateId);
+      } catch (err: any) {
+        if (err.message === 'NO_ASSIGNMENTS') {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'No team members assigned.' });
+        }
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'CV export failed.' });
+      }
     }),
 });
