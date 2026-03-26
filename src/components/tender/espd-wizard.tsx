@@ -18,6 +18,10 @@ import { EMPTY_ESPD_DATA } from '@/lib/espd-types';
 import { EspdStepImport } from '@/components/tender/espd-step-import';
 import { EspdStepProcedure } from '@/components/tender/espd-step-procedure';
 import { EspdStepOperator } from '@/components/tender/espd-step-operator';
+import { EspdStepExclusion } from '@/components/tender/espd-step-exclusion';
+import { EspdStepSelection } from '@/components/tender/espd-step-selection';
+import { EspdStepReduction } from '@/components/tender/espd-step-reduction';
+import { EspdStepDeclarations } from '@/components/tender/espd-step-declarations';
 
 const STEPS = [
   { key: 'import', labelKey: 'espd.step0' },
@@ -265,6 +269,14 @@ function StepContent({
       return <EspdStepProcedure data={data} onChange={onChange} tenderId={tenderId} />;
     case 2:
       return <EspdStepOperator data={data} onChange={onChange} tenderId={tenderId} />;
+    case 3:
+      return <EspdStepExclusion data={data} onChange={onChange} tenderId={tenderId} />;
+    case 4:
+      return <EspdStepSelection data={data} onChange={onChange} tenderId={tenderId} />;
+    case 5:
+      return <EspdStepReduction data={data} onChange={onChange} tenderId={tenderId} />;
+    case 6:
+      return <EspdStepDeclarations data={data} onChange={onChange} tenderId={tenderId} />;
     default: {
       const stepLabels = [
         t('espd.step0'), t('espd.step1'), t('espd.step2'),
