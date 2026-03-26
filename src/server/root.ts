@@ -16,6 +16,7 @@ import { fakelosRouter } from '@/server/routers/fakelos';
 import { subcontractorNeedRouter } from '@/server/routers/subcontractor-need';
 import { deadlinePlanRouter } from '@/server/routers/deadline-plan';
 import { espdRouter } from '@/server/routers/espd';
+import { packageRouter } from '@/server/routers/package';
 
 export const appRouter = router({
   auth: authRouter,
@@ -35,6 +36,7 @@ export const appRouter = router({
   subcontractorNeed: subcontractorNeedRouter,
   deadlinePlan: deadlinePlanRouter,
   espd: espdRouter,
+  package: packageRouter,
 });
 
 export type AppRouter = typeof appRouter;
