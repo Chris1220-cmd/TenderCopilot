@@ -334,6 +334,9 @@ model Tender {
   // Evaluation Criteria Writing Assistant
   evaluationCriteria EvaluationCriterion[]
 
+  // Tender Intelligence
+  intelligence TenderIntelligence?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -908,6 +911,26 @@ model EvaluationCriterion {
 
   @@index([tenderId])
   @@index([parentId])
+}
+
+// ─── Tender Intelligence ────────────────────────────────────
+
+model TenderIntelligence {
+  id        String   @id @default(cuid())
+  tenderId  String   @unique
+  tender    Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  similarAwards    Json?
+  competitors      Json?
+  authorityProfile Json?
+  repeatTender     Json?
+  prepTimeEstimate Json?
+  aiAdvisory       Json?
+
+  language   String    @default("el")
+  fetchedAt  DateTime  @default(now())
+
+  @@index([tenderId])
 }
 
 // ─── Activity Log ───────────────────────────────────────────
