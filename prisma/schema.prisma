@@ -331,6 +331,9 @@ model Tender {
   // ESPD Auto-Generator
   espdData Json?
 
+  // Evaluation Criteria Writing Assistant
+  evaluationCriteria EvaluationCriterion[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -870,6 +873,41 @@ model SubcontractorNeed {
   updatedAt DateTime @updatedAt
 
   @@index([tenderId])
+}
+
+// ─── Evaluation Criteria Writing Assistant ──────────────────
+
+enum CriterionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  DRAFT_READY
+  FINAL
+}
+
+model EvaluationCriterion {
+  id          String   @id @default(cuid())
+  tenderId    String
+  tender      Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  name        String
+  weight      Float?
+  parentId    String?
+  parent      EvaluationCriterion?    @relation("CriteriaTree", fields: [parentId], references: [id])
+  children    EvaluationCriterion[]   @relation("CriteriaTree")
+  sortOrder   Int       @default(0)
+
+  description String?   @db.Text
+  guidance    String?   @db.Text
+  evidence    String?   @db.Text
+  suggestions String?   @db.Text
+
+  status      CriterionStatus @default(NOT_STARTED)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenderId])
+  @@index([parentId])
 }
 
 // ─── Activity Log ───────────────────────────────────────────
