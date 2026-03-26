@@ -489,7 +489,7 @@ export default function TenderDetailPage() {
                   <div className="p-6">
                     <DeadlinePlannerTab
                       tenderId={tenderId}
-                      submissionDeadline={tender.submissionDeadline}
+                      submissionDeadline={tender?.submissionDeadline}
                     />
                   </div>
                 </TabsContent>
