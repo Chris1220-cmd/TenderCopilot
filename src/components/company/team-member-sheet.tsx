@@ -131,6 +131,7 @@ export function TeamMemberSheet({ open, memberId, onClose }: TeamMemberSheetProp
   });
 
   const cvFileName = watch('cvFileName');
+  const cvFileKey = watch('cvFileKey');
 
   // ── Field arrays ──────────────────────────────────────────────────────────
   const {
@@ -241,6 +242,44 @@ export function TeamMemberSheet({ open, memberId, onClose }: TeamMemberSheetProp
   });
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
+
+  // ── CV parse ────────────────────────────────────────────────────────────────
+  const parseCvMutation = trpc.teamMember.parseCv.useMutation({
+    onSuccess: (data) => {
+      // Auto-fill form from parsed data
+      if (data.fullName) setValue('fullName', data.fullName);
+      if (data.title) setValue('title', data.title);
+      if (data.totalExperience) setValue('totalExperience', data.totalExperience);
+      if (data.education?.length) {
+        // Clear existing and add parsed
+        while (eduFields.length > 0) removeEdu(0);
+        data.education.forEach((e) => appendEdu({ degree: e.degree, institution: e.institution, year: e.year }));
+      }
+      if (data.experience?.length) {
+        while (expFields.length > 0) removeExp(0);
+        data.experience.forEach((e) => appendExp({
+          projectName: e.projectName, client: e.client, role: e.role,
+          budget: e.budget, startYear: e.startYear, endYear: e.endYear,
+          description: e.description, category: e.category,
+        }));
+      }
+      if (data.certifications?.length) {
+        while (certFields.length > 0) removeCert(0);
+        data.certifications.forEach((c) => appendCert({
+          name: c.name, issuer: c.issuer,
+          issueDate: c.issueDate ? new Date(c.issueDate) : null,
+          expiryDate: c.expiryDate ? new Date(c.expiryDate) : null,
+        }));
+      }
+      toast({ title: t('common.success'), description: t('teamMembers.parseSuccess') });
+    },
+    onError: (err) => {
+      const msg = err.message.includes('No extractable text')
+        ? t('teamMembers.parseError')
+        : t('teamMembers.parseFailed');
+      toast({ title: t('common.error'), description: msg, variant: 'destructive' });
+    },
+  });
 
   // ── CV file upload ─────────────────────────────────────────────────────────
   const handleFileUpload = async (file: File) => {
@@ -425,8 +464,20 @@ export function TeamMemberSheet({ open, memberId, onClose }: TeamMemberSheetProp
                   <Upload className="h-3.5 w-3.5" />
                   {t('common.upload')}
                 </Button>
+                {cvFileKey && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => parseCvMutation.mutate({ fileKey: cvFileKey })}
+                    disabled={parseCvMutation.isPending}
+                    className="gap-1.5 cursor-pointer text-xs h-8 border-[#48A4D6]/40 text-[#48A4D6] hover:bg-[#48A4D6]/10 transition-colors duration-150"
+                  >
+                    {parseCvMutation.isPending ? t('teamMembers.parsing') : t('teamMembers.parseCv')}
+                  </Button>
+                )}
                 {cvFileName && (
-                  <span className="text-xs text-muted-foreground truncate max-w-[260px]">
+                  <span className="text-xs text-muted-foreground truncate max-w-[200px]">
                     {cvFileName}
                   </span>
                 )}

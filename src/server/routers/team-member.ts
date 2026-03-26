@@ -5,6 +5,7 @@ import {
   teamMemberCreateSchema,
   teamMemberUpdateSchema,
 } from '@/lib/team-member-schemas';
+import { parseCv } from '@/server/services/cv-parser';
 
 export const teamMemberRouter = router({
   // ─── Queries ──────────────────────────────────────────────
@@ -181,6 +182,33 @@ export const teamMemberRouter = router({
       }
 
       return ctx.db.teamMember.delete({ where: { id: input.id } });
+    }),
+
+  // ─── CV Parsing ────────────────────────────────────────────
+
+  parseCv: protectedProcedure
+    .input(z.object({ fileKey: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      try {
+        return await parseCv(input.fileKey);
+      } catch (err: any) {
+        if (err.message === 'NO_TEXT') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'No extractable text found in file.',
+          });
+        }
+        if (err.message === 'UNSUPPORTED_FORMAT') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Unsupported file format. Use PDF or DOCX.',
+          });
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'CV parsing failed.',
+        });
+      }
     }),
 
   // ─── Assignment ───────────────────────────────────────────
