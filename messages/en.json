@@ -8,7 +8,8 @@
     "dashboard": "Dashboard",
     "tenders": "Tenders",
     "dossiers": "Dossiers",
-    "analytics": "Analytics"
+    "analytics": "Analytics",
+    "resources": "Control Center"
   },
   "hero": {
     "badge": "Smart Platform",
@@ -1010,5 +1011,83 @@
     "validating": "Validating...",
     "history": "Package History",
     "noHistory": "No previous packages"
+  },
+  "resources": {
+    "title": "Control Center",
+    "subtitle": "Cross-tender overview across all dossiers",
+    "kpi": {
+      "activeTenders": "Active Tenders",
+      "criticalAlerts": "Critical Alerts",
+      "guaranteeCommitted": "Guarantees Committed",
+      "winRate": "Win Rate"
+    },
+    "alerts": {
+      "title": "Today / This Week",
+      "empty": "No pending actions — all good!",
+      "daysLeft": "{{count}} days",
+      "oneDay": "1 day",
+      "today": "TODAY",
+      "expired": "EXPIRED",
+      "overdue": "OVERDUE",
+      "affects": "Affects",
+      "action": {
+        "orderCertificate": "Order new today",
+        "callBank": "Call bank for status",
+        "signDocuments": "Prepare declarations for signing",
+        "checkClarifications": "Check new clarifications",
+        "checkReadiness": "Check dossier readiness"
+      }
+    },
+    "matrix": {
+      "title": "Certificates × Tenders",
+      "certificate": "Certificate",
+      "expires": "Expires",
+      "ok": "OK",
+      "expiring": "EXPIRING",
+      "marginal": "MARGINAL",
+      "expired": "EXPIRED",
+      "na": "N/A",
+      "empty": "No certificates with expiry dates"
+    },
+    "guarantees": {
+      "title": "Guarantee Exposure",
+      "committed": "Committed",
+      "creditLine": "Credit Line",
+      "available": "Available",
+      "maxTenderValue": "fits new tender up to",
+      "add": "Add Guarantee",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": "Are you sure you want to delete this guarantee?",
+      "noCreditLine": "Set guarantee credit line in Company Profile",
+      "empty": "No guarantee letters",
+      "status": {
+        "REQUESTED": "Requested",
+        "ISSUED": "Issued",
+        "ACTIVE": "Active",
+        "RELEASED": "Released",
+        "EXPIRED": "Expired"
+      },
+      "type": {
+        "PARTICIPATION": "Participation",
+        "PERFORMANCE": "Performance",
+        "ADVANCE_PAYMENT": "Advance Payment"
+      },
+      "form": {
+        "title": "Guarantee Letter",
+        "tender": "Tender",
+        "type": "Type",
+        "amount": "Amount (€)",
+        "bank": "Bank",
+        "referenceNumber": "Reference No.",
+        "status": "Status",
+        "requestedAt": "Requested Date",
+        "issuedAt": "Issued Date",
+        "validUntil": "Valid Until",
+        "notes": "Notes",
+        "save": "Save",
+        "cancel": "Cancel"
+      }
+    }
   }
 }

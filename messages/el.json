@@ -8,7 +8,8 @@
     "dashboard": "Πίνακας Ελέγχου",
     "tenders": "Διαγωνισμοί",
     "dossiers": "Φάκελοι",
-    "analytics": "Αναλυτικά"
+    "analytics": "Αναλυτικά",
+    "resources": "Κέντρο Ελέγχου"
   },
   "hero": {
     "badge": "Έξυπνη Πλατφόρμα",
@@ -1010,5 +1011,83 @@
     "validating": "Έλεγχος...",
     "history": "Ιστορικό Πακέτων",
     "noHistory": "Δεν υπάρχουν προηγούμενα πακέτα"
+  },
+  "resources": {
+    "title": "Κέντρο Ελέγχου",
+    "subtitle": "Συνολική εικόνα σε όλους τους φακέλους",
+    "kpi": {
+      "activeTenders": "Ενεργοί Φάκελοι",
+      "criticalAlerts": "Κρίσιμα Alerts",
+      "guaranteeCommitted": "Εγγυητικά Δεσμευμένα",
+      "winRate": "Win Rate"
+    },
+    "alerts": {
+      "title": "Σήμερα / Αυτή την Εβδομάδα",
+      "empty": "Δεν υπάρχουν εκκρεμότητες — όλα καλά!",
+      "daysLeft": "{{count}} ημέρες",
+      "oneDay": "1 ημέρα",
+      "today": "ΣΗΜΕΡΑ",
+      "expired": "ΕΛΗΞΕ",
+      "overdue": "ΕΚΠΡΟΘΕΣΜΟ",
+      "affects": "Επηρεάζει",
+      "action": {
+        "orderCertificate": "Παράγγειλε νέο σήμερα",
+        "callBank": "Κάλεσε τράπεζα για status",
+        "signDocuments": "Ετοίμασε ΥΔ για υπογραφή",
+        "checkClarifications": "Δες τις νέες διευκρινίσεις",
+        "checkReadiness": "Έλεγξε ετοιμότητα φακέλου"
+      }
+    },
+    "matrix": {
+      "title": "Πιστοποιητικά × Φάκελοι",
+      "certificate": "Πιστοποιητικό",
+      "expires": "Λήγει",
+      "ok": "OK",
+      "expiring": "ΛΗΓΕΙ",
+      "marginal": "ΟΡΙΑΚΑ",
+      "expired": "ΕΛΗΞΕ",
+      "na": "N/A",
+      "empty": "Δεν υπάρχουν πιστοποιητικά με ημερομηνία λήξης"
+    },
+    "guarantees": {
+      "title": "Εγγυητική Έκθεση",
+      "committed": "Δεσμευμένα",
+      "creditLine": "Γραμμή",
+      "available": "Διαθέσιμο",
+      "maxTenderValue": "χωράει νέος διαγωνισμός μέχρι",
+      "add": "Προσθήκη Εγγυητικής",
+      "edit": "Επεξεργασία",
+      "delete": "Διαγραφή",
+      "deleteConfirm": "Σίγουρα θέλετε να διαγράψετε αυτή την εγγυητική;",
+      "noCreditLine": "Ορίσε πιστωτικό όριο εγγυητικών στο Εταιρικό Προφίλ",
+      "empty": "Δεν υπάρχουν εγγυητικές επιστολές",
+      "status": {
+        "REQUESTED": "Αιτήθηκε",
+        "ISSUED": "Εκδόθηκε",
+        "ACTIVE": "Ενεργή",
+        "RELEASED": "Αποδεσμεύτηκε",
+        "EXPIRED": "Έληξε"
+      },
+      "type": {
+        "PARTICIPATION": "Συμμετοχής",
+        "PERFORMANCE": "Καλής Εκτέλεσης",
+        "ADVANCE_PAYMENT": "Προκαταβολής"
+      },
+      "form": {
+        "title": "Εγγυητική Επιστολή",
+        "tender": "Διαγωνισμός",
+        "type": "Τύπος",
+        "amount": "Ποσό (€)",
+        "bank": "Τράπεζα",
+        "referenceNumber": "Αρ. Αναφοράς",
+        "status": "Κατάσταση",
+        "requestedAt": "Ημ. Αίτησης",
+        "issuedAt": "Ημ. Έκδοσης",
+        "validUntil": "Ισχύς Μέχρι",
+        "notes": "Σημειώσεις",
+        "save": "Αποθήκευση",
+        "cancel": "Ακύρωση"
+      }
+    }
   }
 }

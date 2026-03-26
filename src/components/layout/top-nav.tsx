@@ -10,6 +10,7 @@ import {
   FileText,
   FolderCheck,
   BarChart3,
+  Shield,
   Bell,
   Search,
   LogOut,
@@ -40,6 +41,7 @@ const navItems = [
   { labelKey: 'nav.tenders', href: '/tenders', icon: FileText },
   { labelKey: 'nav.dossiers', href: '/fakeloi', icon: FolderCheck },
   { labelKey: 'nav.analytics', href: '/analytics', icon: BarChart3 },
+  { labelKey: 'nav.resources', href: '/resources', icon: Shield },
 ];
 
 export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => void }) {
