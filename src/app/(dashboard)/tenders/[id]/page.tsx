@@ -35,6 +35,7 @@ import { AIAssistantButton, AIAssistantPanel } from '@/components/tender/ai-assi
 import { OutcomePanel } from '@/components/tender/outcome-panel';
 import { MissingInfoPanel } from '@/components/tender/missing-info-panel';
 import { FakelosTab } from '@/components/tender/fakelos-tab';
+import { CriteriaTab } from '@/components/tender/criteria-tab';
 import { DeadlinePlannerTab } from '@/components/tender/deadline-planner-tab';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -56,6 +57,7 @@ import {
   FolderCheck,
   CalendarClock,
   MessageSquare,
+  Award,
 } from 'lucide-react';
 
 const containerVariants = {
@@ -381,6 +383,7 @@ export default function TenderDetailPage() {
             <AnimatedTabsTrigger value="overview" activeValue={activeTab}><Eye className="h-3.5 w-3.5" />{t('tender.overviewTab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="requirements" activeValue={activeTab}><ClipboardList className="h-3.5 w-3.5" />{t('tender.requirementsTab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="documents" activeValue={activeTab}><FileText className="h-3.5 w-3.5" />{t('tender.documentsTab')}</AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="criteria" activeValue={activeTab}><Award className="h-3.5 w-3.5" />{t('tender.criteriaTab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="fakelos" activeValue={activeTab}><FolderCheck className="h-3.5 w-3.5" />{t('tender.dossierTab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="deadline" activeValue={activeTab}><CalendarClock className="h-3.5 w-3.5" />{t('deadline.tab')}</AnimatedTabsTrigger>
             <AnimatedTabsTrigger value="tasks" activeValue={activeTab}><ListTodo className="h-3.5 w-3.5" />{t('tender.tasksTab')}</AnimatedTabsTrigger>
@@ -437,6 +440,9 @@ export default function TenderDetailPage() {
                 </TabsContent>
                 <TabsContent value="documents" forceMount={activeTab === 'documents' ? true : undefined}>
                   <DocumentsTab tenderId={tenderId} />
+                </TabsContent>
+                <TabsContent value="criteria" forceMount={activeTab === 'criteria' ? true : undefined}>
+                  <CriteriaTab tenderId={tenderId} />
                 </TabsContent>
                 <TabsContent value="fakelos" forceMount={activeTab === 'fakelos' ? true : undefined}>
                   <FakelosTab tenderId={tenderId} />
