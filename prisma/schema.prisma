@@ -337,6 +337,9 @@ model Tender {
   // Tender Intelligence
   intelligence TenderIntelligence?
 
+  // Smart Document Assembly
+  packageSubmissions PackageSubmission[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -929,6 +932,27 @@ model TenderIntelligence {
 
   language   String    @default("el")
   fetchedAt  DateTime  @default(now())
+
+  @@index([tenderId])
+}
+
+// ─── Smart Document Assembly ────────────────────────────────
+
+model PackageSubmission {
+  id        String   @id @default(cuid())
+  tenderId  String
+  tender    Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  documentCount  Int
+  envelopeCount  Int
+  fileSize       Int?
+  blockerCount   Int
+  warningCount   Int
+
+  manifest  Json
+
+  createdAt DateTime @default(now())
+  createdBy String?
 
   @@index([tenderId])
 }
