@@ -3,6 +3,8 @@ import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '@/server/trpc';
 import { deleteFile } from '@/lib/s3';
 import { readTenderDocuments, deepParseDocument } from '@/server/services/document-reader';
+import { exportGeneratedDocToDocx } from '@/server/services/document-docx';
+import { documentGenerator } from '@/server/services/document-generator';
 
 const generatedDocTypeEnum = z.enum([
   'SOLEMN_DECLARATION',
@@ -13,6 +15,7 @@ const generatedDocTypeEnum = z.enum([
   'COVER_LETTER',
   'OTHER',
   'ESPD',
+  'COMPANY_EXPERIENCE_TABLE',
 ]);
 
 const docGenStatusEnum = z.enum(['DRAFT', 'REVIEWED', 'FINAL']);
@@ -220,5 +223,48 @@ export const documentRouter = router({
       }
 
       return ctx.db.generatedDocument.delete({ where: { id: input.id } });
+    }),
+
+  // ─── DOCX Export ──────────────────────────────────────────
+
+  exportDocx: protectedProcedure
+    .input(z.object({ generatedDocId: z.string().cuid() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.tenantId) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
+      }
+      try {
+        return await exportGeneratedDocToDocx(input.generatedDocId, ctx.tenantId);
+      } catch (err: any) {
+        if (err.message === 'DOCUMENT_NOT_FOUND') {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Document not found.' });
+        }
+        if (err.message === 'NO_COMPANY_PROFILE') {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Company profile required.' });
+        }
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'DOCX export failed.' });
+      }
+    }),
+
+  // ─── Cover Letter Generation ──────────────────────────────
+
+  generateCoverLetter: protectedProcedure
+    .input(z.object({ tenderId: z.string().cuid() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.tenantId) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
+      }
+      return documentGenerator.generateCoverLetter(input.tenderId, ctx.tenantId);
+    }),
+
+  // ─── Experience Table Generation ──────────────────────────
+
+  generateExperienceTable: protectedProcedure
+    .input(z.object({ tenderId: z.string().cuid() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.tenantId) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
+      }
+      return documentGenerator.generateExperienceTable(input.tenderId, ctx.tenantId);
     }),
 });

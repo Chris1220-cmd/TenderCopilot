@@ -586,6 +586,7 @@ enum GeneratedDocType {
   COVER_LETTER              // Συνοδευτική επιστολή
   OTHER
   ESPD
+  COMPANY_EXPERIENCE_TABLE  // Πίνακας εμπειρίας εταιρείας
 }
 
 enum DocGenStatus {

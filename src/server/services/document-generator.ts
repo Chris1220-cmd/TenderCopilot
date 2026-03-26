@@ -256,6 +256,84 @@ export class DocumentGeneratorService {
     return doc.id;
   }
 
+  async generateCoverLetter(tenderId: string, tenantId: string): Promise<string> {
+    const { tender } = await this.loadContext(tenderId, tenantId);
+
+    const requirements = await db.tenderRequirement.findMany({
+      where: { tenderId },
+      orderBy: { category: 'asc' },
+    });
+
+    const envelopeA = requirements.filter((r) => ['PARTICIPATION_CRITERIA', 'EXCLUSION_CRITERIA', 'DOCUMENTATION_REQUIREMENTS'].includes(r.category));
+    const envelopeB = requirements.filter((r) => ['TECHNICAL_REQUIREMENTS'].includes(r.category));
+    const envelopeC = requirements.filter((r) => ['FINANCIAL_REQUIREMENTS'].includes(r.category));
+
+    const enclosedList = [
+      envelopeA.length > 0 ? `**Φάκελος Δικαιολογητικών Συμμετοχής (Α)**\n${envelopeA.map((r, i) => `${i + 1}. ${r.text.slice(0, 100)}`).join('\n')}` : '',
+      envelopeB.length > 0 ? `**Φάκελος Τεχνικής Προσφοράς (Β)**\n${envelopeB.map((r, i) => `${i + 1}. ${r.text.slice(0, 100)}`).join('\n')}` : '',
+      envelopeC.length > 0 ? `**Φάκελος Οικονομικής Προσφοράς (Γ)**\n${envelopeC.map((r, i) => `${i + 1}. ${r.text.slice(0, 100)}`).join('\n')}` : '',
+    ].filter(Boolean).join('\n\n');
+
+    const content = `Αξιότιμοι,
+
+Σε απάντηση της Διακήρυξης με αρ. ${tender.referenceNumber || '—'} για το έργο «${tender.title}», σας υποβάλλουμε τα ακόλουθα δικαιολογητικά και έγγραφα:
+
+${enclosedList}
+
+Παραμένουμε στη διάθεσή σας για οποιαδήποτε διευκρίνιση.
+
+Με εκτίμηση`;
+
+    const doc = await db.generatedDocument.create({
+      data: {
+        tenderId,
+        type: 'COVER_LETTER',
+        title: 'Συνοδευτική Επιστολή',
+        content,
+        status: 'DRAFT',
+      },
+    });
+
+    await this.logActivity(tenderId, 'Δημιουργήθηκε Συνοδευτική Επιστολή');
+    return doc.id;
+  }
+
+  async generateExperienceTable(tenderId: string, tenantId: string): Promise<string> {
+    const projects = await db.project.findMany({
+      where: { tenantId },
+      orderBy: { startDate: 'desc' },
+    });
+
+    let content: string;
+    if (projects.length === 0) {
+      content = 'Δεν υπάρχουν καταχωρημένα έργα εμπειρίας.';
+    } else {
+      const rows = projects.map((p, i) => {
+        const period = [
+          p.startDate ? new Date(p.startDate).getFullYear() : '',
+          p.endDate ? new Date(p.endDate).getFullYear() : 'σήμερα',
+        ].filter(Boolean).join(' – ');
+        const budget = p.contractAmount ? `€${Number(p.contractAmount).toLocaleString('el-GR')}` : '—';
+        return `| ${i + 1} | ${p.title} | ${p.client || '—'} | ${budget} | ${period} | ${p.category || '—'} |`;
+      });
+
+      content = `| Α/Α | Τίτλος Έργου | Κύριος Έργου | Προϋπολογισμός | Περίοδος | Κατηγορία |\n|-----|-------------|-------------|---------------|---------|----------|\n${rows.join('\n')}\n\nΣύνολο έργων: ${projects.length}`;
+    }
+
+    const doc = await db.generatedDocument.create({
+      data: {
+        tenderId,
+        type: 'COMPANY_EXPERIENCE_TABLE',
+        title: 'Πίνακας Εμπειρίας Εταιρείας',
+        content,
+        status: 'DRAFT',
+      },
+    });
+
+    await this.logActivity(tenderId, `Δημιουργήθηκε Πίνακας Εμπειρίας (${projects.length} έργα)`);
+    return doc.id;
+  }
+
   private async loadContext(tenderId: string, tenantId: string) {
     const [company, tender] = await Promise.all([
       db.companyProfile.findUnique({ where: { tenantId } }),

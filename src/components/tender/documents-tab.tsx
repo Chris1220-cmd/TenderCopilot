@@ -23,10 +23,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/tender/status-badge';
+import { useToast } from '@/components/ui/use-toast';
 import {
   Upload,
   FileText,
   Download,
+  FileDown,
   Trash2,
   Eye,
   Pencil,
@@ -40,6 +42,8 @@ import {
   CloudUpload,
   Brain,
   AlertTriangle,
+  Mail,
+  TableProperties,
 } from 'lucide-react';
 
 interface DocumentsTabProps {
@@ -51,6 +55,8 @@ const generatedDocTypes = [
   { type: 'NON_EXCLUSION_DECLARATION' as const, label: 'Δήλωση Μη Αποκλεισμού', icon: ShieldCheck },
   { type: 'TECHNICAL_COMPLIANCE' as const, label: 'Πίνακας Τεχνικής Συμμόρφωσης', icon: Table2 },
   { type: 'TECHNICAL_PROPOSAL' as const, label: 'Τεχνική Προσφορά', icon: FileCode },
+  { type: 'COVER_LETTER' as const, label: 'Συνοδευτική Επιστολή', icon: Mail },
+  { type: 'COMPANY_EXPERIENCE_TABLE' as const, label: 'Πίνακας Εμπειρίας', icon: TableProperties },
   { type: 'ESPD' as const, label: 'ΕΕΕΣ/ESPD', icon: FileText },
 ];
 
@@ -84,6 +90,7 @@ function ExtractionBadge({ doc }: { doc: any }) {
 
 export function DocumentsTab({ tenderId }: DocumentsTabProps) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [isDragActive, setIsDragActive] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<any>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -118,6 +125,26 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
   const generateMutation = trpc.document.createGenerated.useMutation({
     onSuccess: () => utils.document.listGenerated.invalidate({ tenderId }),
     onError: (err: any) => alert(`Σφάλμα δημιουργίας εγγράφου: ${err?.message || 'Άγνωστο σφάλμα'}`),
+  });
+  const generateCoverLetterMutation = trpc.document.generateCoverLetter.useMutation({
+    onSuccess: () => { utils.document.listGenerated.invalidate({ tenderId }); toast({ title: t('common.success') }); },
+    onError: (err: any) => { toast({ title: t('common.error'), description: err.message, variant: 'destructive' }); },
+  });
+  const generateExperienceTableMutation = trpc.document.generateExperienceTable.useMutation({
+    onSuccess: () => { utils.document.listGenerated.invalidate({ tenderId }); toast({ title: t('common.success') }); },
+    onError: (err: any) => { toast({ title: t('common.error'), description: err.message, variant: 'destructive' }); },
+  });
+  const exportDocxMutation = trpc.document.exportDocx.useMutation({
+    onSuccess: (data) => {
+      window.open(data.downloadUrl, '_blank');
+      toast({ title: t('common.success'), description: t('documentTemplates.exportReady') });
+    },
+    onError: (err: any) => {
+      const msg = err.message?.includes('Company profile')
+        ? t('documentTemplates.noCompanyProfile')
+        : t('documentTemplates.exportFailed');
+      toast({ title: t('common.error'), description: msg, variant: 'destructive' });
+    },
   });
   const [parsingDocId, setParsingDocId] = useState<string | null>(null);
 
@@ -402,19 +429,25 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[280px]">
-            {generatedDocTypes.map((dt) => (
+            {generatedDocTypes.filter((dt) => dt.type !== 'ESPD').map((dt) => (
               <DropdownMenuItem
                 key={dt.type}
                 className="cursor-pointer gap-2.5 py-2.5"
-                disabled={generateMutation.isPending}
+                disabled={generateMutation.isPending || generateCoverLetterMutation.isPending || generateExperienceTableMutation.isPending}
                 onClick={() => {
-                  generateMutation.mutate({
-                    tenderId,
-                    type: dt.type,
-                    title: dt.label,
-                    content: '',
-                    status: 'DRAFT',
-                  });
+                  if (dt.type === 'COVER_LETTER') {
+                    generateCoverLetterMutation.mutate({ tenderId });
+                  } else if (dt.type === 'COMPANY_EXPERIENCE_TABLE') {
+                    generateExperienceTableMutation.mutate({ tenderId });
+                  } else {
+                    generateMutation.mutate({
+                      tenderId,
+                      type: dt.type,
+                      title: dt.label,
+                      content: '',
+                      status: 'DRAFT',
+                    });
+                  }
                 }}
               >
                 <dt.icon className="h-4 w-4 text-muted-foreground" />
@@ -483,6 +516,18 @@ export function DocumentsTab({ tenderId }: DocumentsTabProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      {doc.type !== 'ESPD' && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 cursor-pointer"
+                          title={t('documentTemplates.exportDocx')}
+                          onClick={() => exportDocxMutation.mutate({ generatedDocId: doc.id })}
+                          disabled={exportDocxMutation.isPending}
+                        >
+                          <FileDown className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         size="icon"
                         variant="ghost"

@@ -904,6 +904,16 @@
     "clickToEdit": "Κλικ για επεξεργασία",
     "exportPdf": "Εξαγωγή PDF"
   },
+  "documentTemplates": {
+    "exportDocx": "Κατέβασε DOCX",
+    "exporting": "Δημιουργία εγγράφου...",
+    "exportReady": "Το έγγραφο είναι έτοιμο.",
+    "exportFailed": "Η εξαγωγή απέτυχε.",
+    "noCompanyProfile": "Συμπληρώστε πρώτα το εταιρικό προφίλ.",
+    "coverLetter": "Συνοδευτική Επιστολή",
+    "experienceTable": "Πίνακας Εμπειρίας",
+    "generating": "Δημιουργία..."
+  },
   "criteria": {
     "tab": "Κριτήρια",
     "analyze": "Ανάλυση Κριτηρίων",

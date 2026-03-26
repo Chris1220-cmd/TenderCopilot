@@ -904,6 +904,16 @@
     "clickToEdit": "Click to edit",
     "exportPdf": "Export PDF"
   },
+  "documentTemplates": {
+    "exportDocx": "Download DOCX",
+    "exporting": "Generating document...",
+    "exportReady": "Document ready.",
+    "exportFailed": "Export failed.",
+    "noCompanyProfile": "Complete company profile first.",
+    "coverLetter": "Cover Letter",
+    "experienceTable": "Experience Table",
+    "generating": "Generating..."
+  },
   "criteria": {
     "tab": "Criteria",
     "analyze": "Analyze Criteria",
