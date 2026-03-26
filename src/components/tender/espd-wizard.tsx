@@ -15,6 +15,9 @@ import {
 import { Loader2, ChevronLeft, ChevronRight, Save, Check, Download } from 'lucide-react';
 import type { EspdData } from '@/lib/espd-types';
 import { EMPTY_ESPD_DATA } from '@/lib/espd-types';
+import { EspdStepImport } from '@/components/tender/espd-step-import';
+import { EspdStepProcedure } from '@/components/tender/espd-step-procedure';
+import { EspdStepOperator } from '@/components/tender/espd-step-operator';
 
 const STEPS = [
   { key: 'import', labelKey: 'espd.step0' },
@@ -233,8 +236,8 @@ export function EspdWizard({ tenderId, open, onOpenChange }: EspdWizardProps) {
 }
 
 /**
- * Placeholder step content -- renders the step name.
- * Will be replaced with actual step components in Tasks 8-10.
+ * Renders the active step component.
+ * Steps 0-2 use dedicated components; remaining steps are placeholders for Tasks 9-10.
  */
 function StepContent({
   step,
@@ -254,15 +257,25 @@ function StepContent({
   isGenerating: boolean;
 }) {
   const { t } = useTranslation();
-  const stepLabels = [
-    t('espd.step0'), t('espd.step1'), t('espd.step2'),
-    t('espd.step3'), t('espd.step4'), t('espd.step5'),
-    t('espd.step6'), t('espd.preview'),
-  ];
 
-  return (
-    <div className="flex items-center justify-center py-20 text-muted-foreground">
-      <p className="text-lg">{stepLabels[step]} — Component placeholder</p>
-    </div>
-  );
+  switch (step) {
+    case 0:
+      return <EspdStepImport data={data} onChange={onChange} tenderId={tenderId} />;
+    case 1:
+      return <EspdStepProcedure data={data} onChange={onChange} tenderId={tenderId} />;
+    case 2:
+      return <EspdStepOperator data={data} onChange={onChange} tenderId={tenderId} />;
+    default: {
+      const stepLabels = [
+        t('espd.step0'), t('espd.step1'), t('espd.step2'),
+        t('espd.step3'), t('espd.step4'), t('espd.step5'),
+        t('espd.step6'), t('espd.preview'),
+      ];
+      return (
+        <div className="flex items-center justify-center py-20 text-muted-foreground">
+          <p className="text-lg">{stepLabels[step]} — Component placeholder</p>
+        </div>
+      );
+    }
+  }
 }
