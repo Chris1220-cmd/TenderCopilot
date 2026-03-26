@@ -800,6 +800,22 @@
     "kadCodes": "KAD Codes",
     "kadPlaceholder": "e.g. 62.01",
     "addKad": "Add",
-    "refreshing": "Refreshing..."
+    "refreshing": "Refreshing...",
+    "previewTitle": "ESPD Preview",
+    "validationSummary": "Validation Summary",
+    "sectionsComplete": "sections complete",
+    "sectionsIncomplete": "sections incomplete",
+    "partI": "Part I: Procedure Information",
+    "partII": "Part II: Operator Information",
+    "partIII": "Part III: Exclusion Grounds",
+    "partIV": "Part IV: Selection Criteria",
+    "partV": "Part V: Candidate Reduction",
+    "partVI": "Part VI: Final Declarations",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "entries": "entries",
+    "notSet": "Not set",
+    "clickToEdit": "Click to edit",
+    "exportPdf": "Export PDF"
   }
 }

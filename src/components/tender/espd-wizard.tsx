@@ -22,6 +22,7 @@ import { EspdStepExclusion } from '@/components/tender/espd-step-exclusion';
 import { EspdStepSelection } from '@/components/tender/espd-step-selection';
 import { EspdStepReduction } from '@/components/tender/espd-step-reduction';
 import { EspdStepDeclarations } from '@/components/tender/espd-step-declarations';
+import { EspdPreview } from '@/components/tender/espd-preview';
 
 const STEPS = [
   { key: 'import', labelKey: 'espd.step0' },
@@ -277,17 +278,16 @@ function StepContent({
       return <EspdStepReduction data={data} onChange={onChange} tenderId={tenderId} />;
     case 6:
       return <EspdStepDeclarations data={data} onChange={onChange} tenderId={tenderId} />;
-    default: {
-      const stepLabels = [
-        t('espd.step0'), t('espd.step1'), t('espd.step2'),
-        t('espd.step3'), t('espd.step4'), t('espd.step5'),
-        t('espd.step6'), t('espd.preview'),
-      ];
+    case 7:
       return (
-        <div className="flex items-center justify-center py-20 text-muted-foreground">
-          <p className="text-lg">{stepLabels[step]} — Component placeholder</p>
-        </div>
+        <EspdPreview
+          data={data}
+          onGoToStep={onGoToStep}
+          onExport={onExport}
+          isGenerating={isGenerating}
+        />
       );
-    }
+    default:
+      return null;
   }
 }
