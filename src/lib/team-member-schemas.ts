@@ -30,8 +30,8 @@ export const certificationSchema = z.object({
 export const teamMemberCreateSchema = z.object({
   fullName: z.string().min(1),
   title: z.string().min(1),
-  email: z.string().email().nullish(),
-  phone: z.string().nullish(),
+  email: z.preprocess((v) => (v === '' ? null : v), z.string().email().nullish()),
+  phone: z.preprocess((v) => (v === '' ? null : v), z.string().nullish()),
   totalExperience: z.coerce.number().int().min(0).default(0),
   bio: z.string().nullish(),
   cvFileKey: z.string().nullish(),
