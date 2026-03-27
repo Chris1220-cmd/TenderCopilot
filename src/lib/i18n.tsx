@@ -1,13 +1,10 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import el from '../../messages/el.json';
-import en from '../../messages/en.json';
+import elMessages from '../../messages/el.json';
 
 type Locale = 'el' | 'en';
-type Messages = typeof el;
-
-const messages: Record<Locale, Messages> = { el, en };
+type Messages = typeof elMessages;
 
 interface I18nContextType {
   locale: Locale;
@@ -27,14 +24,19 @@ function getNestedValue(obj: Record<string, unknown>, path: string): string {
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>('el');
+  const [messages, setMessages] = useState<Messages>(elMessages);
 
   useEffect(() => {
     const stored = localStorage.getItem('locale') as Locale | null;
+    let initial: Locale = 'el';
     if (stored && (stored === 'el' || stored === 'en')) {
-      setLocaleState(stored);
+      initial = stored;
     } else {
-      const browserLang = navigator.language.startsWith('el') ? 'el' : 'en';
-      setLocaleState(browserLang);
+      initial = navigator.language.startsWith('el') ? 'el' : 'en';
+    }
+    if (initial !== 'el') {
+      setLocaleState(initial);
+      import('../../messages/en.json').then((mod) => setMessages(mod.default));
     }
   }, []);
 
@@ -42,11 +44,16 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     setLocaleState(newLocale);
     localStorage.setItem('locale', newLocale);
     document.documentElement.lang = newLocale;
+    if (newLocale === 'el') {
+      setMessages(elMessages);
+    } else {
+      import('../../messages/en.json').then((mod) => setMessages(mod.default));
+    }
   }, []);
 
   const t = useCallback((key: string): string => {
-    return getNestedValue(messages[locale] as unknown as Record<string, unknown>, key);
-  }, [locale]);
+    return getNestedValue(messages as unknown as Record<string, unknown>, key);
+  }, [messages]);
 
   return (
     <I18nContext.Provider value={{ locale, setLocale, t }}>

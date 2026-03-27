@@ -10,6 +10,7 @@ import { CommandPalette } from '@/components/layout/command-palette';
 import { PageTransition } from '@/components/layout/page-transition';
 import { AIAssistantPanel } from '@/components/tender/ai-assistant-panel';
 import { cn } from '@/lib/utils';
+import { DashboardProviders } from './providers';
 
 export default function DashboardLayout({
   children,
@@ -25,6 +26,7 @@ export default function DashboardLayout({
   const tenderId = tenderMatch?.[1] || null;
 
   return (
+    <DashboardProviders>
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <TopNav onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
       <main className="relative flex-1 overflow-y-auto scrollbar-thin">
@@ -100,5 +102,6 @@ export default function DashboardLayout({
         </div>
       )}
     </div>
+    </DashboardProviders>
   );
 }

@@ -6,6 +6,7 @@ import { useTranslation } from '@/lib/i18n';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { BorderBeam } from '@/components/ui/border-beam';
 import { Particles } from '@/components/ui/particles';
+import { DashboardProviders } from '../(dashboard)/providers';
 
 /* ------------------------------------------------------------------ */
 /*  Animation variants                                                 */
@@ -90,6 +91,7 @@ export default function AuthLayout({
   ];
 
   return (
+    <DashboardProviders>
     <div className="relative flex min-h-screen overflow-hidden bg-background dark">
       {/* ===== Particles — FULL PAGE ===== */}
       <Particles
@@ -212,5 +214,6 @@ export default function AuthLayout({
         </div>
       </div>
     </div>
+    </DashboardProviders>
   );
 }

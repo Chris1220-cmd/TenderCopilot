@@ -8,11 +8,14 @@ import { Providers } from './providers';
 const inter = Inter({
   subsets: ['latin', 'greek'],
   variable: '--font-inter',
+  display: 'swap',
 });
 
 const jetbrains = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-jetbrains',
+  display: 'swap',
+  preload: false,
 });
 
 const BASE_URL = 'https://tender-copilot-kappa.vercel.app';
