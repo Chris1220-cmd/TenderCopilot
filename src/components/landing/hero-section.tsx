@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
@@ -72,11 +73,13 @@ export function HeroSection() {
         <div className="relative">
           {/* Main dashboard mockup */}
           <div className="relative mx-auto max-w-[900px] rounded-2xl bg-white/80 backdrop-blur-sm shadow-2xl shadow-black/5 border border-white/60 overflow-hidden">
-            <img
+            <Image
               src="/images/dashboard-mockup.png"
-              alt="TenderCopilot Dashboard"
+              alt="TenderCopilot Dashboard — AI-powered tender management interface"
+              width={900}
+              height={563}
               className="w-full h-auto"
-              loading="eager"
+              priority
             />
           </div>
 

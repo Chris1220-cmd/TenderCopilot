@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
@@ -162,9 +163,11 @@ export function FeaturesBento() {
             {/* Right — gradient visual placeholder */}
             <div className={`rounded-2xl bg-gradient-to-br ${current.gradient} min-h-[360px] flex items-center justify-center overflow-hidden`}>
               <div className="w-[85%] rounded-xl bg-white/70 backdrop-blur-sm shadow-xl shadow-black/5 border border-white/80 p-1 overflow-hidden">
-                <img
+                <Image
                   src="/images/dashboard-mockup.png"
                   alt={t(current.headingKey)}
+                  width={700}
+                  height={438}
                   className="w-full h-auto rounded-lg"
                 />
               </div>

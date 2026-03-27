@@ -78,7 +78,15 @@
     "trusted": "Εμπιστεύονται ομάδες προμηθειών κορυφαίων οργανισμών",
     "docs": "Αναλυθέντα Έγγραφα",
     "winRate": "Αύξηση Win Rate",
-    "timeSaved": "Εξοικονόμηση Χρόνου"
+    "timeSaved": "Εξοικονόμηση Χρόνου",
+    "platformsValue": "19+",
+    "platformsLabel": "Πλατφόρμες Προμηθειών",
+    "accuracyValue": "94%+",
+    "accuracyLabel": "Ακρίβεια Επιλεξιμότητας",
+    "fasterValue": "90%",
+    "fasterLabel": "Ταχύτερες Προσφορές",
+    "formatsValue": "PDF, DOCX, XLSX",
+    "formatsLabel": "Υποστηριζόμενα Αρχεία"
   },
   "pricing": {
     "title": "Απλή, διαφανής τιμολόγηση",

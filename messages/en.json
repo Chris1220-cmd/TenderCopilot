@@ -78,7 +78,15 @@
     "trusted": "Trusted by procurement teams at leading organizations",
     "docs": "Documents Analyzed",
     "winRate": "Win Rate Increase",
-    "timeSaved": "Time Saved"
+    "timeSaved": "Time Saved",
+    "platformsValue": "19+",
+    "platformsLabel": "Procurement Platforms",
+    "accuracyValue": "94%+",
+    "accuracyLabel": "Eligibility Accuracy",
+    "fasterValue": "90%",
+    "fasterLabel": "Faster Proposals",
+    "formatsValue": "PDF, DOCX, XLSX",
+    "formatsLabel": "Supported Formats"
   },
   "pricing": {
     "title": "Simple, transparent pricing",

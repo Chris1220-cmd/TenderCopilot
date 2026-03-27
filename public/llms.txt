@@ -1,0 +1,26 @@
+# TenderCopilot
+> AI-powered tender management platform for Greek public procurement
+
+## What is TenderCopilot?
+TenderCopilot is a SaaS platform that helps Greek companies analyze public procurement documents, check eligibility requirements, and prepare competitive proposals 90% faster using AI.
+
+## Key Features
+- Document Analysis: Extract requirements from 100+ page tender documents (PDF, DOCX, XLSX)
+- Eligibility Check: 94%+ accuracy AI-powered eligibility assessment
+- Tender Discovery: Monitor 19+ procurement platforms (ESIDIS, KIMDIS, EU TED, and more)
+- AI Assistant: 24/7 expert tender consultant with source citations
+- Financial Strategy: Budget analysis and pricing optimization
+- Legal Compliance: Automated legal requirement verification
+
+## Target Market
+Greek businesses participating in public procurement (dimosies symvaseis) under Law 4412/2016.
+
+## Pricing
+- Starter: EUR 49/month (5 tenders/month, document analysis, eligibility check)
+- Professional: EUR 99/month (unlimited tenders, AI assistant, discovery, financial analysis)
+- Enterprise: Custom pricing (SSO, SAML, on-premise deployment)
+
+## Links
+- Homepage: https://tender-copilot-kappa.vercel.app
+- Register: https://tender-copilot-kappa.vercel.app/register
+- Login: https://tender-copilot-kappa.vercel.app/login

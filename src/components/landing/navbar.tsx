@@ -18,9 +18,10 @@ export function Navbar() {
     { label: t('nav.faq'), href: '#faq' },
   ];
 
-  const handleNavClick = (href: string) => {
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     setMobileOpen(false);
     if (href.startsWith('#')) {
+      e.preventDefault();
       const el = document.getElementById(href.replace('#', ''));
       el?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -46,13 +47,14 @@ export function Navbar() {
         {/* Desktop nav links */}
         <div className="hidden md:flex items-center gap-1">
           {navLinks.map((link) => (
-            <button
+            <a
               key={link.href}
-              onClick={() => handleNavClick(link.href)}
+              href={link.href}
+              onClick={(e) => handleNavClick(e, link.href)}
               className="px-4 py-2 text-[14px] font-medium text-[#1a1a2e]/70 hover:text-[#1a1a2e] transition-colors cursor-pointer"
             >
               {link.label}
-            </button>
+            </a>
           ))}
         </div>
 
@@ -95,13 +97,14 @@ export function Navbar() {
           >
             <div className="flex flex-col gap-1 px-6 py-4">
               {navLinks.map((link) => (
-                <button
+                <a
                   key={link.href}
-                  onClick={() => handleNavClick(link.href)}
-                  className="py-3 text-left text-[15px] font-medium text-[#1a1a2e]/70 hover:text-[#1a1a2e] cursor-pointer"
+                  href={link.href}
+                  onClick={(e) => handleNavClick(e, link.href)}
+                  className="py-3 text-left text-[15px] font-medium text-[#1a1a2e]/70 hover:text-[#1a1a2e] cursor-pointer block"
                 >
                   {link.label}
-                </button>
+                </a>
               ))}
               <div className="flex items-center justify-center py-2">
                 <LanguageToggle className="bg-[#1a1a2e]/[0.04] border-[#1a1a2e]/10 [&_button[aria-checked=true]]:bg-[#1a1a2e] [&_button[aria-checked=true]]:text-white [&_button]:text-[#1a1a2e]/50" />

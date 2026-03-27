@@ -9,24 +9,24 @@ export function CtaFooter() {
   const { t } = useTranslation();
 
   const productLinks = [
-    { key: 'footer.docAnalysis' },
-    { key: 'footer.eligibilityCheck' },
-    { key: 'footer.tenderDiscovery' },
-    { key: 'footer.aiAssistant' },
+    { key: 'footer.docAnalysis', href: '/#features' },
+    { key: 'footer.eligibilityCheck', href: '/#features' },
+    { key: 'footer.tenderDiscovery', href: '/#features' },
+    { key: 'footer.aiAssistant', href: '/#features' },
   ];
 
   const companyLinks = [
-    { key: 'footer.about' },
-    { key: 'footer.pricing' },
-    { key: 'footer.contact' },
-    { key: 'footer.blog' },
+    { key: 'footer.about', href: '/' },
+    { key: 'footer.pricing', href: '/#pricing' },
+    { key: 'footer.contact', href: 'mailto:info@tendercopilot.com' },
+    { key: 'footer.blog', href: '/' },
   ];
 
   const legalLinks = [
-    { key: 'footer.terms' },
-    { key: 'footer.privacyPolicy' },
-    { key: 'footer.gdpr' },
-    { key: 'footer.security' },
+    { key: 'footer.terms', href: '/' },
+    { key: 'footer.privacyPolicy', href: '/' },
+    { key: 'footer.gdpr', href: '/' },
+    { key: 'footer.security', href: '/' },
   ];
 
   return (
@@ -100,7 +100,7 @@ export function CtaFooter() {
               <ul className="space-y-2.5">
                 {productLinks.map((item) => (
                   <li key={item.key}>
-                    <span className="text-[13px] text-white/35 hover:text-white/60 transition-colors cursor-pointer">{t(item.key)}</span>
+                    <Link href={item.href} className="text-[13px] text-white/35 hover:text-white/60 transition-colors">{t(item.key)}</Link>
                   </li>
                 ))}
               </ul>
@@ -112,7 +112,7 @@ export function CtaFooter() {
               <ul className="space-y-2.5">
                 {companyLinks.map((item) => (
                   <li key={item.key}>
-                    <span className="text-[13px] text-white/35 hover:text-white/60 transition-colors cursor-pointer">{t(item.key)}</span>
+                    <Link href={item.href} className="text-[13px] text-white/35 hover:text-white/60 transition-colors">{t(item.key)}</Link>
                   </li>
                 ))}
               </ul>
@@ -124,7 +124,7 @@ export function CtaFooter() {
               <ul className="space-y-2.5">
                 {legalLinks.map((item) => (
                   <li key={item.key}>
-                    <span className="text-[13px] text-white/35 hover:text-white/60 transition-colors cursor-pointer">{t(item.key)}</span>
+                    <Link href={item.href} className="text-[13px] text-white/35 hover:text-white/60 transition-colors">{t(item.key)}</Link>
                   </li>
                 ))}
               </ul>

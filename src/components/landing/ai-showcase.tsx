@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
 
@@ -20,11 +21,12 @@ export function AiShowcase() {
             className="relative"
           >
             <div className="rounded-2xl overflow-hidden">
-              <img
+              <Image
                 src="/images/ai-chat-mockup.png"
                 alt={t('aiShowcase.title')}
+                width={600}
+                height={400}
                 className="w-full h-auto rounded-2xl"
-                loading="lazy"
               />
             </div>
           </motion.div>
