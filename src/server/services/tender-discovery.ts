@@ -14,6 +14,19 @@ import { db } from '@/lib/db';
 import { kadToCpv } from '@/lib/kad-cpv-map';
 import { TENDER_SOURCES, getSourceById, getDefaultEnabledSourceIds } from '@/data/tender-sources';
 
+/**
+ * Normalize Greek text: lowercase + strip diacritics (accents).
+ * Diavgeia returns ALL-CAPS without accents (ΑΚΙΝΗΤΟΥ),
+ * but our filters use lowercase with accents (ακίνητ).
+ * JS regex /i flag does NOT handle accent-insensitive matching.
+ */
+function normalizeGreek(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 /** Safe date parser — returns fallback (now) if value is invalid */
 function safeDate(value: unknown, fallback?: Date): Date {
   if (!value) return fallback ?? new Date();
@@ -148,58 +161,70 @@ async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTen
       if (!d.ada || seen.has(d.ada)) return false;
       seen.add(d.ada);
       // Must have meaningful subject
-      const subject = (d.subject || '').toLowerCase();
+      const subject = normalizeGreek(d.subject || '');
       if (subject.length < 15) return false;
       // Exclude non-tender decisions that slip through
+      // All terms are accent-free (normalized) since we use normalizeGreek()
       const excludeTerms = [
-        'εντολή πληρωμής', 'εντολη πληρωμης',
-        'οριστικοποίηση πληρωμής', 'οριστικοποιηση πληρωμης',
-        'χρηματικό ένταλμα', 'χρηματικο ενταλμα',
-        'κήρυξης ως άγον', 'κηρυξης ως αγον',         // failed auction
-        'εκμίσθωση', 'εκμισθωση',                      // lease/rental
-        'κυλικείο', 'κυλικειο',                         // canteen lease
-        'μίσθωση', 'μισθωση',                           // rental
-        'απευθείας ανάθεση', 'απευθειας αναθεση',       // direct award (decided)
-        'έγκριση δαπάνης', 'εγκριση δαπανης',           // expense approval
-        'ανάληψη υποχρέωσης', 'αναληψη υποχρεωσης',     // commitment
-        'πρόσληψη', 'προσληψη',                         // hiring
-        'αποδοχή παραίτησης', 'αποδοχη παραιτησης',     // resignation
+        'εντολη πληρωμης',
+        'οριστικοποιηση πληρωμης',
+        'χρηματικο ενταλμα',
+        'κηρυξης ως αγον',                              // failed auction
+        'εκμισθωση',                                     // lease/rental
+        'κυλικειο',                                      // canteen lease
+        'μισθωση ακινητ',                                // property rental
+        'απευθειας αναθεση',                             // direct award (decided)
+        'εγκριση δαπανης',                               // expense approval
+        'αναληψη υποχρεωσης',                            // commitment
+        'προσληψη',                                      // hiring
+        'αποδοχη παραιτησης',                            // resignation
+        'ελεγχος δηλωσης',                               // administrative check
+        'οψιγενων μεταβολων',                            // late-change check
+        // Property auctions (NOT procurement)
+        'δημοπρασια ακινητ',                             // property auction
+        'δημοπρασιας ακινητ',                            // property auction genitive
+        'ακινητου',                                      // immovable property
+        'ακινητων',                                      // properties
+        'αγροτεμαχ',                                     // agricultural plots
+        'οικοπεδ',                                       // building plots
         // Job postings & appointments (NOT procurement tenders)
-        'διορισμ',                                       // διορισμός, διορισμού
-        'μετάταξη', 'μεταταξη',                          // staff transfer
-        'μονίμου προσωπικού', 'μονιμου προσωπικου',      // permanent staff
-        'μόνιμου προσωπικού', 'μονιμου προσωπικου',
-        'πλήρωση θέσ', 'πληρωση θεσ',                   // filling job positions
-        'κάλυψη θέσ', 'καλυψη θεσ',                     // covering positions
-        'προκήρυξη θέσ', 'προκηρυξη θεσ',               // job posting
-        'θέσης επικεφαλ', 'θεσης επικεφαλ',             // head of unit position
-        'θέσης διευθυντ', 'θεσης διευθυντ',             // director position
-        'θέσης προϊστ', 'θεσης προιστ',                 // supervisor position
-        'επιλογή προϊστ', 'επιλογη προιστ',             // selecting supervisor
-        'κατάταξη', 'καταταξη',                          // staff ranking
-        'απόσπαση', 'αποσπαση',                          // secondment
-        'τοποθέτηση', 'τοποθετηση',                      // staff placement
-        'υπαλλήλ', 'υπαλληλ',                            // employee matters
+        'διορισμ',                                       // appointments
+        'μεταταξη',                                      // staff transfer
+        'μονιμου προσωπικου',                             // permanent staff
+        'πληρωση θεσ',                                   // filling job positions
+        'καλυψη θεσ',                                    // covering positions
+        'προκηρυξη θεσ',                                 // job posting
+        'θεσης επικεφαλ',                                // head of unit position
+        'θεσης διευθυντ',                                // director position
+        'θεσης προιστ',                                  // supervisor position
+        'επιλογη προιστ',                                // selecting supervisor
+        'καταταξη',                                      // staff ranking
+        'αποσπαση',                                      // secondment
+        'τοποθετηση',                                    // staff placement
+        'υπαλληλ',                                       // employee matters
       ];
       if (excludeTerms.some(term => subject.includes(term))) return false;
 
       // Must contain a procurement-specific keyword (not just any public decision)
+      // All terms are accent-free (normalized) since we use normalizeGreek()
       const tenderKeywords = [
-        'διακήρυξη', 'διακηρυξη',
+        'διακηρυξη',
         'διαγωνισμ',                                 // διαγωνισμός/ού
-        'πρόσκληση υποβολής', 'προσκληση υποβολης',
-        'πρόσκληση εκδήλωσης', 'προσκληση εκδηλωσης',
-        'δημοπρασί',                                 // δημοπρασία/ίας
-        'προμήθεια', 'προμηθεια',
-        'παροχή υπηρεσ', 'παροχη υπηρεσ',
-        'δημόσι', 'δημοσι',                          // δημόσιος διαγωνισμός
-        'ανοικτ',                                    // ανοικτός διαγωνισμός
-        'σύμβαση προμήθει', 'συμβαση προμηθει',      // supply contract (not any contract)
-        'σύμβαση παροχής', 'συμβαση παροχης',        // service contract
-        'σύμβαση έργου', 'συμβαση εργου',            // works contract (not job contract)
-        'cpv', 'CPV',                                // CPV codes = procurement
+        'προσκληση υποβολης',
+        'προσκληση εκδηλωσης',
+        'προμηθεια',
+        'παροχη υπηρεσ',
+        'δημοσιος διαγωνισμ',                        // public tender (specific, not just δημόσι)
+        'ανοικτος διαγωνισμ',                        // open tender (specific)
+        'συμβαση προμηθει',                          // supply contract
+        'συμβαση παροχης',                           // service contract
+        'συμβαση εργου',                             // works contract
+        'cpv',                                       // CPV codes = procurement
       ];
       if (!tenderKeywords.some(kw => subject.includes(kw))) return false;
+
+      // Extra guard: "δημοπρασία" alone (no "ακινήτ" nearby) = OK, but
+      // property auctions already caught by excludeTerms above
 
       return true;
     });
@@ -1443,28 +1468,42 @@ class TenderDiscoveryService {
     // ── Filter out irrelevant tender types ──────────────────────
     // Exclude: job postings, auctions, real estate, personnel hiring, scholarships
     // Multilingual patterns for all EU sources
-    const IRRELEVANT_PATTERNS = [
-      // ── Greek ──
-      /πρόσληψη|προσλήψεις|πρόσληψ/i,
-      /πλειστηριασμ/i,
-      /ακίνητ|μίσθωση\s+ακινήτ/i,
-      /θέσ[εη]\s+εργασίας|προκήρυξη\s+θέσ/i,
-      /υποτροφ/i,
-      /διορισμ/i,
-      /επιλογή\s+προσωπικού/i,
-      /σύμβαση\s+εργασίας/i,
-      /ΑΣΕΠ|ΣΟΧ|ΣΜΕ/,
-      /μετάταξη|απόσπαση|τοποθέτηση|υπαλλήλ/i,
-      /εκμίσθωση|κυλικείο/i,
-      /κήρυξη\s+ως\s+άγον/i,
+    // Greek patterns use accent-free text (we normalize before matching)
+    const IRRELEVANT_GREEK_TERMS = [
+      'προσληψη', 'προσληψεις',                         // hiring
+      'πλειστηριασμ',                                    // forced auction
+      'ακινητο', 'ακινητου', 'ακινητων',                 // real estate / property
+      'μισθωση ακινητ',                                  // property rental
+      'δημοπρασια ακινητ', 'δημοπρασιας ακινητ',         // property auction
+      'αγροτεμαχ', 'οικοπεδ',                            // agricultural/building plots
+      'θεση εργασιας', 'θεσεις εργασιας',                // job positions
+      'προκηρυξη θεσ',                                   // job posting
+      'υποτροφ',                                         // scholarship
+      'διορισμ',                                         // appointment
+      'επιλογη προσωπικου',                              // personnel selection
+      'συμβαση εργασιας',                                // employment contract
+      'ασεπ',                                            // civil service exam
+      'μεταταξη', 'αποσπαση', 'τοποθετηση', 'υπαλληλ',  // staff matters
+      'εκμισθωση', 'κυλικειο',                           // lease / canteen
+      'κηρυξη ως αγον',                                  // failed auction
+      'ελεγχος δηλωσης',                                 // administrative check
+      'οψιγενων μεταβολων',                              // late-change check
+      'εγκριση δαπανης',                                 // expense approval
+      'αναληψη υποχρεωσης',                              // budget commitment
+      'εντολη πληρωμης',                                 // payment order
+      'χρηματικο ενταλμα',                               // payment warrant
+    ];
+
+    // Non-Greek patterns (English, French, German, Italian, Spanish, Polish, Dutch, Portuguese)
+    const IRRELEVANT_INTL_PATTERNS = [
       // ── English ──
       /personnel|recruitment|hiring|job\s+post|job\s+vacancy|staff\s+position/i,
       /auction|foreclosure|real\s+estate\s+lease/i,
       /scholarship|fellowship|grant\s+for\s+student/i,
       /employment\s+contract|work\s+permit/i,
       // ── French ──
-      /recrutement|embauche|poste\s+vacant|offre\s+d'emploi|emploi/i,
-      /bourse\s+d'études|vente\s+aux\s+enchères|location\s+immobili/i,
+      /recrutement|embauche|poste\s+vacant|offre\s+d'emploi/i,
+      /bourse\s+d'etudes|vente\s+aux\s+encheres|location\s+immobili/i,
       /contrat\s+de\s+travail|concours\s+de\s+recrutement/i,
       // ── German ──
       /stellenausschreibung|personaleinstellung|stellenangebot|arbeitsvertrag/i,
@@ -1475,23 +1514,30 @@ class TenderDiscoveryService {
       /asta\s+pubblica|asta\s+giudiziaria|locazione\s+immobil/i,
       /borsa\s+di\s+studio|contratto\s+di\s+lavoro/i,
       // ── Spanish ──
-      /contratación\s+de\s+personal|oferta\s+de\s+empleo|puesto\s+vacante|convocatoria\s+de\s+empleo/i,
-      /subasta|ejecución\s+hipotecaria|alquiler\s+de\s+inmueble/i,
+      /contratacion\s+de\s+personal|oferta\s+de\s+empleo|puesto\s+vacante|convocatoria\s+de\s+empleo/i,
+      /subasta|ejecucion\s+hipotecaria|alquiler\s+de\s+inmueble/i,
       /beca\s+de\s+estudios|contrato\s+laboral/i,
       // ── Polish ──
-      /nabór\s+na\s+stanowisko|oferta\s+pracy|zatrudnienie|rekrutacja/i,
+      /nabor\s+na\s+stanowisko|oferta\s+pracy|zatrudnienie|rekrutacja/i,
       /licytacja|egzekucja|stypendium/i,
       // ── Dutch ──
       /vacature|personeelswerving|arbeidsovereenkomst/i,
       /veiling|executieverkoop|studiebeurs/i,
       // ── Portuguese ──
       /recrutamento|oferta\s+de\s+emprego|contrato\s+de\s+trabalho/i,
-      /leilão|bolsa\s+de\s+estudo/i,
+      /leilao|bolsa\s+de\s+estudo/i,
     ];
 
     allTenders = allTenders.filter((t) => {
-      const text = `${t.title} ${t.summary || ''}`;
-      return !IRRELEVANT_PATTERNS.some((pattern) => pattern.test(text));
+      const rawText = `${t.title} ${t.summary || ''}`;
+      const normalizedText = normalizeGreek(rawText);
+
+      // Check Greek terms (accent-free matching)
+      if (IRRELEVANT_GREEK_TERMS.some((term) => normalizedText.includes(term))) return false;
+      // Check international patterns (regex, already accent-free in source)
+      if (IRRELEVANT_INTL_PATTERNS.some((pattern) => pattern.test(normalizedText))) return false;
+
+      return true;
     });
 
     // TED tenders: keep all — EU tenders are relevant for international bidding
