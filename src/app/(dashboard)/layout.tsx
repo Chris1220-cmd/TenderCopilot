@@ -23,7 +23,8 @@ export default function DashboardLayout({
 
   // Extract tenderId from URL if on a tender page
   const tenderMatch = pathname.match(/\/tenders\/([^/]+)/);
-  const tenderId = tenderMatch?.[1] || null;
+  const rawTenderId = tenderMatch?.[1] || null;
+  const tenderId = rawTenderId && rawTenderId !== 'new' ? rawTenderId : null;
 
   return (
     <DashboardProviders>

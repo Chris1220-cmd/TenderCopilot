@@ -281,7 +281,7 @@ export function AIAssistantPanel({ tenderId, open, onOpenChange }: AIAssistantPa
   // Load persistent chat history
   const historyQuery = trpc.chat.getHistory.useQuery(
     { tenderId },
-    { enabled: !!tenderId && open }
+    { enabled: !!tenderId && tenderId !== 'new' && open }
   );
 
   // Merge DB history with optimistic local messages
