@@ -50,6 +50,11 @@ model Tenant {
 
   // Guarantee Letters
   guaranteeLetters GuaranteeLetter[]
+
+  // Subscription & Usage
+  subscription     Subscription?
+  usageRecords     UsageRecord[]
+  loginEvents      LoginEvent[]
 }
 
 model User {
@@ -68,6 +73,8 @@ model User {
   assignedTasks Task[]        @relation("TaskAssignee")
   createdTasks  Task[]        @relation("TaskCreator")
   activities    Activity[]
+  isSuperAdmin  Boolean  @default(false)
+  loginEvents   LoginEvent[]
 }
 
 model TenantUser {
@@ -1156,6 +1163,19 @@ enum GuaranteeStatus {
   EXPIRED
 }
 
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+}
+
 model GuaranteeLetter {
   id              String          @id @default(cuid())
   tenderId        String
@@ -1178,4 +1198,93 @@ model GuaranteeLetter {
 
   @@index([tenantId])
   @@index([tenderId])
+}
+
+// ─── Subscription Plans & Usage ─────────────────────────────
+
+model Plan {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  price          Float
+  priceAnnual    Float
+
+  maxActiveTenders      Int?
+  maxAiCreditsPerMonth  Int?
+  maxDocumentsPerMonth  Int?
+  maxSearchesPerMonth   Int?
+  maxStorageMB          Int?
+  maxUsers              Int?
+
+  features       Json     @default("{}")
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  trialDays      Int      @default(14)
+
+  subscriptions  Subscription[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  status                SubscriptionStatus @default(TRIAL)
+  billingCycle          BillingCycle       @default(MONTHLY)
+  currentPeriodStart    DateTime
+  currentPeriodEnd      DateTime
+  trialEndsAt           DateTime?
+  cancelledAt           DateTime?
+
+  stripeSubscriptionId  String?
+  stripeCustomerId      String?
+
+  tenantId              String             @unique
+  tenant                Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  planId                String
+  plan                  Plan               @relation(fields: [planId], references: [id])
+
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+}
+
+model UsageRecord {
+  id                  String   @id @default(cuid())
+  period              String
+  activeTenders       Int      @default(0)
+  aiCreditsUsed       Int      @default(0)
+  documentsGenerated  Int      @default(0)
+  searchesPerformed   Int      @default(0)
+  storageUsedMB       Float    @default(0)
+
+  tenantId            String
+  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([tenantId, period])
+  @@index([tenantId])
+}
+
+model LoginEvent {
+  id          String   @id @default(cuid())
+  ipAddress   String?
+  userAgent   String?
+  deviceType  String?
+  geoCity     String?
+  geoCountry  String?
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([createdAt])
 }
