@@ -29,8 +29,8 @@ export function UsageIndicator() {
 
   const compactLabel = topMetrics
     .map(
-      (m: { current: number; max: number; label: string }) =>
-        `${m.current}/${m.max} ${m.label}`,
+      (m: { current: number; max: number | null; label: string }) =>
+        `${m.current}/${m.max ?? '∞'} ${m.label}`,
     )
     .join(' | ');
 
@@ -78,7 +78,7 @@ export function UsageIndicator() {
               key: string;
               label: string;
               current: number;
-              max: number;
+              max: number | null;
               percentage: number;
             }) => (
               <div key={m.key} className="space-y-1">
