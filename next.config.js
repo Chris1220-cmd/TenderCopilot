@@ -8,6 +8,7 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '50mb',
     },
+    optimizePackageImports: ['lucide-react', 'recharts', '@radix-ui/react-icons', 'motion'],
   },
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -28,6 +29,18 @@ const nextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload',
           },
+        ],
+      },
+      {
+        source: '/images/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/fonts/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
     ];
