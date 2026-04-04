@@ -103,6 +103,9 @@ export default function AdminLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <head>
+            <meta name="robots" content="noindex, nofollow" />
+          </head>
           <AdminAuthGuard>
             <div className="flex h-screen overflow-hidden bg-background">
               <AdminSidebar />

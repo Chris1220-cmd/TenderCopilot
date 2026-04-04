@@ -36,15 +36,29 @@ export const metadata: Metadata = {
     siteName: 'TenderCopilot',
     locale: 'el_GR',
     type: 'website',
+    images: [
+      {
+        url: '/images/dashboard-mockup.png',
+        width: 1200,
+        height: 630,
+        alt: 'TenderCopilot — AI-powered tender management dashboard',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'TenderCopilot — Win Tenders 90% Faster with AI',
     description:
       'AI-powered tender management for Greek public procurement. Analyze documents, check eligibility, and prepare competitive proposals.',
+    images: ['/images/dashboard-mockup.png'],
   },
   alternates: {
     canonical: BASE_URL,
+    languages: {
+      'el': BASE_URL,
+      'en': BASE_URL,
+      'x-default': BASE_URL,
+    },
   },
   robots: {
     index: true,
