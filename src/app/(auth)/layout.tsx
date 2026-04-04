@@ -5,7 +5,6 @@ import { motion, useMotionValue, useMotionTemplate, useSpring } from 'motion/rea
 import { useTranslation } from '@/lib/i18n';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { BorderBeam } from '@/components/ui/border-beam';
-import { Particles } from '@/components/ui/particles';
 import { DashboardProviders } from '../(dashboard)/providers';
 
 /* ------------------------------------------------------------------ */
@@ -93,16 +92,6 @@ export default function AuthLayout({
   return (
     <DashboardProviders>
     <div className="relative flex min-h-screen overflow-hidden bg-background dark">
-      {/* ===== Particles — FULL PAGE ===== */}
-      <Particles
-        className="absolute inset-0 z-[1]"
-        quantity={80}
-        color="#48A4D6"
-        staticity={20}
-        size={1.2}
-        ease={60}
-      />
-
       <div className="relative z-10 grid w-full grid-cols-1 lg:grid-cols-2">
         {/* ============================================= */}
         {/* LEFT: Brand panel                              */}
