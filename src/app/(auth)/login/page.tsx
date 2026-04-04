@@ -78,6 +78,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError(t('auth.loginError'));
       } else {
+        fetch('/api/auth/login-event', { method: 'POST' }).catch(() => {});
         window.location.href = '/tenders';
       }
     } catch {

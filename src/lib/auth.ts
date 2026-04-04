@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { findUserByEmail, findTenantUser } from '@/lib/auth-db';
+import { recordLoginEvent, checkSuperAdmin } from '@/server/services/login-event-service';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -47,6 +48,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         } catch (e) {
           console.error('[Auth] tenant lookup error:', e);
         }
+
+        // Record login event & check super admin
+        recordLoginEvent({
+          userId: user.id as string,
+          tenantId: token.tenantId as string | undefined,
+        }).catch(() => {});
+
+        checkSuperAdmin(user.id as string, user.email as string).catch(() => {});
       }
       return token;
     },
