@@ -60,6 +60,27 @@ export const authRouter = router({
           data: { tenantId: tenant.id, legalName: companyName, taxId: '' },
         });
 
+        // Create trial subscription (Professional plan, 14 days)
+        const professionalPlan = await ctx.db.plan.findUnique({
+          where: { slug: 'professional' },
+        });
+
+        if (professionalPlan) {
+          const now = new Date();
+          const trialEnd = new Date(now.getTime() + professionalPlan.trialDays * 24 * 60 * 60 * 1000);
+          await ctx.db.subscription.create({
+            data: {
+              tenantId: tenant.id,
+              planId: professionalPlan.id,
+              status: 'TRIAL',
+              billingCycle: 'MONTHLY',
+              currentPeriodStart: now,
+              currentPeriodEnd: trialEnd,
+              trialEndsAt: trialEnd,
+            },
+          });
+        }
+
         return {
           success: true,
           userId: user.id,

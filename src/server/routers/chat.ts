@@ -10,6 +10,7 @@ import { ai, checkTokenBudget, logTokenUsage } from '@/server/ai/provider';
 import { buildContext } from '@/server/services/context-builder';
 import { validateResponse } from '@/server/services/trust-shield';
 import { getSmartHistory, maybeUpdateSummary } from '@/server/services/chat-memory';
+import { createUsageLimitCheck } from '@/server/middleware/usage-limit';
 
 export const chatRouter = router({
   /**
@@ -50,6 +51,8 @@ export const chatRouter = router({
         where: { id: tenderId, tenantId },
       });
       if (!tender) throw new TRPCError({ code: 'NOT_FOUND', message: 'Tender not found' });
+
+      await createUsageLimitCheck('aiCreditsUsed')(ctx.tenantId);
 
       // Token budget check
       const budget = await checkTokenBudget(tenantId);

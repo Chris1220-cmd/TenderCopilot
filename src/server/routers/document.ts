@@ -5,6 +5,7 @@ import { deleteFile } from '@/lib/s3';
 import { readTenderDocuments, deepParseDocument } from '@/server/services/document-reader';
 import { exportGeneratedDocToDocx } from '@/server/services/document-docx';
 import { documentGenerator } from '@/server/services/document-generator';
+import { createUsageLimitCheck } from '@/server/middleware/usage-limit';
 
 const generatedDocTypeEnum = z.enum([
   'SOLEMN_DECLARATION',
@@ -254,6 +255,7 @@ export const documentRouter = router({
       if (!ctx.tenantId) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
       }
+      await createUsageLimitCheck('documentsGenerated')(ctx.tenantId);
       return documentGenerator.generateCoverLetter(input.tenderId, ctx.tenantId);
     }),
 
@@ -265,6 +267,7 @@ export const documentRouter = router({
       if (!ctx.tenantId) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
       }
+      await createUsageLimitCheck('documentsGenerated')(ctx.tenantId);
       return documentGenerator.generateExperienceTable(input.tenderId, ctx.tenantId);
     }),
 });

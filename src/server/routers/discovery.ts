@@ -7,6 +7,7 @@ import { smartIntake } from '@/server/services/smart-intake';
 import { fetchDocumentsForTender } from '@/server/services/document-fetcher';
 import { TENDER_SOURCES, SOURCE_CATEGORIES } from '@/data/tender-sources';
 import { db } from '@/lib/db';
+import { createUsageLimitCheck } from '@/server/middleware/usage-limit';
 import type { TenderPlatform } from '@prisma/client';
 
 /**
@@ -80,6 +81,8 @@ export const discoveryRouter = router({
           message: 'No tenant associated.',
         });
       }
+
+      await createUsageLimitCheck('searchesPerformed')(ctx.tenantId);
 
       if (input && Object.keys(input).length > 0) {
         // Use explicit filters

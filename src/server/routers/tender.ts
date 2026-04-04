@@ -3,6 +3,7 @@ import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '@/server/trpc';
 import { fetchDocumentsForTender } from '@/server/services/document-fetcher';
 import { generateDeadlinePlanForTender } from './deadline-plan';
+import { createUsageLimitCheck } from '@/server/middleware/usage-limit';
 
 const tenderStatusEnum = z.enum([
   'DISCOVERY',
@@ -107,6 +108,8 @@ export const tenderRouter = router({
       if (!ctx.tenantId) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
       }
+
+      await createUsageLimitCheck('activeTenders')(ctx.tenantId);
 
       // Duplicate check: same title + tenant = already exists
       const existing = await ctx.db.tender.findFirst({
