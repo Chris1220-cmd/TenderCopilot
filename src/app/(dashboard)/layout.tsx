@@ -9,6 +9,7 @@ import { TopNav } from '@/components/layout/top-nav';
 import { CommandPalette } from '@/components/layout/command-palette';
 import { PageTransition } from '@/components/layout/page-transition';
 import { AIAssistantPanel } from '@/components/tender/ai-assistant-panel';
+import { UsageIndicator } from '@/components/subscription/usage-indicator';
 import { cn } from '@/lib/utils';
 import { DashboardProviders } from './providers';
 
@@ -30,6 +31,9 @@ export default function DashboardLayout({
     <DashboardProviders>
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <TopNav onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
+      <div className="flex items-center justify-end px-6 py-1">
+        <UsageIndicator />
+      </div>
       <main className="relative flex-1 overflow-y-auto scrollbar-thin">
         <div className="mx-auto max-w-[1400px] px-6 py-8">
           <PageTransition>{children}</PageTransition>
