@@ -16,17 +16,17 @@ export function CtaFooter() {
   ];
 
   const companyLinks = [
-    { key: 'footer.about', href: '/' },
+    { key: 'footer.about', href: '/about' },
     { key: 'footer.pricing', href: '/#pricing' },
     { key: 'footer.contact', href: 'mailto:info@tendercopilot.com' },
-    { key: 'footer.blog', href: '/' },
+    { key: 'footer.blog', href: '/blog' },
   ];
 
   const legalLinks = [
-    { key: 'footer.terms', href: '/' },
-    { key: 'footer.privacyPolicy', href: '/' },
-    { key: 'footer.gdpr', href: '/' },
-    { key: 'footer.security', href: '/' },
+    { key: 'footer.terms', href: '/terms' },
+    { key: 'footer.privacyPolicy', href: '/privacy' },
+    { key: 'footer.gdpr', href: '/gdpr' },
+    { key: 'footer.security', href: '/security' },
   ];
 
   return (

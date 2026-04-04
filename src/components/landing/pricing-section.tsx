@@ -143,7 +143,7 @@ export function PricingSection() {
                 </ul>
 
                 <Link
-                  href={price !== null ? '/register' : '#'}
+                  href={price !== null ? '/register' : 'mailto:info@tendercopilot.com'}
                   className={cn(
                     'block w-full rounded-full py-3 text-center text-[14px] font-medium transition-colors cursor-pointer',
                     plan.popular
