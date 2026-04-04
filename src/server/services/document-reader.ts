@@ -445,7 +445,7 @@ export async function requireDocuments(tenderId: string): Promise<void> {
   if (parsedCount === 0) {
     throw new TRPCError({
       code: 'PRECONDITION_FAILED',
-      message: 'Τα έγγραφα δεν περιέχουν αναγνώσιμο κείμενο. Δοκιμάστε "Deep Parse" ή ανεβάστε searchable PDF.',
+      message: `Τα ${totalDocs} έγγραφα δεν μπόρεσαν να αναλυθούν. Βεβαιωθείτε ότι τα PDF είναι searchable (όχι σκαναρισμένες εικόνες). Δοκιμάστε "Deep Parse" για OCR.`,
     });
   }
 }

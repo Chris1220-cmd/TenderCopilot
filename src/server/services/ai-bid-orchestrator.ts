@@ -596,9 +596,9 @@ class AIBidOrchestrator {
       let documentText = docsWithText
         .map((d) => `\n--- ${d.fileName} ---\n${d.extractedText}`)
         .join('\n');
-      // Limit to 50K chars to stay within Vercel 60s timeout
-      if (documentText.length > 50000) {
-        documentText = documentText.slice(0, 50000) + '\n\n[...κείμενο περικόπηκε λόγω μεγέθους]';
+      // Limit to 30K chars to stay within Vercel Hobby 60s timeout
+      if (documentText.length > 30000) {
+        documentText = documentText.slice(0, 30000) + '\n\n[...κείμενο περικόπηκε λόγω μεγέθους]';
       }
       _log(`documents read: ${documentText.length} chars`);
       const fullText = documentText

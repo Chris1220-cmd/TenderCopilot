@@ -98,6 +98,16 @@ export const aiRolesRouter = router({
     .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
+
+      // Auto-parse unparsed documents before analysis to avoid PRECONDITION_FAILED
+      const unparsedCount = await db.attachedDocument.count({
+        where: { tenderId: input.tenderId, parsingStatus: null },
+      });
+      if (unparsedCount > 0) {
+        const { readTenderDocuments } = await import('@/server/services/document-reader');
+        await readTenderDocuments(input.tenderId);
+      }
+
       return aiBidOrchestrator.summarizeTender(input.tenderId, input.language);
     }),
 
