@@ -19,6 +19,8 @@ import { espdRouter } from '@/server/routers/espd';
 import { packageRouter } from '@/server/routers/package';
 import { teamMemberRouter } from '@/server/routers/team-member';
 import { resourcesRouter } from '@/server/routers/resources';
+import { subscriptionRouter } from '@/server/routers/subscription';
+import { adminRouter } from '@/server/routers/admin';
 
 export const appRouter = router({
   auth: authRouter,
@@ -41,6 +43,8 @@ export const appRouter = router({
   package: packageRouter,
   teamMember: teamMemberRouter,
   resources: resourcesRouter,
+  subscription: subscriptionRouter,
+  admin: adminRouter,
 });
 
 export type AppRouter = typeof appRouter;
