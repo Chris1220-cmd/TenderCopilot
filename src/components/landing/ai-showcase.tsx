@@ -27,6 +27,7 @@ export function AiShowcase() {
                 width={600}
                 height={400}
                 className="w-full h-auto rounded-2xl"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
               />
             </div>
           </motion.div>

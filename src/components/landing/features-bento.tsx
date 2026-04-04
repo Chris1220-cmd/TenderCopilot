@@ -169,6 +169,7 @@ export function FeaturesBento() {
                   width={700}
                   height={438}
                   className="w-full h-auto rounded-lg"
+                  sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 595px"
                 />
               </div>
             </div>
