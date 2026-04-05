@@ -7,6 +7,27 @@
 import { db } from '@/lib/db';
 import { uploadFile } from '@/lib/s3';
 
+// ─── Fetch with Retry ──────────────────────────────────────
+async function fetchWithRetry(
+  input: string | URL,
+  init?: RequestInit & { signal?: AbortSignal },
+  retries = 2,
+  delayMs = 1000,
+): Promise<Response> {
+  let lastError: Error | undefined;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fetch(input, init);
+    } catch (err) {
+      lastError = err as Error;
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, delayMs * Math.pow(2, attempt)));
+      }
+    }
+  }
+  throw lastError;
+}
+
 // ─── Constants ───────────────────────────────────────────────
 
 const ACCEPTED_CONTENT_TYPES = new Set([
@@ -64,10 +85,10 @@ export async function fetchDocumentsForTender(params: {
       try {
         const docUrl = `https://diavgeia.gov.gr/luminapi/api/decisions/${ada}/document`;
 
-        const docResponse = await fetch(docUrl, {
+        const docResponse = await fetchWithRetry(docUrl, {
           headers: { Accept: 'application/pdf' },
           signal: AbortSignal.timeout(30000),
-        });
+        }, 2, 2000);
 
         const contentType = docResponse.headers.get('content-type');
         if (docResponse.ok && isAcceptedContentType(contentType)) {

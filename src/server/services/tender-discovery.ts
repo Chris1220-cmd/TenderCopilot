@@ -14,6 +14,71 @@ import { db } from '@/lib/db';
 import { kadToCpv } from '@/lib/kad-cpv-map';
 import { TENDER_SOURCES, getSourceById, getDefaultEnabledSourceIds } from '@/data/tender-sources';
 
+// ─── Reliability: Circuit Breaker ──────────────────────────
+// Track consecutive failures per source. After 3+ failures, skip source for cooldown period.
+
+interface CircuitState {
+  failures: number;
+  lastFailure: number;
+  isOpen: boolean;
+}
+
+const circuitBreakers = new Map<string, CircuitState>();
+const CIRCUIT_FAILURE_THRESHOLD = 3;
+const CIRCUIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 min cooldown
+
+function checkCircuit(sourceId: string): boolean {
+  const state = circuitBreakers.get(sourceId);
+  if (!state || !state.isOpen) return true; // circuit closed, allow
+  if (Date.now() - state.lastFailure > CIRCUIT_COOLDOWN_MS) {
+    // Cooldown expired, half-open: allow one attempt
+    state.isOpen = false;
+    state.failures = 0;
+    return true;
+  }
+  console.warn(`[CircuitBreaker] Source "${sourceId}" is open (${state.failures} failures), skipping`);
+  return false;
+}
+
+function recordSuccess(sourceId: string): void {
+  circuitBreakers.delete(sourceId);
+}
+
+function recordFailure(sourceId: string): void {
+  const state = circuitBreakers.get(sourceId) || { failures: 0, lastFailure: 0, isOpen: false };
+  state.failures++;
+  state.lastFailure = Date.now();
+  if (state.failures >= CIRCUIT_FAILURE_THRESHOLD) {
+    state.isOpen = true;
+    console.warn(`[CircuitBreaker] Source "${sourceId}" tripped after ${state.failures} failures`);
+  }
+  circuitBreakers.set(sourceId, state);
+}
+
+// ─── Reliability: Fetch with Retry ─────────────────────────
+
+async function fetchWithRetry(
+  input: string | URL,
+  init?: RequestInit & { signal?: AbortSignal },
+  retries = 2,
+  delayMs = 1000,
+): Promise<Response> {
+  let lastError: Error | undefined;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(input, init);
+      return res;
+    } catch (err) {
+      lastError = err as Error;
+      if (attempt < retries) {
+        const wait = delayMs * Math.pow(2, attempt);
+        await new Promise(r => setTimeout(r, wait));
+      }
+    }
+  }
+  throw lastError;
+}
+
 /**
  * Normalize Greek text: lowercase + strip diacritics (accents).
  * Diavgeia returns ALL-CAPS without accents (ΑΚΙΝΗΤΟΥ),
@@ -136,12 +201,13 @@ async function getLatestFromDiavgeia(cpvCodes?: string[]): Promise<DiscoveredTen
           params.set('q', cpvKeywords.join(' OR '));
         }
 
-        const res = await fetch(
+        const res = await fetchWithRetry(
           `https://diavgeia.gov.gr/luminapi/opendata/search?${params.toString()}`,
           {
             headers: { Accept: 'application/json' },
             signal: AbortSignal.timeout(8000),
-          }
+          },
+          1
         );
 
         if (res.ok) {
@@ -387,7 +453,7 @@ async function getLatestFromKIMDIS(cpvCodes?: string[]): Promise<DiscoveredTende
       body.cpvCodes = cpvCodes.slice(0, 5).map(c => c.split('-')[0]);
     }
 
-    const res = await fetch(
+    const res = await fetchWithRetry(
       'https://cerpp.eprocurement.gov.gr/khmdhs-opendata/notice?page=0',
       {
         method: 'POST',
@@ -397,7 +463,8 @@ async function getLatestFromKIMDIS(cpvCodes?: string[]): Promise<DiscoveredTende
         },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(10000),
-      }
+      },
+      1
     );
 
     if (!res.ok) {
@@ -530,16 +597,41 @@ async function scrapeDEKOSource(source: { id: string; name: string; url: string 
 
 async function scrapePromitheies(): Promise<DiscoveredTender[]> {
   try {
-    const response = await fetch('https://www.promitheies.gr/', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html',
-        'Accept-Language': 'el,en;q=0.9',
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) return [];
-    const html = await response.text();
+    let html = '';
+
+    // Try direct fetch first
+    try {
+      const response = await fetchWithRetry('https://www.promitheies.gr/', {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'text/html',
+          'Accept-Language': 'el,en;q=0.9',
+        },
+        signal: AbortSignal.timeout(15000),
+      }, 1);
+      if (response.ok) html = await response.text();
+    } catch {
+      // Direct fetch failed — try Jina Reader
+    }
+
+    // Jina fallback for JS-rendered content
+    if (!html) {
+      try {
+        const jinaRes = await fetch(`https://r.jina.ai/https://www.promitheies.gr/`, {
+          headers: { 'Accept': 'text/html', 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(20000),
+        });
+        if (jinaRes.ok) {
+          html = await jinaRes.text();
+          console.log('[Discovery] promitheies.gr: Jina fallback succeeded');
+        }
+      } catch {
+        console.warn('[Discovery] promitheies.gr: both direct and Jina failed');
+        return [];
+      }
+    }
+
+    if (!html) return [];
 
     const results: DiscoveredTender[] = [];
     const linkRegex = /<a[^>]+href="([^"]*)"[^>]*>([^<]{10,300})<\/a>/gi;
@@ -1053,7 +1145,89 @@ async function getLatestFromProZorro(cpvCodes?: string[]): Promise<DiscoveredTen
   }
 }
 
-// ─── EU Scraping Sources ─────────────────────────────────────
+// ─── TED API by country code ────────────────────────────────
+// Generic function for any country via TED API — replaces unreliable HTML scrapers
+// for DE, FI, CH, CZ, PT, SE and others
+
+const COUNTRY_TO_TED: Record<string, { code: string; lang: string; label: string }> = {
+  DE: { code: 'DEU', lang: 'DEU', label: 'Bund.de (Germany via TED)' },
+  FI: { code: 'FIN', lang: 'FIN', label: 'Hilma (Finland via TED)' },
+  CH: { code: 'CHE', lang: 'FRA', label: 'simap.ch (Switzerland via TED)' },
+  CZ: { code: 'CZE', lang: 'CES', label: 'Věstník (Czech Rep via TED)' },
+  PT: { code: 'PRT', lang: 'POR', label: 'BASE.gov (Portugal via TED)' },
+  SE: { code: 'SWE', lang: 'SWE', label: 'Mercell (Sweden via TED)' },
+};
+
+async function getLatestFromTEDByCountry(
+  countryISO: string,
+  cpvCodes?: string[],
+): Promise<DiscoveredTender[]> {
+  const mapping = COUNTRY_TO_TED[countryISO];
+  if (!mapping) return [];
+
+  try {
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const dateStr = threeMonthsAgo.toISOString().slice(0, 10).replace(/-/g, '');
+
+    let query = `publication-date>=${dateStr} and buyer-country=${mapping.code}`;
+    if (cpvCodes && cpvCodes.length > 0) {
+      const cpvQ = cpvCodes.slice(0, 3).map(c => `cpv=${c.split('-')[0]}*`).join(' or ');
+      query += ` and (${cpvQ})`;
+    }
+
+    const res = await fetchWithRetry('https://api.ted.europa.eu/v3/notices/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        query,
+        limit: 50,
+        page: 1,
+        fields: ['notice-title', 'publication-number', 'publication-date', 'deadline-receipt-tender-date-lot'],
+      }),
+      signal: AbortSignal.timeout(15000),
+    }, 1);
+
+    if (!res.ok) {
+      console.error(`[TED-${countryISO}] API error: ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    const notices = data.notices || [];
+
+    return notices.slice(0, 50).map((n: any) => {
+      const pubNumber = n['publication-number'] || '';
+      const titleObj = n['notice-title'] || {};
+      const title = titleObj[mapping.lang] || titleObj['ENG'] || Object.values(titleObj)[0] as string || `TED-${countryISO} ${pubNumber}`;
+      const deadlineArr = n['deadline-receipt-tender-date-lot'];
+      const deadline = Array.isArray(deadlineArr) && deadlineArr.length > 0
+        ? safeDateOrUndefined(deadlineArr[0])
+        : undefined;
+
+      return {
+        title: typeof title === 'string' ? title.slice(0, 300) : `TED-${countryISO} ${pubNumber}`,
+        referenceNumber: pubNumber,
+        contractingAuthority: '',
+        platform: 'EU_MEMBER' as const,
+        budget: undefined,
+        submissionDeadline: deadline,
+        cpvCodes: [],
+        sourceUrl: `https://ted.europa.eu/en/notice/-/detail/${pubNumber}`,
+        summary: undefined,
+        publishedAt: safeDate(n['publication-date']),
+        country: countryISO,
+        sourceLabel: mapping.label,
+        isPrivate: false,
+      };
+    });
+  } catch (err) {
+    console.error(`[TED-${countryISO}] Fetch error:`, err);
+    return [];
+  }
+}
+
+// ─── EU Scraping Sources (fallback for sources not on TED) ──
 
 /** Multilingual tender keywords for EU scraping */
 const EU_TENDER_KEYWORDS = [
@@ -1338,7 +1512,8 @@ class TenderDiscoveryService {
           fetchers.push(getLatestFromDiavgeia(cpvFilter));
           break;
         case 'esidis':
-          fetchers.push(scrapeDEKOSource({ id: source.id, name: source.name, url: source.url }));
+          // ΕΣΗΔΗΣ portal is JS-heavy; use ΚΗΜΔΗΣ API which indexes the same tenders
+          fetchers.push(getLatestFromKIMDIS(cpvFilter));
           break;
         case 'ted_gr':
           fetchers.push(getLatestFromTED(cpvFilter, 'GR'));
@@ -1381,7 +1556,8 @@ class TenderDiscoveryService {
         case 'vestnik_cz':
         case 'base_pt':
         case 'mercell':
-          fetchers.push(scrapeEUSource({ id: source.id, name: source.name, url: source.url, country: source.country }));
+          // Use TED API instead of unreliable HTML scraping for these countries
+          fetchers.push(getLatestFromTEDByCountry(source.country, cpvFilter));
           break;
         default:
           // All DEKO and private sources use the generic scraper
@@ -1402,17 +1578,34 @@ class TenderDiscoveryService {
       }
     }
 
-    console.log(`[Discovery] Running ${fetchers.length} fetchers, sources: ${activeSourceIds.join(',')}`);
-    const results = await Promise.allSettled(fetchers);
+    // Filter out sources with open circuit breakers
+    const activeFetchers: Array<{ sourceId: string; fetcher: Promise<DiscoveredTender[]> }> = [];
+    let fetcherIdx = 0;
+    for (const sourceId of activeSourceIds) {
+      if (!checkCircuit(sourceId)) {
+        fetcherIdx++;
+        continue;
+      }
+      if (fetcherIdx < fetchers.length) {
+        activeFetchers.push({ sourceId, fetcher: fetchers[fetcherIdx] });
+      }
+      fetcherIdx++;
+    }
+
+    console.log(`[Discovery] Running ${activeFetchers.length} fetchers (${fetchers.length - activeFetchers.length} circuit-broken), sources: ${activeSourceIds.join(',')}`);
+    const results = await Promise.allSettled(activeFetchers.map(f => f.fetcher));
     let allTenders: DiscoveredTender[] = [];
 
     for (let i = 0; i < results.length; i++) {
       const result = results[i];
+      const sourceId = activeFetchers[i]?.sourceId || `unknown-${i}`;
       if (result.status === 'fulfilled') {
-        console.log(`[Discovery] Fetcher ${i} returned ${result.value.length} results`);
+        console.log(`[Discovery] ${sourceId} returned ${result.value.length} results`);
+        if (result.value.length > 0) recordSuccess(sourceId);
         allTenders.push(...result.value);
       } else {
-        console.error(`[Discovery] Fetcher ${i} FAILED:`, result.reason?.message || result.reason);
+        console.error(`[Discovery] ${sourceId} FAILED:`, result.reason?.message || result.reason);
+        recordFailure(sourceId);
       }
     }
     console.log(`[Discovery] Total before dedup: ${allTenders.length} tenders`);
