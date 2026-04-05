@@ -34,10 +34,15 @@ const ACCEPTED_CONTENT_TYPES = new Set([
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
   'application/zip',
   'application/x-zip-compressed',
+  'application/x-rar-compressed',
+  'application/vnd.rar',
   'text/xml',
   'application/xml',
+  'application/vnd.oasis.opendocument.text',
 ]);
 
 const MIME_BY_EXT: Record<string, string> = {

@@ -806,23 +806,24 @@ async function getLatestFromBOAMP(cpvCodes?: string[]): Promise<DiscoveredTender
     const data = await res.json();
     const records = data.results || [];
 
-    return records.slice(0, 50).map((r: any) => ({
-      title: r.objet || r.intitule || 'BOAMP Notice',
-      referenceNumber: r.idweb || r.reference || '',
-      contractingAuthority: r.nomacheteur || r.denomination || '',
-      platform: 'EU_MEMBER' as const,
-      budget: r.montant ? parseFloat(r.montant) : undefined,
-      submissionDeadline: safeDateOrUndefined(r.datelimitereponse),
-      cpvCodes: r.codecpv ? [r.codecpv] : [],
-      sourceUrl: r.idweb
-        ? `https://www.boamp.fr/avis/detail/${r.idweb}`
-        : `https://www.boamp.fr/`,
-      summary: r.descriptif || r.objet || undefined,
-      publishedAt: safeDate(r.datepublication),
-      country: 'FR',
-      sourceLabel: 'BOAMP (France)',
-      isPrivate: false,
-    }));
+    return records
+      .filter((r: any) => r.idweb) // Skip tenders without detail URL — homepage scraping is useless
+      .slice(0, 50)
+      .map((r: any) => ({
+        title: r.objet || r.intitule || 'BOAMP Notice',
+        referenceNumber: r.idweb || r.reference || '',
+        contractingAuthority: r.nomacheteur || r.denomination || '',
+        platform: 'EU_MEMBER' as const,
+        budget: r.montant ? parseFloat(r.montant) : undefined,
+        submissionDeadline: safeDateOrUndefined(r.datelimitereponse),
+        cpvCodes: r.codecpv ? [r.codecpv] : [],
+        sourceUrl: `https://www.boamp.fr/avis/detail/${r.idweb}`,
+        summary: r.descriptif || r.objet || undefined,
+        publishedAt: safeDate(r.datepublication),
+        country: 'FR',
+        sourceLabel: 'BOAMP (France)',
+        isPrivate: false,
+      }));
   } catch (err) {
     console.error('[BOAMP] Fetch error:', err);
     return [];
