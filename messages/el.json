@@ -195,7 +195,20 @@
     "showcaseSubtitle": "Αναλύστε έγγραφα, ελέγξτε επιλεξιμότητα και ετοιμάστε προσφορές 90% ταχύτερα με το TenderCopilot.",
     "statDocs": "Αναλυθέντα Έγγραφα",
     "statTime": "Εξοικονόμηση Χρόνου",
-    "statWinRate": "Win Rate"
+    "statWinRate": "Win Rate",
+    "forgotPasswordTitle": "Επαναφορά Κωδικού",
+    "forgotPasswordSubtitle": "Εισάγετε το email σας και θα σας στείλουμε σύνδεσμο επαναφοράς.",
+    "forgotPasswordSuccess": "Αν υπάρχει λογαριασμός με αυτό το email, θα λάβετε σύνδεσμο επαναφοράς.",
+    "sendResetLink": "Αποστολή Συνδέσμου",
+    "resetPasswordTitle": "Νέος Κωδικός",
+    "resetPasswordSubtitle": "Εισάγετε τον νέο σας κωδικό πρόσβασης.",
+    "newPassword": "Νέος Κωδικός",
+    "confirmPassword": "Επιβεβαίωση Κωδικού",
+    "passwordMismatch": "Οι κωδικοί δεν ταιριάζουν",
+    "resetPasswordSuccess": "Ο κωδικός σας άλλαξε επιτυχώς! Μπορείτε να συνδεθείτε.",
+    "resetPasswordError": "Ο σύνδεσμος είναι άκυρος ή έχει λήξει.",
+    "resetPassword": "Αλλαγή Κωδικού",
+    "backToLogin": "Επιστροφή στη σύνδεση"
   },
   "chat": {
     "title": "TEC",
