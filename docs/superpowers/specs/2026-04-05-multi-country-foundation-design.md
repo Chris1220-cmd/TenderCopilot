@@ -45,6 +45,18 @@ model CompanyProfile {
 
 One profile per country per tenant. Existing profiles get `country: "GR"` in migration.
 
+### Plan (subscription gating)
+
+```prisma
+model Plan {
+  ...existing fields...
+  + maxCountries   Int?    // null = unlimited, 1 = single country, 2+ = multi-country
+}
+```
+
+Free plan: `maxCountries: 1`. Pro plan: `maxCountries: 3`. Enterprise: `null` (unlimited).
+The "Add country" button in settings checks `tenant.countries.length < plan.maxCountries`.
+
 ### LegalDocument
 
 ```prisma
