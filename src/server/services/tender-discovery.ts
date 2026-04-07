@@ -13,6 +13,7 @@
 import { db } from '@/lib/db';
 import { kadToCpv } from '@/lib/kad-cpv-map';
 import { TENDER_SOURCES, getSourceById, getDefaultEnabledSourceIds } from '@/data/tender-sources';
+import { getDefaultSourcesForCountries } from '@/lib/country-config';
 
 // ─── Reliability: Circuit Breaker ──────────────────────────
 // Track consecutive failures per source. After 3+ failures, skip source for cooldown period.
@@ -1495,9 +1496,18 @@ class TenderDiscoveryService {
     const cpvFilter = showAll ? undefined : (effectiveCpvCodes.length > 0 ? effectiveCpvCodes : undefined);
 
     // Determine which source IDs to search
+    let fallbackSourceIds: string[] | undefined;
+    if (tenantId) {
+      const tenant = await db.tenant.findUnique({ where: { id: tenantId }, select: { countries: true } });
+      if (tenant?.countries?.length) {
+        fallbackSourceIds = getDefaultSourcesForCountries(tenant.countries);
+      }
+    }
     const activeSourceIds = sources && sources.length > 0
       ? sources
-      : getDefaultEnabledSourceIds();
+      : fallbackSourceIds && fallbackSourceIds.length > 0
+        ? fallbackSourceIds
+        : getDefaultEnabledSourceIds();
 
     const fetchers: Promise<DiscoveredTender[]>[] = [];
 
