@@ -91,7 +91,7 @@ export async function buildContext(
   tenderId: string,
   tenantId: string,
   question: string,
-  locale: 'el' | 'en' = 'el',
+  locale: 'el' | 'en' | 'nl' = 'el',
 ): Promise<AssembledContext> {
   const intent = classifyIntent(question);
   const sources: ContextSource[] = [];
@@ -273,7 +273,7 @@ export async function buildContext(
 
 // ─── System Prompt ───────────────────────────────────────────
 
-function buildSmartSystemPrompt(_intent: QuestionIntent, locale: 'el' | 'en' = 'el'): string {
+function buildSmartSystemPrompt(_intent: QuestionIntent, locale: 'el' | 'en' | 'nl' = 'el'): string {
   if (locale === 'en') {
     return `You are the AI Bid Manager of TenderCopilot — an experienced public procurement consultant with 15 years of experience in Greek tenders (Law 4412/2016, ESIDIS).
 

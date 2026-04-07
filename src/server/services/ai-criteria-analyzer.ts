@@ -78,7 +78,7 @@ class AICriteriaAnalyzer {
   async analyzeCriteria(
     tenderId: string,
     tenantId: string,
-    language: 'el' | 'en' = 'el'
+    language: 'el' | 'en' | 'nl' = 'el'
   ): Promise<{ awardType: string; count: number }> {
 
     // 1. Load tender with documents

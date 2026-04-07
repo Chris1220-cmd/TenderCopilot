@@ -20,7 +20,7 @@ export const maxDuration = 60;
 const inputSchema = z.object({
   tenderId: z.string(),
   question: z.string().min(1).max(2000),
-  locale: z.enum(['el', 'en']).optional(),
+  locale: z.enum(['el', 'en', 'nl']).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     });
 
     // 6. Use locale from body (user's app language), fallback to Accept-Language header
-    const locale: 'el' | 'en' = bodyLocale
+    const locale: 'el' | 'en' | 'nl' = bodyLocale
       ?? ((req.headers.get('accept-language') || '').startsWith('en') ? 'en' : 'el');
 
     // 7. Build context + smart history in parallel

@@ -170,7 +170,7 @@ class AILegalAnalyzer {
    * @param tenderId - The ID of the tender to analyze
    * @returns Array of created LegalClause records
    */
-  async extractClauses(tenderId: string, language: 'el' | 'en' = 'el') {
+  async extractClauses(tenderId: string, language: 'el' | 'en' | 'nl' = 'el') {
     await requireDocuments(tenderId);
     const tender = await db.tender.findUniqueOrThrow({
       where: { id: tenderId },

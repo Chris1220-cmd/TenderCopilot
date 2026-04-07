@@ -3,8 +3,10 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import elMessages from '../../messages/el.json';
 
-type Locale = 'el' | 'en';
+type Locale = 'el' | 'en' | 'nl';
 type Messages = typeof elMessages;
+
+const SUPPORTED_LOCALES: Locale[] = ['el', 'en', 'nl'];
 
 interface I18nContextType {
   locale: Locale;
@@ -22,6 +24,25 @@ function getNestedValue(obj: Record<string, unknown>, path: string): string {
   return typeof result === 'string' ? result : path;
 }
 
+function detectBrowserLocale(): Locale {
+  const lang = navigator.language;
+  if (lang.startsWith('el')) return 'el';
+  if (lang.startsWith('nl')) return 'nl';
+  return 'en';
+}
+
+async function loadMessages(locale: Locale): Promise<Messages> {
+  switch (locale) {
+    case 'el':
+      return elMessages;
+    case 'nl':
+      return (await import('../../messages/nl.json')).default;
+    case 'en':
+    default:
+      return (await import('../../messages/en.json')).default;
+  }
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>('el');
   const [messages, setMessages] = useState<Messages>(elMessages);
@@ -29,14 +50,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const stored = localStorage.getItem('locale') as Locale | null;
     let initial: Locale = 'el';
-    if (stored && (stored === 'el' || stored === 'en')) {
+    if (stored && SUPPORTED_LOCALES.includes(stored)) {
       initial = stored;
     } else {
-      initial = navigator.language.startsWith('el') ? 'el' : 'en';
+      initial = detectBrowserLocale();
     }
     if (initial !== 'el') {
       setLocaleState(initial);
-      import('../../messages/en.json').then((mod) => setMessages(mod.default));
+      loadMessages(initial).then(setMessages);
     }
   }, []);
 
@@ -44,11 +65,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     setLocaleState(newLocale);
     localStorage.setItem('locale', newLocale);
     document.documentElement.lang = newLocale;
-    if (newLocale === 'el') {
-      setMessages(elMessages);
-    } else {
-      import('../../messages/en.json').then((mod) => setMessages(mod.default));
-    }
+    loadMessages(newLocale).then(setMessages);
   }, []);
 
   const t = useCallback((key: string): string => {

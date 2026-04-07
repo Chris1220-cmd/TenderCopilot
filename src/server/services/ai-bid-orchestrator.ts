@@ -523,7 +523,7 @@ class AIBidOrchestrator {
    * @param tenderId - The ID of the tender to summarize
    * @returns The created/updated TenderBrief record
    */
-  async summarizeTender(tenderId: string, language: 'el' | 'en' = 'el') {
+  async summarizeTender(tenderId: string, language: 'el' | 'en' | 'nl' = 'el') {
     const _t0 = Date.now();
     const _log = (step: string) => console.log(`[summarizeTender] ${step}: ${Date.now() - _t0}ms`);
 
@@ -973,7 +973,7 @@ class AIBidOrchestrator {
    * @param tenantId - The tenant (company) ID for loading company data
    * @returns The created GoNoGoDecision record
    */
-  async goNoGoAnalysis(tenderId: string, tenantId: string, language: 'el' | 'en' = 'el') {
+  async goNoGoAnalysis(tenderId: string, tenantId: string, language: 'el' | 'en' | 'nl' = 'el') {
     await requireDocuments(tenderId);
     // Load all relevant data in parallel
     const [

@@ -155,7 +155,7 @@ class AITechnicalService {
    * Functional, Performance, Interface, Standard/Certification, Safety,
    * Staffing, Timeline, Deliverable. Sets criticality 1-5.
    */
-  async analyzeTechnicalRequirements(tenderId: string, language: 'el' | 'en' = 'el'): Promise<ClassifiedRequirement[]> {
+  async analyzeTechnicalRequirements(tenderId: string, language: 'el' | 'en' | 'nl' = 'el'): Promise<ClassifiedRequirement[]> {
     await requireDocuments(tenderId);
     const requirements = await db.tenderRequirement.findMany({
       where: {

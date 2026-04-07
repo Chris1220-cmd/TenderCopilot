@@ -4,7 +4,7 @@ import { Globe } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
-export type AnalysisLanguage = 'el' | 'en';
+export type AnalysisLanguage = 'el' | 'en' | 'nl';
 
 interface LanguageModalProps {
   open: boolean;
@@ -38,6 +38,14 @@ export function LanguageModal({ open, onSelect, onClose }: LanguageModalProps) {
           >
             <span className="text-lg font-semibold">EN</span>
             <span className="text-xs text-muted-foreground">English</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1 h-16 cursor-pointer flex-col gap-1"
+            onClick={() => onSelect('nl')}
+          >
+            <span className="text-lg font-semibold">NL</span>
+            <span className="text-xs text-muted-foreground">Nederlands</span>
           </Button>
         </div>
       </DialogContent>
