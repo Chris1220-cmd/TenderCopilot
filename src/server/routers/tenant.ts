@@ -3,6 +3,21 @@ import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '@/server/trpc';
 
 export const tenantRouter = router({
+  get: protectedProcedure.query(async ({ ctx }) => {
+    if (!ctx.tenantId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'No tenant associated with your account.',
+      });
+    }
+    return ctx.db.tenant.findUniqueOrThrow({
+      where: { id: ctx.tenantId },
+      include: {
+        subscription: { include: { plan: true } },
+      },
+    });
+  }),
+
   getMembers: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.tenantId) {
       throw new TRPCError({
