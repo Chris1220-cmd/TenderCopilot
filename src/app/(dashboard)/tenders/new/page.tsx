@@ -32,6 +32,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
+import { SUPPORTED_COUNTRIES } from '@/lib/country-config';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -95,6 +96,18 @@ export default function NewTenderPage() {
   const [urlError, setUrlError] = useState<string | null>(null);
   const [urlImporting, setUrlImporting] = useState(false);
   const [urlSteps, setUrlSteps] = useState<ProgressStep[]>([]);
+
+  // Country selector (for multi-country tenants)
+  const { data: tenantData } = trpc.tenant.get.useQuery();
+  const tenantCountries = tenantData?.countries ?? ['GR'];
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
+
+  // Set default country when tenant data loads
+  useEffect(() => {
+    if (tenantData?.countries?.length && !selectedCountry) {
+      setSelectedCountry(tenantData.countries[0]);
+    }
+  }, [tenantData, selectedCountry]);
 
   // File upload state
   const [files, setFiles] = useState<File[]>([]);
@@ -289,6 +302,7 @@ export default function NewTenderPage() {
         submissionDeadline: tender.submissionDeadline || null,
         notes: tender.summary || null,
         sourceUrl: tender.sourceUrl || null,
+        country: selectedCountry || undefined,
       });
 
       toast({ title: '✓ Εισαγωγή επιτυχής', description: `"${tender.title.slice(0, 60)}..." — τα έγγραφα φορτώνονται στο background.` });
@@ -327,6 +341,33 @@ export default function NewTenderPage() {
           </p>
         </div>
       </div>
+
+      {/* Country selector — only for multi-country tenants */}
+      {tenantCountries.length > 1 && (
+        <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-card p-3">
+          <Globe className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Country:</span>
+          <div className="flex gap-2">
+            {tenantCountries.map((code) => {
+              const info = SUPPORTED_COUNTRIES.find(c => c.code === code);
+              return (
+                <button
+                  key={code}
+                  onClick={() => setSelectedCountry(code)}
+                  className={cn(
+                    'px-3 py-1.5 text-sm rounded-lg border transition-all cursor-pointer',
+                    selectedCountry === code
+                      ? 'border-primary bg-primary/10 text-primary font-medium'
+                      : 'border-border/60 text-muted-foreground hover:text-foreground hover:border-border'
+                  )}
+                >
+                  {info?.name ?? code} ({code})
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Mode selector cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
