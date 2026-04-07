@@ -8,7 +8,7 @@ import {
   DOC_TYPE_TO_LEGAL_DOC_TYPE,
   type DocumentDefault,
 } from '@/lib/greek-document-defaults';
-import type { LegalDocType, LegalDocument, Certificate } from '@prisma/client';
+import type { LegalDocument, Certificate } from '@prisma/client';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
