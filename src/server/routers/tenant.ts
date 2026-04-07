@@ -18,6 +18,47 @@ export const tenantRouter = router({
     });
   }),
 
+  addCountry: protectedProcedure
+    .input(z.object({ country: z.string().length(2) }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.tenantId) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
+      }
+
+      const tenant = await ctx.db.tenant.findUniqueOrThrow({
+        where: { id: ctx.tenantId },
+        include: { subscription: { include: { plan: true } } },
+      });
+
+      // Check if country already added
+      if (tenant.countries.includes(input.country)) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Country already added.' });
+      }
+
+      // Check subscription limit
+      const maxCountries = tenant.subscription?.plan?.maxCountries;
+      if (maxCountries !== null && maxCountries !== undefined && tenant.countries.length >= maxCountries) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Upgrade your plan for more countries.' });
+      }
+
+      // Validate country is supported
+      const { getCountryConfig } = await import('@/lib/country-config');
+      getCountryConfig(input.country); // throws if unsupported
+
+      // Add country to tenant
+      await ctx.db.tenant.update({
+        where: { id: ctx.tenantId },
+        data: { countries: { push: input.country } },
+      });
+
+      // Create empty company profile for the new country
+      await ctx.db.companyProfile.create({
+        data: { tenantId: ctx.tenantId, country: input.country, legalName: '', taxId: '' },
+      });
+
+      return { success: true };
+    }),
+
   getMembers: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.tenantId) {
       throw new TRPCError({

@@ -77,7 +77,10 @@ export default function SettingsPage() {
     EXTERNAL_COLLABORATOR: t('roles.externalCollaborator'),
   };
 
-  const { data: tenantData } = trpc.tenant.get.useQuery();
+  const { data: tenantData, refetch: refetchTenant } = trpc.tenant.get.useQuery();
+  const addCountryMutation = trpc.tenant.addCountry.useMutation({
+    onSuccess: () => { refetchTenant(); },
+  });
   const { data: members, isLoading, refetch } = trpc.tenant.getMembers.useQuery();
   const inviteMutation = trpc.tenant.invite.useMutation({
     onSuccess: () => {
@@ -334,7 +337,8 @@ export default function SettingsPage() {
                         disabled={!canAdd}
                         className="gap-2 cursor-pointer"
                         onClick={() => {
-                          // TODO (SP1 follow-up): implement addCountry mutation
+                          const next = availableCountries[0];
+                          if (next) addCountryMutation.mutate({ country: next.code });
                         }}
                       >
                         {canAdd ? (
