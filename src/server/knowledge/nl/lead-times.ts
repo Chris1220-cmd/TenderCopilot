@@ -1,0 +1,165 @@
+/**
+ * Doorlooptijden documenten - Realistische doorlooptijden Nederlandse aanbestedingen
+ */
+
+import type { LeadTime } from '../lead-times';
+
+export const NL_LEAD_TIMES: LeadTime[] = [
+  {
+    document: 'Gedragsverklaring Aanbesteden (GVA)',
+    minDays: 20,
+    maxDays: 40,
+    source: 'Justis (Ministerie van Justitie en Veiligheid)',
+    tips: [
+      'Vraag de GVA DIRECT aan zodra u overweegt in te schrijven - dit is altijd het kritieke pad',
+      'Aanvraag via justis.nl/producten/gva - online formulier met DigiD of eHerkenning',
+      'De GVA is 2 jaar geldig - houd een actuele GVA in voorraad',
+      'Bij buitenlandse bestuurders duurt het langer vanwege internationale navraag',
+      'Spoedprocedure is NIET mogelijk - plan altijd 4-8 weken vooruit',
+      'De GVA moet op naam van de rechtspersoon staan, niet op naam van een bestuurder',
+    ],
+  },
+  {
+    document: 'KvK-uittreksel (Kamer van Koophandel)',
+    minDays: 0,
+    maxDays: 1,
+    source: 'KvK (kvk.nl) - online',
+    tips: [
+      'Direct online beschikbaar via kvk.nl als PDF - binnen minuten',
+      'Controleer dat het uittreksel de juiste handelsnaam en vestigingsadres bevat',
+      'Bij inschrijving in combinatie: uittreksel van elk deelnemend bedrijf nodig',
+      'Let op dat de SBI-codes (Standaard Bedrijfsindeling) overeenkomen met de opdracht',
+      'Digitaal uittreksel is rechtsgeldig - geen gewaarmerkt exemplaar nodig',
+    ],
+  },
+  {
+    document: 'Verklaring betalingsgedrag nakoming fiscale verplichtingen',
+    minDays: 1,
+    maxDays: 5,
+    source: 'Belastingdienst',
+    tips: [
+      'Aanvragen via de Belastingdienst - formulier "Verklaring betalingsgedrag"',
+      'Geeft aan dat u aan uw fiscale verplichtingen voldoet (loonheffingen, omzetbelasting)',
+      'Bij betalingsachterstanden kan de verklaring worden geweigerd',
+      'Geldigheid is beperkt - vraag zo dicht mogelijk bij de inschrijvingsdatum aan',
+      'In sommige aanbestedingen wordt een recente belastingaangifte geaccepteerd als alternatief',
+    ],
+  },
+  {
+    document: 'Uniform Europees Aanbestedingsdocument (UEA / ESPD)',
+    minDays: 1,
+    maxDays: 2,
+    source: 'TenderNed of ec.europa.eu/espd',
+    tips: [
+      'Download het UEA-formulier vanuit de aanbestedingsdocumenten op TenderNed',
+      'Vul het UEA zorgvuldig in - onvolledige velden kunnen tot uitsluiting leiden',
+      'Bij combinatie-inschrijving: elk lid vult een apart UEA in',
+      'Bij beroep op derden (onderaannemers): ook voor hen een UEA indienen',
+      'Bewaar bewijs van alle verklaringen in het UEA - bij gunning worden originelen gevraagd',
+    ],
+  },
+  {
+    document: 'Bankgarantie',
+    minDays: 5,
+    maxDays: 10,
+    source: 'Bank van de inschrijver',
+    tips: [
+      'Neem direct contact op met uw bank zodra de aanbesteding is gepubliceerd',
+      'Controleer het exacte percentage en format dat de aanbestedende dienst vereist',
+      'Gebruik het model-bankgarantie uit de aanbestedingsdocumenten indien bijgevoegd',
+      'Bij kleinere opdrachten kan soms een concerngarantie worden geaccepteerd',
+      'Let op de geldigheidsduur - deze moet de gehele uitvoeringsperiode dekken plus marge',
+    ],
+  },
+  {
+    document: 'Verzekeringscertificaat (CAR, AVB, BA)',
+    minDays: 2,
+    maxDays: 5,
+    source: 'Verzekeraar of assurantietussenpersoon',
+    tips: [
+      'Controleer welke verzekeringen worden gevraagd: CAR, AVB, BA-beroep, etc.',
+      'Het certificaat moet het gevraagde minimale verzekerd bedrag vermelden',
+      'Als uw huidige dekking onvoldoende is, neem contact op met uw verzekeraar voor uitbreiding',
+      'De polis moet geldig zijn op het moment van inschrijving en bij gunning',
+      'Sommige aanbestedingen accepteren een bereidverklaring van de verzekeraar',
+    ],
+  },
+  {
+    document: 'Verklaring Omtrent het Gedrag (VOG) voor rechtspersonen',
+    minDays: 10,
+    maxDays: 20,
+    source: 'Justis (screeningsautoriteit)',
+    tips: [
+      'De VOG-RP is iets anders dan de GVA - controleer welk document wordt gevraagd',
+      'Aanvraag via justis.nl - verwerking duurt 2-4 weken',
+      'Wordt soms gevraagd naast of in plaats van de GVA',
+      'De VOG-RP beoordeelt het gedrag van de rechtspersoon en haar bestuurders',
+      'Bij urgentie kan een spoedaanvraag worden ingediend, maar dit is niet gegarandeerd',
+    ],
+  },
+  {
+    document: 'Referentieverklaringen / tevredenheidsverklaringen',
+    minDays: 5,
+    maxDays: 15,
+    source: 'Opdrachtgevers van eerdere opdrachten',
+    tips: [
+      'Neem tijdig contact op met voormalige opdrachtgevers - zij moeten tekenen',
+      'Gebruik het format/template uit de aanbestedingsdocumenten als dat wordt voorgeschreven',
+      'Zorg dat de referentie-opdracht voldoet aan de gestelde kerncompetenties/eisen',
+      'Referenties mogen maximaal 3 jaar oud zijn (diensten/leveringen) of 5 jaar (werken)',
+      'Houd een actueel overzicht bij van succesvolle opdrachten met contactpersonen',
+    ],
+  },
+  {
+    document: 'Jaarrekening / financiele gegevens (KvK-depot)',
+    minDays: 0,
+    maxDays: 1,
+    source: 'KvK (Kamer van Koophandel) - online depot',
+    tips: [
+      'Gedeponeerde jaarrekeningen zijn online beschikbaar via kvk.nl',
+      'Als de jaarrekening nog niet gedeponeerd is, kan een voorlopige jaarrekening worden gevraagd',
+      'Controleer of de omzeteis proportioneel is (max 3x opdrachtwaarde conform Gids Proportionaliteit)',
+      'Bij combinatie: de draagkracht mag worden opgeteld van alle deelnemers',
+      'Soms wordt ook een accountantsverklaring of ratio-analyse gevraagd',
+    ],
+  },
+  {
+    document: 'ISO-certificering (9001, 14001, 27001, etc.)',
+    minDays: 10,
+    maxDays: 30,
+    source: 'Geaccrediteerd certificeringsinstituut (RvA)',
+    tips: [
+      'ALS U NOG GEEN ISO HEEFT: initieel certificeringstraject duurt 3-12 maanden',
+      'Controleer of het certificaat nog geldig is en de jaarlijkse audits zijn uitgevoerd',
+      'Sommige aanbestedingen accepteren gelijkwaardige maatregelen als bewijs van kwaliteitsborging',
+      'Het certificeringsinstituut moet geaccrediteerd zijn door de Raad voor Accreditatie (RvA) of equivalent',
+      'Controleer exact welke norm wordt gevraagd (bijv. ISO 9001:2015, ISO 14001:2015)',
+    ],
+  },
+  {
+    document: 'Inschrijfbiljet en Plan van Aanpak (opstellen)',
+    minDays: 5,
+    maxDays: 20,
+    source: 'Interne bidteam of externe adviseur',
+    tips: [
+      'Lees de Nota van Inlichtingen (NvI) zorgvuldig - antwoorden kunnen eisen wijzigen',
+      'Volg exact de structuur en format-eisen uit de aanbestedingsdocumenten',
+      'Bij EMVI: onderbouw elk kwaliteitsaspect met concrete voorbeelden en bewijs',
+      'Vermijd algemeenheden - de beoordelingscommissie wil specifieke, meetbare oplossingen zien',
+      'Laat het plan reviewen door iemand die niet bij de opstelling betrokken was',
+      'Controleer op taalfouten en inconsistenties - kwaliteit van de inschrijving telt',
+    ],
+  },
+  {
+    document: 'Eigen Verklaring (model Aanbestedingswet)',
+    minDays: 0,
+    maxDays: 1,
+    source: 'Intern - ondertekening door bevoegd persoon',
+    tips: [
+      'Gebruik het model uit de aanbestedingsdocumenten of het standaardmodel van TenderNed',
+      'De Eigen Verklaring vervangt het UEA bij nationale aanbestedingen onder de drempel',
+      'Moet worden ondertekend door een tekenbevoegde persoon (controleer KvK-bevoegdheden)',
+      'Bewaar bewijsstukken van alle verklaringen - bij gunning worden originelen opgevraagd',
+    ],
+  },
+];

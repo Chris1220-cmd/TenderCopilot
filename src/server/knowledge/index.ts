@@ -1,7 +1,7 @@
 /**
  * Smart Knowledge Retriever - TenderCopilot
  * Αναλύει ερωτήσεις χρηστών και επιστρέφει σχετική γνώση
- * από τη βάση δεδομένων Ν.4412/2016
+ * από τη βάση δεδομένων Ν.4412/2016 (GR) ή Aanbestedingswet 2012 (NL)
  */
 
 import { LAW_4412_ARTICLES, type LawArticle } from './law-4412';
@@ -11,12 +11,24 @@ import { TENDER_CHECKLISTS } from './checklists';
 import { ESIDIS_GUIDE } from './esidis-guide';
 import { classifyTenderType, type TenderClassification } from './tender-classifier';
 
+// Dutch knowledge modules
+import { AANBESTEDINGSWET_ARTICLES } from './nl/law-aanbestedingswet';
+import { NL_LEAD_TIMES } from './nl/lead-times';
+import { NL_COMMON_MISTAKES } from './nl/common-mistakes';
+import { NL_TENDER_CHECKLISTS } from './nl/checklists';
+import { TENDERNED_GUIDE } from './nl/tenderned-guide';
+
 // Re-export everything
 export { LAW_4412_ARTICLES } from './law-4412';
 export { LEAD_TIMES } from './lead-times';
 export { COMMON_MISTAKES } from './common-mistakes';
 export { TENDER_CHECKLISTS } from './checklists';
 export { ESIDIS_GUIDE } from './esidis-guide';
+export { AANBESTEDINGSWET_ARTICLES } from './nl/law-aanbestedingswet';
+export { NL_LEAD_TIMES } from './nl/lead-times';
+export { NL_COMMON_MISTAKES } from './nl/common-mistakes';
+export { NL_TENDER_CHECKLISTS } from './nl/checklists';
+export { TENDERNED_GUIDE } from './nl/tenderned-guide';
 export { classifyTenderType } from './tender-classifier';
 export type { TenderClassification } from './tender-classifier';
 
@@ -149,14 +161,113 @@ const KEYWORD_MAP: KeywordMatch[] = [
   { keyword: 'κημδησ', topics: ['esidis', 'documents'] },
 ];
 
+const NL_KEYWORD_MAP: KeywordMatch[] = [
+  // Garanties / Bankgarantie
+  { keyword: 'bankgarantie', topics: ['guarantees', 'mistakes', 'lead_times'] },
+  { keyword: 'garantie', topics: ['guarantees', 'lead_times'] },
+  { keyword: 'zekerheid', topics: ['guarantees', 'lead_times'] },
+  { keyword: '2%', topics: ['guarantees'] },
+  { keyword: '5%', topics: ['guarantees', 'contracts'] },
+  // Uitsluiting
+  { keyword: 'uitsluit', topics: ['exclusion', 'mistakes'] },
+  { keyword: 'uitsluiting', topics: ['exclusion', 'mistakes'] },
+  { keyword: 'gedragsverklaring', topics: ['exclusion', 'documents', 'lead_times'] },
+  { keyword: 'VOG', topics: ['exclusion', 'documents', 'lead_times'] },
+  { keyword: 'belastingdienst', topics: ['exclusion', 'documents', 'lead_times'] },
+  { keyword: 'fiscaal', topics: ['exclusion', 'documents', 'lead_times'] },
+  { keyword: 'sociale verzekering', topics: ['exclusion', 'documents', 'lead_times'] },
+  // Documenten
+  { keyword: 'UEA', topics: ['documents', 'lead_times', 'mistakes'] },
+  { keyword: 'ESPD', topics: ['documents', 'lead_times'] },
+  { keyword: 'eigen verklaring', topics: ['documents', 'lead_times', 'mistakes'] },
+  { keyword: 'bewijsstuk', topics: ['documents', 'checklist'] },
+  { keyword: 'certificaat', topics: ['documents', 'lead_times'] },
+  { keyword: 'KVK', topics: ['documents', 'lead_times'] },
+  { keyword: 'kvk', topics: ['documents', 'lead_times'] },
+  { keyword: 'ISO', topics: ['documents', 'lead_times'] },
+  { keyword: 'digitale handtekening', topics: ['documents', 'esidis', 'mistakes'] },
+  // Termijnen
+  { keyword: 'termijn', topics: ['deadlines', 'lead_times'] },
+  { keyword: 'deadline', topics: ['deadlines', 'lead_times'] },
+  { keyword: 'datum', topics: ['deadlines'] },
+  { keyword: 'sluitingsdatum', topics: ['deadlines', 'esidis'] },
+  { keyword: 'wanneer', topics: ['deadlines', 'lead_times'] },
+  { keyword: 'dagen', topics: ['deadlines', 'lead_times'] },
+  { keyword: 'werkdagen', topics: ['deadlines', 'lead_times'] },
+  // Beoordeling / Gunning
+  { keyword: 'beoordeling', topics: ['evaluation'] },
+  { keyword: 'gunning', topics: ['evaluation'] },
+  { keyword: 'gunningscriterium', topics: ['evaluation', 'eligibility'] },
+  { keyword: 'laagste prijs', topics: ['evaluation'] },
+  { keyword: 'EMVI', topics: ['evaluation'] },
+  { keyword: 'emvi', topics: ['evaluation'] },
+  { keyword: 'beste prijs-kwaliteit', topics: ['evaluation'] },
+  // TenderNed
+  { keyword: 'TenderNed', topics: ['esidis', 'mistakes'] },
+  { keyword: 'tenderned', topics: ['esidis', 'mistakes'] },
+  { keyword: 'elektronisch', topics: ['esidis'] },
+  { keyword: 'inschrijving', topics: ['esidis', 'deadlines', 'mistakes'] },
+  { keyword: 'indienen', topics: ['esidis', 'deadlines', 'mistakes'] },
+  { keyword: 'uploaden', topics: ['esidis'] },
+  // Checklist
+  { keyword: 'checklist', topics: ['checklist'] },
+  { keyword: 'wat heb ik nodig', topics: ['checklist', 'lead_times'] },
+  { keyword: 'wat moet ik', topics: ['checklist', 'lead_times'] },
+  { keyword: 'lijst', topics: ['checklist'] },
+  { keyword: 'vereist', topics: ['checklist', 'documents'] },
+  // Aanbestedingstype
+  { keyword: 'openba', topics: ['eligibility', 'checklist'] },
+  { keyword: 'niet-openba', topics: ['eligibility', 'checklist'] },
+  { keyword: 'enkelvoudig', topics: ['eligibility', 'checklist'] },
+  { keyword: 'meervoudig', topics: ['eligibility', 'checklist'] },
+  { keyword: 'onderhandse', topics: ['eligibility', 'checklist'] },
+  { keyword: 'raamovereenkomst', topics: ['eligibility', 'checklist'] },
+  { keyword: 'framework', topics: ['eligibility', 'checklist'] },
+  // Fouten
+  { keyword: 'fout', topics: ['mistakes'] },
+  { keyword: 'falen', topics: ['mistakes'] },
+  { keyword: 'risico', topics: ['mistakes'] },
+  { keyword: 'let op', topics: ['mistakes'] },
+  { keyword: 'vermijd', topics: ['mistakes'] },
+  { keyword: 'mistake', topics: ['mistakes'] },
+  { keyword: 'error', topics: ['mistakes'] },
+  // Bezwaar / Klacht
+  { keyword: 'bezwaar', topics: ['appeals'] },
+  { keyword: 'klacht', topics: ['appeals'] },
+  { keyword: 'commissie van aanbestedingsexperts', topics: ['appeals'] },
+  { keyword: 'kort geding', topics: ['appeals'] },
+  // Contract
+  { keyword: 'contract', topics: ['contracts'] },
+  { keyword: 'overeenkomst', topics: ['contracts', 'documents'] },
+  { keyword: 'opdrachtnemer', topics: ['contracts'] },
+  { keyword: 'wijziging', topics: ['contracts'] },
+  // Technisch / Prijs
+  { keyword: 'technische inschrijving', topics: ['documents', 'mistakes', 'lead_times'] },
+  { keyword: 'prijsinschrijving', topics: ['documents', 'mistakes', 'lead_times'] },
+  { keyword: 'prijs', topics: ['evaluation', 'mistakes'] },
+  // Tijdlijnen
+  { keyword: 'hoeveel dagen', topics: ['lead_times', 'deadlines'] },
+  { keyword: 'hoeveel tijd', topics: ['lead_times'] },
+  { keyword: 'hoe lang', topics: ['lead_times'] },
+  // Combinatie
+  { keyword: 'combinatie', topics: ['documents', 'mistakes'] },
+  { keyword: 'samenwerking', topics: ['documents', 'mistakes'] },
+  // Drempelbedragen
+  { keyword: 'drempel', topics: ['eligibility'] },
+  { keyword: 'drempelbedrag', topics: ['eligibility'] },
+  { keyword: 'threshold', topics: ['eligibility'] },
+  { keyword: 'aanbesteding', topics: ['eligibility', 'checklist'] },
+  { keyword: 'aanbestedingswet', topics: ['eligibility'] },
+];
+
 /**
  * Detect which topics are relevant to the question
  */
-function detectTopics(question: string): Map<KnowledgeTopic, number> {
+function detectTopics(question: string, keywordMap: KeywordMatch[] = KEYWORD_MAP): Map<KnowledgeTopic, number> {
   const topicScores = new Map<KnowledgeTopic, number>();
   const lowerQ = question.toLowerCase();
 
-  for (const { keyword, topics } of KEYWORD_MAP) {
+  for (const { keyword, topics } of keywordMap) {
     if (lowerQ.includes(keyword.toLowerCase())) {
       for (const topic of topics) {
         topicScores.set(topic, (topicScores.get(topic) || 0) + 1);
@@ -183,12 +294,14 @@ function formatArticles(articles: LawArticle[], maxItems = 3): string {
 /**
  * Format lead times for output
  */
-function formatLeadTimes(items: LeadTime[], maxItems = 4): string {
+function formatLeadTimes(items: LeadTime[], maxItems = 4, country: string = 'GR'): string {
+  const workdaysLabel = country === 'NL' ? 'werkdagen' : 'εργάσιμες';
+  const tipLabel = country === 'NL' ? 'Tip' : 'Tip';
   return items
     .slice(0, maxItems)
     .map(
       (lt) =>
-        `- ${lt.document}: ${lt.minDays}-${lt.maxDays} εργάσιμες (${lt.source})\n  Tip: ${lt.tips[0]}`
+        `- ${lt.document}: ${lt.minDays}-${lt.maxDays} ${workdaysLabel} (${lt.source})\n  ${tipLabel}: ${lt.tips[0]}`
     )
     .join('\n');
 }
@@ -196,12 +309,13 @@ function formatLeadTimes(items: LeadTime[], maxItems = 4): string {
 /**
  * Format common mistakes for output
  */
-function formatMistakes(items: CommonMistake[], maxItems = 4): string {
+function formatMistakes(items: CommonMistake[], maxItems = 4, country: string = 'GR'): string {
+  const preventionLabel = country === 'NL' ? 'Preventie' : 'Πρόληψη';
   return items
     .slice(0, maxItems)
     .map(
       (m) =>
-        `⚠ [${m.severity.toUpperCase()}] ${m.title}: ${m.description}\n  Πρόληψη: ${m.prevention}`
+        `⚠ [${m.severity.toUpperCase()}] ${m.title}: ${m.description}\n  ${preventionLabel}: ${m.prevention}`
     )
     .join('\n\n');
 }
@@ -211,12 +325,13 @@ function formatMistakes(items: CommonMistake[], maxItems = 4): string {
  */
 function getRelevantArticles(
   topics: Map<KnowledgeTopic, number>,
-  question: string
+  question: string,
+  articles: LawArticle[] = LAW_4412_ARTICLES
 ): LawArticle[] {
   const lowerQ = question.toLowerCase();
 
   // Score each article
-  const scored = LAW_4412_ARTICLES.map((article) => {
+  const scored = articles.map((article) => {
     let score = 0;
 
     // Topic match
@@ -258,10 +373,10 @@ function getRelevantArticles(
 /**
  * Get relevant lead times based on question
  */
-function getRelevantLeadTimes(question: string): LeadTime[] {
+function getRelevantLeadTimes(question: string, leadTimesData: LeadTime[] = LEAD_TIMES): LeadTime[] {
   const lowerQ = question.toLowerCase();
 
-  const scored = LEAD_TIMES.map((lt) => {
+  const scored = leadTimesData.map((lt) => {
     let score = 0;
     const words = lt.document.toLowerCase().split(/\s+/);
     for (const word of words) {
@@ -283,7 +398,8 @@ function getRelevantLeadTimes(question: string): LeadTime[] {
  */
 function getRelevantMistakes(
   topics: Map<KnowledgeTopic, number>,
-  question: string
+  question: string,
+  mistakesData: CommonMistake[] = COMMON_MISTAKES
 ): CommonMistake[] {
   const lowerQ = question.toLowerCase();
 
@@ -318,7 +434,7 @@ function getRelevantMistakes(
   // If "mistakes" topic is detected, show top critical ones
   const showAll = topics.has('mistakes') && relevantCategories.size === 0;
 
-  const scored = COMMON_MISTAKES.map((m) => {
+  const scored = mistakesData.map((m) => {
     let score = 0;
 
     if (showAll) {
@@ -350,7 +466,7 @@ function getRelevantMistakes(
 /**
  * Get checklist info based on tender type
  */
-function getChecklistInfo(tenderType?: string): string | null {
+function getChecklistInfo(tenderType?: string, checklistsData: Record<string, any> = TENDER_CHECKLISTS, country: string = 'GR'): string | null {
   if (!tenderType) return null;
 
   const typeMap: Record<string, string> = {
@@ -365,63 +481,69 @@ function getChecklistInfo(tenderType?: string): string | null {
   };
 
   const key = typeMap[tenderType];
-  if (!key || !TENDER_CHECKLISTS[key]) return null;
+  if (!key || !checklistsData[key]) return null;
 
-  const cl = TENDER_CHECKLISTS[key];
+  const cl = checklistsData[key];
+  const daysLabel = country === 'NL' ? 'dagen' : 'ημέρες';
+  const mandatoryDocsLabel = country === 'NL' ? 'Verplichte documenten' : 'Υποχρεωτικά έγγραφα';
+  const tipsLabel = country === 'NL' ? 'Tips' : 'Συμβουλές';
+
   const mandatoryDocs = cl.requiredDocuments
-    .filter((d) => d.mandatory)
-    .map((d) => `  - ${d.name} (${d.leadTimeDays} ημέρες, ${d.legalBasis})`)
+    .filter((d: any) => d.mandatory)
+    .map((d: any) => `  - ${d.name} (${d.leadTimeDays} ${daysLabel}, ${d.legalBasis})`)
     .join('\n');
 
-  const tips = cl.tips.slice(0, 3).map((t) => `  - ${t}`).join('\n');
+  const tips = cl.tips.slice(0, 3).map((t: string) => `  - ${t}`).join('\n');
 
-  return `📋 ${cl.label}\n${cl.description}\n\nΥποχρεωτικά έγγραφα:\n${mandatoryDocs}\n\nΣυμβουλές:\n${tips}`;
+  return `📋 ${cl.label}\n${cl.description}\n\n${mandatoryDocsLabel}:\n${mandatoryDocs}\n\n${tipsLabel}:\n${tips}`;
 }
 
 /**
- * Get ESIDIS tips based on question
+ * Get platform guide tips based on question and country
  */
-function getEsidisInfo(question: string): string | null {
+function getPlatformGuideInfo(question: string, country: string = 'GR'): string | null {
   const lowerQ = question.toLowerCase();
+  const guide = country === 'NL' ? TENDERNED_GUIDE : ESIDIS_GUIDE;
+  const platformName = country === 'NL' ? 'TenderNed' : 'ΕΣΗΔΗΣ';
 
   const parts: string[] = [];
 
   // Check for specific step questions
-  if (
-    lowerQ.includes('βήμα') ||
-    lowerQ.includes('πώς') ||
-    lowerQ.includes('πως') ||
-    lowerQ.includes('διαδικασία υποβολής')
-  ) {
-    const relevantSteps = ESIDIS_GUIDE.steps
+  const stepKeywords = country === 'NL'
+    ? ['stap', 'hoe', 'procedure', 'indieningsprocedure']
+    : ['βήμα', 'πώς', 'πως', 'διαδικασία υποβολής'];
+
+  if (stepKeywords.some((kw) => lowerQ.includes(kw))) {
+    const stepsLabel = country === 'NL' ? `Stappen voor indiening via ${platformName}` : `Βήματα υποβολής ${platformName}`;
+    const relevantSteps = guide.steps
       .slice(0, 4)
-      .map((s) => `${s.order}. ${s.title}: ${s.description}`)
+      .map((s: any) => `${s.order}. ${s.title}: ${s.description}`)
       .join('\n');
-    parts.push(`Βήματα υποβολής ΕΣΗΔΗΣ:\n${relevantSteps}`);
+    parts.push(`${stepsLabel}:\n${relevantSteps}`);
   }
 
   // Format/file questions
-  if (
-    lowerQ.includes('format') ||
-    lowerQ.includes('αρχεί') ||
-    lowerQ.includes('pdf') ||
-    lowerQ.includes('μέγεθος') ||
-    lowerQ.includes('τύπος αρχείου')
-  ) {
-    const formats = ESIDIS_GUIDE.formats
-      .filter((f) => f.accepted)
-      .map((f) => `  ${f.extension}: max ${f.maxSizeMB}MB - ${f.notes}`)
+  const formatKeywords = country === 'NL'
+    ? ['format', 'bestand', 'pdf', 'grootte', 'bestandstype']
+    : ['format', 'αρχεί', 'pdf', 'μέγεθος', 'τύπος αρχείου'];
+
+  if (formatKeywords.some((kw) => lowerQ.includes(kw))) {
+    const formatsLabel = country === 'NL' ? `Geaccepteerde bestandsformaten ${platformName}` : `Αποδεκτές μορφές αρχείων ${platformName}`;
+    const formats = guide.formats
+      .filter((f: any) => f.accepted)
+      .map((f: any) => `  ${f.extension}: max ${f.maxSizeMB}MB - ${f.notes}`)
       .join('\n');
-    parts.push(`Αποδεκτές μορφές αρχείων ΕΣΗΔΗΣ:\n${formats}`);
+    parts.push(`${formatsLabel}:\n${formats}`);
   }
 
   // General gotchas
   if (parts.length === 0) {
-    const gotchas = ESIDIS_GUIDE.gotchas
+    const gotchasLabel = country === 'NL' ? `Let op bij ${platformName}` : `Προσοχή στο ${platformName}`;
+    const gotchas = guide.gotchas
       .slice(0, 4)
-      .map((g) => `  - ${g}`)
+      .map((g: string) => `  - ${g}`)
       .join('\n');
-    parts.push(`Προσοχή στο ΕΣΗΔΗΣ:\n${gotchas}`);
+    parts.push(`${gotchasLabel}:\n${gotchas}`);
   }
 
   return parts.length > 0 ? parts.join('\n\n') : null;
@@ -431,16 +553,44 @@ function getEsidisInfo(question: string): string | null {
  * MAIN FUNCTION: Get relevant knowledge for a question
  *
  * @param intent - The detected intent of the question (e.g., 'ask_law', 'checklist', 'deadline')
- * @param question - The user's question in Greek
+ * @param question - The user's question
  * @param tenderType - Optional tender type for targeted answers
+ * @param country - Country code ('GR' or 'NL'), defaults to 'GR'
  * @returns Formatted knowledge string (max ~2000 chars)
  */
 export function getRelevantKnowledge(
   intent: string,
   question: string,
-  tenderType?: string
+  tenderType?: string,
+  country: string = 'GR'
 ): string {
-  const topics = detectTopics(question);
+  // Select country-specific data sets
+  const articlesData = country === 'NL' ? AANBESTEDINGSWET_ARTICLES : LAW_4412_ARTICLES;
+  const leadTimesData = country === 'NL' ? NL_LEAD_TIMES : LEAD_TIMES;
+  const mistakesData = country === 'NL' ? NL_COMMON_MISTAKES : COMMON_MISTAKES;
+  const checklistsData = country === 'NL' ? NL_TENDER_CHECKLISTS : TENDER_CHECKLISTS;
+  const keywordMap = country === 'NL' ? NL_KEYWORD_MAP : KEYWORD_MAP;
+
+  // Country-specific labels
+  const labels = country === 'NL'
+    ? {
+        law: 'Wetgeving (Aanbestedingswet 2012)',
+        leadTimes: 'Doorlooptijden',
+        mistakes: 'Veelgemaakte Fouten',
+        platform: 'TenderNed',
+        generalInfo: 'Algemene Informatie (Aanbestedingswet 2012)',
+        criticalPoints: 'Kritieke Punten',
+      }
+    : {
+        law: 'Νομοθεσία (Ν.4412/2016)',
+        leadTimes: 'Χρόνοι Προετοιμασίας',
+        mistakes: 'Συνήθη Λάθη',
+        platform: 'ΕΣΗΔΗΣ',
+        generalInfo: 'Γενική Πληροφόρηση (Ν.4412/2016)',
+        criticalPoints: 'Κρίσιμα Σημεία',
+      };
+
+  const topics = detectTopics(question, keywordMap);
   const sections: string[] = [];
   let totalLength = 0;
   const MAX_LENGTH = 2000;
@@ -453,9 +603,9 @@ export function getRelevantKnowledge(
   };
 
   // 1. Law articles (always try)
-  const articles = getRelevantArticles(topics, question);
+  const articles = getRelevantArticles(topics, question, articlesData);
   if (articles.length > 0) {
-    addSection('Νομοθεσία (Ν.4412/2016)', formatArticles(articles, 2));
+    addSection(labels.law, formatArticles(articles, 2));
   }
 
   // 2. Checklist (if tender type available or asked)
@@ -464,7 +614,11 @@ export function getRelevantKnowledge(
     topics.has('checklist') ||
     intent === 'checklist'
   ) {
-    const checklistInfo = getChecklistInfo(tenderType || guessTypeFromQuestion(question));
+    const checklistInfo = getChecklistInfo(
+      tenderType || guessTypeFromQuestion(question, country),
+      checklistsData,
+      country
+    );
     if (checklistInfo) {
       addSection('Checklist', checklistInfo);
     }
@@ -472,37 +626,37 @@ export function getRelevantKnowledge(
 
   // 3. Lead times (if relevant)
   if (topics.has('lead_times') || topics.has('deadlines') || intent === 'deadline') {
-    const leadTimes = getRelevantLeadTimes(question);
+    const leadTimes = getRelevantLeadTimes(question, leadTimesData);
     if (leadTimes.length > 0) {
-      addSection('Χρόνοι Προετοιμασίας', formatLeadTimes(leadTimes, 3));
+      addSection(labels.leadTimes, formatLeadTimes(leadTimes, 3, country));
     }
   }
 
   // 4. Common mistakes (if relevant)
   if (topics.has('mistakes') || topics.has('guarantees') || topics.has('documents')) {
-    const mistakes = getRelevantMistakes(topics, question);
+    const mistakes = getRelevantMistakes(topics, question, mistakesData);
     if (mistakes.length > 0) {
-      addSection('Συνήθη Λάθη', formatMistakes(mistakes, 3));
+      addSection(labels.mistakes, formatMistakes(mistakes, 3, country));
     }
   }
 
-  // 5. ESIDIS info (if relevant)
+  // 5. Platform guide info (ESIDIS for GR, TenderNed for NL)
   if (topics.has('esidis')) {
-    const esidisInfo = getEsidisInfo(question);
-    if (esidisInfo) {
-      addSection('ΕΣΗΔΗΣ', esidisInfo);
+    const platformInfo = getPlatformGuideInfo(question, country);
+    if (platformInfo) {
+      addSection(labels.platform, platformInfo);
     }
   }
 
   // If nothing matched, provide general guidance
   if (sections.length === 0) {
     // Try broader matching - return top articles by category
-    const generalArticles = LAW_4412_ARTICLES.slice(0, 2);
-    addSection('Γενική Πληροφόρηση (Ν.4412/2016)', formatArticles(generalArticles, 2));
+    const generalArticles = articlesData.slice(0, 2);
+    addSection(labels.generalInfo, formatArticles(generalArticles, 2));
 
-    const topMistakes = COMMON_MISTAKES.filter((m) => m.severity === 'critical').slice(0, 2);
+    const topMistakes = mistakesData.filter((m) => m.severity === 'critical').slice(0, 2);
     if (topMistakes.length > 0) {
-      addSection('Κρίσιμα Σημεία', formatMistakes(topMistakes, 2));
+      addSection(labels.criticalPoints, formatMistakes(topMistakes, 2, country));
     }
   }
 
@@ -512,9 +666,24 @@ export function getRelevantKnowledge(
 /**
  * Guess tender type from question keywords
  */
-function guessTypeFromQuestion(question: string): string | undefined {
+function guessTypeFromQuestion(question: string, country: string = 'GR'): string | undefined {
   const lower = question.toLowerCase();
 
+  if (country === 'NL') {
+    if (lower.includes('enkelvoudig') || lower.includes('onderhandse'))
+      return 'direct';
+    if (lower.includes('meervoudig'))
+      return 'open_below';
+    if (lower.includes('niet-openba') || lower.includes('preselectie'))
+      return 'restricted';
+    if (lower.includes('raamovereenkomst') || lower.includes('framework'))
+      return 'framework';
+    if (lower.includes('openba') || lower.includes('europese'))
+      return 'open_above';
+    return undefined;
+  }
+
+  // GR (default)
   if (lower.includes('απευθείας') || lower.includes('30.000') || lower.includes('30000'))
     return 'direct';
   if (lower.includes('συνοπτικ') || lower.includes('60.000') || lower.includes('60000'))

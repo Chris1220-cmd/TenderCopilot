@@ -83,12 +83,12 @@ export async function fetchDocumentsForTender(params: {
   // ── Diavgeia: direct PDF download via API ────────────────────
   if (platform === 'DIAVGEIA' || sourceUrl.includes('diavgeia.gov.gr')) {
     // Extract ADA from URL: https://diavgeia.gov.gr/decision/view/{ADA}
-    const adaMatch = sourceUrl.match(/\/decision\/view\/([A-Za-z0-9\u0391-\u03A9\u03B1-\u03C9-]+)/);
+    const adaMatch = sourceUrl.match(/\/decision\/view\/([A-Za-z0-9\u0391-\u03A9\u03B1-\u03C9\u0386-\u03CE-]+)/);
     const ada = adaMatch?.[1] || tender.referenceNumber;
 
     if (ada) {
       try {
-        const docUrl = `https://diavgeia.gov.gr/luminapi/api/decisions/${ada}/document`;
+        const docUrl = `https://diavgeia.gov.gr/luminapi/api/decisions/${encodeURIComponent(ada)}/document`;
 
         const docResponse = await fetchWithRetry(docUrl, {
           headers: { Accept: 'application/pdf' },
@@ -123,7 +123,7 @@ export async function fetchDocumentsForTender(params: {
       // Also try to get the decision metadata for extra info
       try {
         const metaRes = await fetch(
-          `https://diavgeia.gov.gr/luminapi/api/decisions/${ada}`,
+          `https://diavgeia.gov.gr/luminapi/api/decisions/${encodeURIComponent(ada)}`,
           { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(10000) }
         );
         if (metaRes.ok) {
@@ -411,7 +411,7 @@ export async function fetchDocumentsForTender(params: {
               const ada = adaMatch?.[1];
               if (ada) {
                 try {
-                  const docUrl = `https://diavgeia.gov.gr/luminapi/api/decisions/${ada}/document`;
+                  const docUrl = `https://diavgeia.gov.gr/luminapi/api/decisions/${encodeURIComponent(ada)}/document`;
                   const docRes = await fetch(docUrl, {
                     headers: { Accept: 'application/pdf' },
                     signal: AbortSignal.timeout(20000),
