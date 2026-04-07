@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { ai } from '@/server/ai';
 import { requireDocuments } from '@/server/services/document-reader';
 import { parseAIResponse } from './ai-prompts';
+import { getPromptContext } from '@/lib/prompts';
 import type { RequirementCategory, RequirementType, CoverageStatus } from '@prisma/client';
 
 /**
@@ -77,73 +78,7 @@ interface ProposalStrengthResult {
   breakdown: ProposalStrengthBreakdown[];
 }
 
-// ─── Greek Proposal Section Config ──────────────────────────
-
-const PROPOSAL_SECTIONS: Array<{ title: string; ordering: number; promptContext: string }> = [
-  {
-    title: 'Κατανόηση Αντικειμένου',
-    ordering: 1,
-    promptContext: `Understanding of Requirements (Κατανόηση Αντικειμένου):
-Αναλυτική περιγραφή κατανόησης του αντικειμένου του διαγωνισμού.
-Περιλαμβάνει: αναγνώριση βασικών στόχων, πεδίο εφαρμογής, ωφελούμενοι,
-κρίσιμα σημεία, σύνδεση με ευρύτερο πλαίσιο (θεσμικό, τεχνολογικό).
-Δείξε ότι η εταιρεία κατανοεί βαθιά τις ανάγκες του φορέα.`,
-  },
-  {
-    title: 'Μεθοδολογία Υλοποίησης',
-    ordering: 2,
-    promptContext: `Implementation Methodology (Μεθοδολογία Υλοποίησης):
-Αναλυτική μεθοδολογία υλοποίησης βήμα-βήμα. Περιλαμβάνει:
-φάσεις έργου, πακέτα εργασίας, παραδοτέα ανά φάση, milestones,
-εργαλεία και τεχνικές, πρότυπα που ακολουθούνται (ISO, PRINCE2, Agile).
-Σύνδεσε κάθε φάση με τις απαιτήσεις του διαγωνισμού.`,
-  },
-  {
-    title: 'Ομάδα Έργου',
-    ordering: 3,
-    promptContext: `Project Team (Ομάδα Έργου):
-Παρουσίαση ομάδας έργου: ρόλοι, αρμοδιότητες, προσόντα,
-εμπειρία σε σχετικά έργα. Οργανόγραμμα, αναφορές,
-μηχανισμός αντικατάστασης, εκπαίδευση ομάδας.
-Σύνδεσε τα προσόντα της ομάδας με τις απαιτήσεις στελέχωσης.`,
-  },
-  {
-    title: 'Χρονοδιάγραμμα',
-    ordering: 4,
-    promptContext: `Timeline / Gantt (Χρονοδιάγραμμα):
-Αναλυτικό χρονοδιάγραμμα υλοποίησης σε μορφή Gantt (text-based).
-Φάσεις, πακέτα εργασίας, διάρκεια, εξαρτήσεις, milestones,
-κρίσιμη διαδρομή (critical path). Αντιστοίχιση με τα παραδοτέα.
-Περίοδοι overlap, buffer χρόνοι, σημεία ελέγχου.`,
-  },
-  {
-    title: 'Διαχείριση Κινδύνων',
-    ordering: 5,
-    promptContext: `Risk Management (Διαχείριση Κινδύνων):
-Πλαίσιο διαχείρισης κινδύνων: μεθοδολογία αναγνώρισης,
-μητρώο κινδύνων (risk register), πιθανότητα x επίπτωση,
-μέτρα αντιμετώπισης, contingency plans, escalation matrix.
-Συγκεκριμένοι κίνδυνοι σχετικοί με το αντικείμενο.`,
-  },
-  {
-    title: 'Διασφάλιση Ποιότητας',
-    ordering: 6,
-    promptContext: `Quality Assurance (Διασφάλιση Ποιότητας):
-Σχέδιο Διασφάλισης Ποιότητας: πρότυπα ISO, μετρήσιμοι δείκτες (KPIs),
-διαδικασίες ελέγχου, εσωτερικές επιθεωρήσεις, ανασκοπήσεις,
-testing methodology, acceptance criteria, corrective actions,
-continuous improvement. Σύνδεση με πιστοποιήσεις εταιρείας.`,
-  },
-  {
-    title: 'Υποστήριξη & Εγγύηση',
-    ordering: 7,
-    promptContext: `Support & Warranty (Υποστήριξη & Εγγύηση):
-Πλαίσιο υποστήριξης: SLA, χρόνοι απόκρισης, help desk,
-εγγύηση καλής λειτουργίας, συντήρηση, εκπαίδευση χρηστών,
-τεκμηρίωση, knowledge transfer, μεταφορά τεχνογνωσίας.
-Υπηρεσίες μετά τη λήξη σύμβασης.`,
-  },
-];
+// ─── Proposal Section Config (loaded from country prompt context) ──────
 
 // ─── Service ────────────────────────────────────────────────
 
@@ -155,7 +90,7 @@ class AITechnicalService {
    * Functional, Performance, Interface, Standard/Certification, Safety,
    * Staffing, Timeline, Deliverable. Sets criticality 1-5.
    */
-  async analyzeTechnicalRequirements(tenderId: string, language: 'el' | 'en' | 'nl' = 'el'): Promise<ClassifiedRequirement[]> {
+  async analyzeTechnicalRequirements(tenderId: string, language: 'el' | 'en' | 'nl' = 'el', country: string = 'GR'): Promise<ClassifiedRequirement[]> {
     await requireDocuments(tenderId);
     const requirements = await db.tenderRequirement.findMany({
       where: {
@@ -188,11 +123,13 @@ class AITechnicalService {
       ? 'Respond entirely in English.'
       : 'Απάντησε εξ ολοκλήρου στα ελληνικά.';
 
+    const ctx = getPromptContext(country);
+
     const result = await ai().complete({
       messages: [
         {
           role: 'system',
-          content: `Είσαι Τεχνικός Διευθυντής (CTO) με ειδίκευση σε ελληνικούς δημόσιους διαγωνισμούς.
+          content: `Είσαι Τεχνικός Διευθυντής (CTO) με ειδίκευση σε ${ctx.expertiseDescription}.
 
 ΡΟΛΟΣ: Ταξινόμηση τεχνικών απαιτήσεων σε υποκατηγορίες και αξιολόγηση κρισιμότητας.
 
@@ -474,7 +411,8 @@ ${langInstruction}`,
    */
   async generateTechnicalProposal(
     tenderId: string,
-    tenantId: string
+    tenantId: string,
+    country: string = 'GR'
   ): Promise<{ sections: ProposalSectionData[] }> {
     await requireDocuments(tenderId);
     const [tender, requirements, contentItems, projects, certificates, company, teamReqs] =
@@ -563,14 +501,17 @@ ${langInstruction}`,
       company: companyContext,
     });
 
+    const proposalCtx = getPromptContext(country);
+    const proposalSections = proposalCtx.proposalSections;
+
     const sectionResults = await Promise.all(
-      PROPOSAL_SECTIONS.map(async (sectionConfig) => {
+      proposalSections.map(async (sectionConfig) => {
         try {
           const result = await ai().complete({
             messages: [
               {
                 role: 'system',
-                content: `Είσαι Τεχνικός Σύμβουλος (CTO) που γράφει τεχνικές προσφορές για ελληνικούς δημόσιους διαγωνισμούς.
+                content: `Είσαι Τεχνικός Σύμβουλος (CTO) που γράφει τεχνικές προσφορές για ${proposalCtx.expertiseDescription}.
 
 ΡΟΛΟΣ: Συγγραφή ενότητας τεχνικής πρότασης.
 

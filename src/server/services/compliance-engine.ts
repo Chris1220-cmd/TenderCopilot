@@ -31,6 +31,8 @@ interface MatchResult {
  * Uses rule-based matching with keyword and type analysis.
  */
 export class ComplianceEngine {
+  private _docTypeKeywords: Record<string, string[]> = {};
+
   /**
    * Run compliance check for all requirements of a tender.
    */
@@ -38,6 +40,12 @@ export class ComplianceEngine {
     score: number;
     results: MatchResult[];
   }> {
+    // Load country-specific compliance keywords
+    const { getPromptContext } = await import('@/lib/prompts');
+    const tenant = await db.tenant.findUnique({ where: { id: tenantId }, select: { countries: true } });
+    const country = tenant?.countries?.[0] ?? 'GR';
+    this._docTypeKeywords = getPromptContext(country).docTypeKeywords;
+
     // Load requirements
     const requirements = await db.tenderRequirement.findMany({
       where: { tenderId },
@@ -207,13 +215,7 @@ export class ComplianceEngine {
     legalDocs: LegalDocument[],
     mappings: MatchResult['mappings']
   ): void {
-    const docTypeKeywords: Record<string, string[]> = {
-      TAX_CLEARANCE: ['φορολογικ', 'ενημερότητα φορολογικ', 'tax clearance'],
-      SOCIAL_SECURITY_CLEARANCE: ['ασφαλιστικ', 'ενημερότητα ασφαλιστικ', 'social security'],
-      GEMI_CERTIFICATE: ['γεμη', 'γ.ε.μη', 'εμπορικό μητρώο', 'gemi'],
-      CRIMINAL_RECORD: ['ποινικ', 'μητρώο ποινικ', 'criminal record'],
-      JUDICIAL_CERTIFICATE: ['δικαστικ', 'πτώχευ', 'εκκαθάρισ'],
-    };
+    const docTypeKeywords = this._docTypeKeywords;
 
     for (const doc of legalDocs) {
       const keywords = docTypeKeywords[doc.type] || [];

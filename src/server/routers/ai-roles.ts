@@ -175,16 +175,17 @@ export const aiRolesRouter = router({
       z.object({
         tenderId: z.string(),
         question: z.string().min(1).max(2000),
+        country: z.string().length(2).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { tenderId, question } = input;
+      const { tenderId, question, country = 'GR' } = input;
       // ctx.tenantId null guard (match existing pattern in this file)
       const tenantId = ctx.tenantId;
       if (!tenantId) throw new Error('No tenant');
 
       // Use new smart context builder
-      const context = await buildContext(tenderId, tenantId, question);
+      const context = await buildContext(tenderId, tenantId, question, 'el', country);
 
       const result = await ai().complete({
         messages: [

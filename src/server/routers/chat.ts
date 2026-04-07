@@ -41,10 +41,11 @@ export const chatRouter = router({
     .input(z.object({
       tenderId: z.string(),
       question: z.string().min(1).max(2000),
+      country: z.string().length(2).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant' });
-      const { tenderId, question } = input;
+      const { tenderId, question, country = 'GR' } = input;
       const tenantId = ctx.tenantId;
 
       const tender = await db.tender.findFirst({
@@ -74,7 +75,7 @@ export const chatRouter = router({
       // Build smart context + history in parallel (default locale 'el' for tRPC)
       const locale: 'el' | 'en' | 'nl' = 'el';
       const [context, { summary, recentMessages }] = await Promise.all([
-        buildContext(tenderId, tenantId, question, locale),
+        buildContext(tenderId, tenantId, question, locale, country),
         getSmartHistory(tenderId, tenantId),
       ]);
 

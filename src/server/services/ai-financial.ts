@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { ai, checkTokenBudget, logTokenUsage } from '@/server/ai';
 import { requireDocuments } from '@/server/services/document-reader';
 import { ANALYSIS_RULES, parseAIResponse, FINANCIAL_CRITICAL_FIELDS, NOT_FOUND, shouldChunk, chunkText } from './ai-prompts';
+import { getPromptContext } from '@/lib/prompts';
 import type { RequirementCategory, RequirementType } from '@prisma/client';
 
 /**
@@ -89,7 +90,7 @@ class AIFinancialService {
    * Updates TenderRequirement records with category=FINANCIAL_REQUIREMENTS
    * and stores structured data in evidenceRefs JSON.
    */
-  async extractFinancialRequirements(tenderId: string, language: 'el' | 'en' | 'nl' = 'el'): Promise<ExtractedFinancialRequirement[]> {
+  async extractFinancialRequirements(tenderId: string, language: 'el' | 'en' | 'nl' = 'el', country: string = 'GR'): Promise<ExtractedFinancialRequirement[]> {
     await requireDocuments(tenderId);
     const tender = await db.tender.findUniqueOrThrow({
       where: { id: tenderId },
@@ -130,6 +131,8 @@ class AIFinancialService {
       ? 'Respond entirely in English.'
       : 'Απάντησε εξ ολοκλήρου στα ελληνικά.';
 
+    const ctx = getPromptContext(country);
+
     // If document text is very large, chunk it and merge results
     const fullUserContent = JSON.stringify({
       tenderTitle: tender.title,
@@ -159,7 +162,7 @@ class AIFinancialService {
 
         const chunkResult = await ai().complete({
           messages: [
-            { role: 'system', content: this.getFinancialExtractionPrompt() + `\n\n${langInstruction}` },
+            { role: 'system', content: this.getFinancialExtractionPrompt(country) + `\n\n${langInstruction}` },
             { role: 'user', content: chunkContent },
           ],
           maxTokens: 8000,
@@ -194,14 +197,14 @@ class AIFinancialService {
       messages: [
         {
           role: 'system',
-          content: `Είσαι οικονομικός σύμβουλος δημοσίων συμβάσεων εξειδικευμένος στον Ν.4412/2016.
+          content: `Είσαι οικονομικός σύμβουλος δημοσίων συμβάσεων εξειδικευμένος στον ${ctx.lawReference}.
 
 ${ANALYSIS_RULES}
 
 Εξάγαγε τις οικονομικές απαιτήσεις αποκλειστικά από το παρεχόμενο κείμενο. ΜΗΝ εφαρμόζεις default τιμές — αν μια απαίτηση δεν αναφέρεται ρητά, μην την συμπεριλάβεις.
 
 Για κάθε οικονομική απαίτηση που ΒΡΙΣΚΕΤΑΙ στο κείμενο, εντόπισε:
-1. **Ελάχιστος κύκλος εργασιών** (τελευταία 3 έτη) — Άρθρο 75 παρ. 3 Ν.4412/2016
+1. **Ελάχιστος κύκλος εργασιών** (τελευταία 3 έτη) — Άρθρο 75 παρ. 3 ${ctx.lawReference}
 2. **Ελάχιστα ίδια κεφάλαια** — κριτήριο φερεγγυότητας
 3. **Εγγυητική συμμετοχής** — % του προϋπολογισμού — Άρθρο 72
 4. **Εγγυητική καλής εκτέλεσης** — % της σύμβασης — Άρθρο 72 παρ. 1β
@@ -862,15 +865,16 @@ ${langInstruction}`,
   }
 
   /** Shared system prompt for financial extraction */
-  private getFinancialExtractionPrompt(): string {
-    return `Είσαι οικονομικός σύμβουλος δημοσίων συμβάσεων εξειδικευμένος στον Ν.4412/2016.
+  private getFinancialExtractionPrompt(country: string = 'GR'): string {
+    const ctx = getPromptContext(country);
+    return `Είσαι οικονομικός σύμβουλος δημοσίων συμβάσεων εξειδικευμένος στον ${ctx.lawReference}.
 
 ${ANALYSIS_RULES}
 
 Εξάγαγε τις οικονομικές απαιτήσεις αποκλειστικά από το παρεχόμενο κείμενο. ΜΗΝ εφαρμόζεις default τιμές — αν μια απαίτηση δεν αναφέρεται ρητά, μην την συμπεριλάβεις.
 
 Για κάθε οικονομική απαίτηση που ΒΡΙΣΚΕΤΑΙ στο κείμενο, εντόπισε:
-1. **Ελάχιστος κύκλος εργασιών** (τελευταία 3 έτη) — Άρθρο 75 παρ. 3 Ν.4412/2016
+1. **Ελάχιστος κύκλος εργασιών** (τελευταία 3 έτη) — Άρθρο 75 παρ. 3 ${ctx.lawReference}
 2. **Ελάχιστα ίδια κεφάλαια** — κριτήριο φερεγγυότητας
 3. **Εγγυητική συμμετοχής** — % του προϋπολογισμού — Άρθρο 72
 4. **Εγγυητική καλής εκτέλεσης** — % της σύμβασης — Άρθρο 72 παρ. 1β

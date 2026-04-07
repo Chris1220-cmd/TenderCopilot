@@ -21,6 +21,7 @@ const inputSchema = z.object({
   tenderId: z.string(),
   question: z.string().min(1).max(2000),
   locale: z.enum(['el', 'en', 'nl']).optional(),
+  country: z.string().length(2).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    const { tenderId, question, locale: bodyLocale } = parsed.data;
+    const { tenderId, question, locale: bodyLocale, country: bodyCountry } = parsed.data;
 
     // 3. Verify tender belongs to tenant
     const tender = await db.tender.findFirst({
@@ -86,8 +87,9 @@ export async function POST(req: NextRequest) {
       ?? ((req.headers.get('accept-language') || '').startsWith('en') ? 'en' : 'el');
 
     // 7. Build context + smart history in parallel
+    const country = bodyCountry ?? 'GR';
     const [context, { summary, recentMessages }] = await Promise.all([
-      buildContext(tenderId, tenantId, question, locale),
+      buildContext(tenderId, tenantId, question, locale, country),
       getSmartHistory(tenderId, tenantId),
     ]);
 

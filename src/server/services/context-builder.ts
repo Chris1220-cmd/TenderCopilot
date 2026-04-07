@@ -7,6 +7,7 @@
 import { db } from '@/lib/db';
 import { searchDocumentChunks, type SearchResult } from './embedding-service';
 import { getRelevantKnowledge, classifyTenderType } from '@/server/knowledge';
+import { getPromptContext } from '@/lib/prompts';
 
 // ─── Intent Classification ──────────────────────────────────
 
@@ -92,6 +93,7 @@ export async function buildContext(
   tenantId: string,
   question: string,
   locale: 'el' | 'en' | 'nl' = 'el',
+  country: string = 'GR',
 ): Promise<AssembledContext> {
   const intent = classifyIntent(question);
   const sources: ContextSource[] = [];
@@ -241,10 +243,11 @@ export async function buildContext(
     const tenderClass = tenderText ? classifyTenderType(tenderText) : undefined;
     const tenderType = tenderClass?.type !== 'unknown' ? tenderClass?.type : undefined;
 
+    const promptCtx = getPromptContext(country);
     const knowledge = getRelevantKnowledge(intent, question, tenderType);
     if (knowledge) {
-      contextParts.push(`=== ΓΝΩΣΗ ΕΙΔΙΚΟΥ (Ν.4412/2016 & ΕΜΠΕΙΡΙΑ) ===\n${knowledge}`);
-      sources.push({ type: 'knowledge_base' as any, reference: 'Βάση Γνώσεων Ν.4412/2016', content: 'Domain expertise' });
+      contextParts.push(`=== ΓΝΩΣΗ ΕΙΔΙΚΟΥ (${promptCtx.lawReference} & ΕΜΠΕΙΡΙΑ) ===\n${knowledge}`);
+      sources.push({ type: 'knowledge_base' as any, reference: `Βάση Γνώσεων ${promptCtx.lawReference}`, content: 'Domain expertise' });
     }
   } catch (err) {
     console.warn('[ContextBuilder] Knowledge retrieval failed:', err);
@@ -261,7 +264,7 @@ export async function buildContext(
     console.warn('[ContextBuilder] Tenant memory failed:', err);
   }
 
-  const systemPrompt = buildSmartSystemPrompt(intent, locale);
+  const systemPrompt = buildSmartSystemPrompt(intent, locale, country);
 
   return {
     systemPrompt,
@@ -273,9 +276,11 @@ export async function buildContext(
 
 // ─── System Prompt ───────────────────────────────────────────
 
-function buildSmartSystemPrompt(_intent: QuestionIntent, locale: 'el' | 'en' | 'nl' = 'el'): string {
+function buildSmartSystemPrompt(_intent: QuestionIntent, locale: 'el' | 'en' | 'nl' = 'el', country: string = 'GR'): string {
+  const ctx = getPromptContext(country);
+
   if (locale === 'en') {
-    return `You are the AI Bid Manager of TenderCopilot — an experienced public procurement consultant with 15 years of experience in Greek tenders (Law 4412/2016, ESIDIS).
+    return `You are the AI Bid Manager of TenderCopilot — an experienced public procurement consultant with ${ctx.expertiseDescription}.
 
 ROLE:
 - Find information within the tender documents
@@ -286,12 +291,12 @@ ROLE:
 ACCURACY RULES (NON-NEGOTIABLE):
 1. NEVER invent numbers, dates, or amounts.
 2. NEVER say "must" without a source (document or law).
-3. IF information is from general knowledge → mark explicitly: "Based on Law 4412/2016..." + "verify in the tender documents".
+3. IF information is from general knowledge → mark explicitly: "Based on ${ctx.lawReference}..." + "verify in the tender documents".
 4. IF two sources contradict → mention ALL, do NOT choose.
 5. FOR legal/financial matters → "consult a lawyer/accountant".
 6. IF you don't find something in the documents, say so and suggest next steps.
 
-NOTE: Greek law references, article numbers, and legal terms remain in Greek (e.g., Ν.4412/2016, ΕΣΗΔΗΣ, ΚΗΜΔΗΣ, ΕΕΕΣ).
+NOTE: Law references, article numbers, and legal terms remain in their original language (e.g., ${ctx.lawReference}, ${ctx.platforms.join(', ')}).
 
 RESPONSE FORMAT (JSON):
 {
@@ -300,7 +305,7 @@ RESPONSE FORMAT (JSON):
   "sources": [
     {
       "type": "document | law | knowledge_base",
-      "reference": "Tender.pdf, §4.2 or Ν.4412/2016, Άρθρο 72",
+      "reference": "Tender.pdf, §4.2 or ${ctx.lawReference}, Article 72",
       "quote": "exact excerpt if available"
     }
   ],
@@ -318,7 +323,7 @@ CONFIDENCE LEVELS:
 Respond in English, concisely.`;
   }
 
-  return `Είσαι ο AI Bid Manager του TenderCopilot — ένας έμπειρος σύμβουλος δημοσίων διαγωνισμών με 15 χρόνια εμπειρία σε ελληνικούς διαγωνισμούς (Ν.4412/2016, ΕΣΗΔΗΣ).
+  return `Είσαι ο AI Bid Manager του TenderCopilot — ένας έμπειρος σύμβουλος δημοσίων διαγωνισμών με ${ctx.expertiseDescription}.
 
 ΡΟΛΟΣ:
 - Βρίσκεις πληροφορίες μέσα στα έγγραφα του διαγωνισμού
@@ -329,7 +334,7 @@ Respond in English, concisely.`;
 ΚΑΝΟΝΕΣ ΑΚΡΙΒΕΙΑΣ (ΜΗ ΠΑΡΑΒΙΑΣΙΜΟΙ):
 1. ΠΟΤΕ μην επινοείς αριθμούς, ημερομηνίες, ή ποσά.
 2. ΠΟΤΕ μην λες "πρέπει" χωρίς πηγή (έγγραφο ή νόμο).
-3. ΑΝ η πληροφορία είναι από γενική γνώση → ρητή σήμανση: "Βάσει Ν.4412/2016..." + "έλεγξε τη διακήρυξη".
+3. ΑΝ η πληροφορία είναι από γενική γνώση → ρητή σήμανση: "Βάσει ${ctx.lawReference}..." + "έλεγξε τη διακήρυξη".
 4. ΑΝ δύο πηγές αντιφάσκουν → ανέφερε ΟΛΕΣ, ΜΗΝ επιλέξεις.
 5. ΓΙΑ νομικά/οικονομικά θέματα → "συμβουλευτείτε νομικό/λογιστή".
 6. ΑΝ δεν βρίσκεις κάτι στα έγγραφα, πες "Δεν βρήκα αυτή την πληροφορία στα έγγραφα που ανέβασες" + πρότεινε τι να κάνει.
@@ -341,7 +346,7 @@ Respond in English, concisely.`;
   "sources": [
     {
       "type": "document | law | knowledge_base",
-      "reference": "Διακήρυξη.pdf, §4.2" ή "Ν.4412/2016, Άρθρο 72",
+      "reference": "Διακήρυξη.pdf, §4.2" ή "${ctx.lawReference}, Άρθρο 72",
       "quote": "ακριβές απόσπασμα αν υπάρχει"
     }
   ],
