@@ -244,7 +244,7 @@ export async function buildContext(
     const tenderType = tenderClass?.type !== 'unknown' ? tenderClass?.type : undefined;
 
     const promptCtx = getPromptContext(country);
-    const knowledge = getRelevantKnowledge(intent, question, tenderType);
+    const knowledge = getRelevantKnowledge(intent, question, tenderType, country);
     if (knowledge) {
       contextParts.push(`=== ΓΝΩΣΗ ΕΙΔΙΚΟΥ (${promptCtx.lawReference} & ΕΜΠΕΙΡΙΑ) ===\n${knowledge}`);
       sources.push({ type: 'knowledge_base' as any, reference: `Βάση Γνώσεων ${promptCtx.lawReference}`, content: 'Domain expertise' });
