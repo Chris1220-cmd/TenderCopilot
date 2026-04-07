@@ -31,6 +31,8 @@ async function main() {
     create: {
       name: 'Demo Εταιρεία ΑΕ',
       slug: 'demo-company',
+      countries: ['GR'],
+      language: 'el',
     },
   });
 
@@ -47,10 +49,11 @@ async function main() {
 
   // Create company profile
   await prisma.companyProfile.upsert({
-    where: { tenantId: tenant.id },
+    where: { tenantId_country: { tenantId: tenant.id, country: 'GR' } },
     update: {},
     create: {
       tenantId: tenant.id,
+      country: 'GR',
       legalName: 'Demo Εταιρεία Πληροφορικής ΑΕ',
       tradeName: 'DemoTech',
       taxId: '123456789',
@@ -90,10 +93,10 @@ async function main() {
 
   // Create legal docs
   const legalDocs = [
-    { type: 'TAX_CLEARANCE' as const, title: 'Φορολογική Ενημερότητα' },
-    { type: 'SOCIAL_SECURITY_CLEARANCE' as const, title: 'Ασφαλιστική Ενημερότητα (ΕΦΚΑ)' },
-    { type: 'GEMI_CERTIFICATE' as const, title: 'Πιστοποιητικό ΓΕΜΗ' },
-    { type: 'CRIMINAL_RECORD' as const, title: 'Ποινικό Μητρώο Εκπροσώπου' },
+    { type: 'TAX_CLEARANCE', title: 'Φορολογική Ενημερότητα' },
+    { type: 'SOCIAL_SECURITY_CLEARANCE', title: 'Ασφαλιστική Ενημερότητα (ΕΦΚΑ)' },
+    { type: 'GEMI_CERTIFICATE', title: 'Πιστοποιητικό ΓΕΜΗ' },
+    { type: 'CRIMINAL_RECORD', title: 'Ποινικό Μητρώο Εκπροσώπου' },
   ];
 
   for (const doc of legalDocs) {
