@@ -336,7 +336,7 @@ ${enclosedList}
 
   private async loadContext(tenderId: string, tenantId: string) {
     const [company, tender] = await Promise.all([
-      db.companyProfile.findUnique({ where: { tenantId } }),
+      db.companyProfile.findFirst({ where: { tenantId } }),
       db.tender.findUniqueOrThrow({ where: { id: tenderId } }),
     ]);
     return { company, tender };

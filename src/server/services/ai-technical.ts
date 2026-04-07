@@ -495,7 +495,7 @@ ${langInstruction}`,
         db.contentLibraryItem.findMany({ where: { tenantId } }),
         db.project.findMany({ where: { tenantId }, orderBy: { endDate: 'desc' }, take: 10 }),
         db.certificate.findMany({ where: { tenantId } }),
-        db.companyProfile.findUnique({ where: { tenantId } }),
+        db.companyProfile.findFirst({ where: { tenantId } }),
         db.teamRequirement.findMany({ where: { tenderId } }),
       ]);
 

@@ -1763,7 +1763,7 @@ class TenderDiscoveryService {
   async matchTendersForTenant(
     tenantId: string
   ): Promise<Array<DiscoveredTender & { relevanceScore: number }>> {
-    const companyProfile = await db.companyProfile.findUnique({
+    const companyProfile = await db.companyProfile.findFirst({
       where: { tenantId },
     });
 

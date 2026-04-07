@@ -993,7 +993,7 @@ class AIBidOrchestrator {
           legalClauses: true,
         },
       }),
-      db.companyProfile.findUnique({ where: { tenantId } }),
+      db.companyProfile.findFirst({ where: { tenantId } }),
       db.certificate.findMany({ where: { tenantId } }),
       db.project.findMany({ where: { tenantId }, orderBy: { endDate: 'desc' } }),
       db.financialProfile.findMany({ where: { tenantId }, orderBy: { year: 'desc' }, take: 3 }),

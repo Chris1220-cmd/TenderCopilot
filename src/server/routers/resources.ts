@@ -21,7 +21,7 @@ export const resourcesRouter = router({
         },
         select: { amount: true },
       }),
-      ctx.db.companyProfile.findUnique({
+      ctx.db.companyProfile.findFirst({
         where: { tenantId: ctx.tenantId },
         select: { guaranteeCreditLine: true },
       }),
@@ -398,7 +398,7 @@ export const resourcesRouter = router({
         },
         orderBy: { createdAt: 'desc' },
       }),
-      ctx.db.companyProfile.findUnique({
+      ctx.db.companyProfile.findFirst({
         where: { tenantId: ctx.tenantId },
         select: { guaranteeCreditLine: true },
       }),
