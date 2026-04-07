@@ -295,6 +295,7 @@ model Tender {
   complianceScore      Float?        // 0-100
   notes                String?       @db.Text
   analysisInProgress   Boolean       @default(false)
+  country              String        @default("GR")
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)

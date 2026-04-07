@@ -102,6 +102,7 @@ export const tenderRouter = router({
         submissionDeadline: z.coerce.date().nullish(),
         notes: z.string().nullish(),
         sourceUrl: z.string().nullish(),
+        country: z.string().length(2).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -125,13 +126,21 @@ export const tenderRouter = router({
         return { id: existing.id };
       }
 
-      const { sourceUrl, ...tenderData } = input;
+      const { sourceUrl, country: inputCountry, ...tenderData } = input;
+
+      // Default country from tenant's primary country
+      let country = inputCountry;
+      if (!country) {
+        const tenant = await ctx.db.tenant.findUnique({ where: { id: ctx.tenantId }, select: { countries: true } });
+        country = tenant?.countries?.[0] ?? 'GR';
+      }
 
       const tender = await ctx.db.tender.create({
         data: {
           tenantId: ctx.tenantId,
           ...tenderData,
           cpvCodes: tenderData.cpvCodes ?? [],
+          country,
         },
       });
 

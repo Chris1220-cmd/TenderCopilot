@@ -15,6 +15,12 @@ import { buildContext } from '@/server/services/context-builder';
 import { validateResponse } from '@/server/services/trust-shield';
 import { tenderAnalysisService } from '@/server/services/tender-analysis';
 
+/** Get tender's country (for country-aware AI) */
+async function getTenderCountry(tenderId: string): Promise<string> {
+  const tender = await db.tender.findUnique({ where: { id: tenderId }, select: { country: true } });
+  return tender?.country ?? 'GR';
+}
+
 /**
  * Helper to ensure the calling user has a tenant and the tender belongs to that tenant.
  */
@@ -108,14 +114,16 @@ export const aiRolesRouter = router({
         await readTenderDocuments(input.tenderId);
       }
 
-      return aiBidOrchestrator.summarizeTender(input.tenderId, input.language);
+      const country = await getTenderCountry(input.tenderId);
+      return aiBidOrchestrator.summarizeTender(input.tenderId, input.language, country);
     }),
 
   goNoGo: protectedProcedure
     .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en', 'nl']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       const { tenantId } = await ensureTenderAccess(input.tenderId, ctx.tenantId);
-      return aiBidOrchestrator.goNoGoAnalysis(input.tenderId, tenantId, input.language);
+      const country = await getTenderCountry(input.tenderId);
+      return aiBidOrchestrator.goNoGoAnalysis(input.tenderId, tenantId, input.language, country);
     }),
 
   approveGoNoGo: protectedProcedure
@@ -225,21 +233,24 @@ export const aiRolesRouter = router({
     .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en', 'nl']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
-      return aiLegalAnalyzer.extractClauses(input.tenderId, input.language);
+      const country = await getTenderCountry(input.tenderId);
+      return aiLegalAnalyzer.extractClauses(input.tenderId, input.language, country);
     }),
 
   assessLegalRisks: protectedProcedure
     .input(z.object({ tenderId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
-      return aiLegalAnalyzer.assessRisks(input.tenderId);
+      const country = await getTenderCountry(input.tenderId);
+      return aiLegalAnalyzer.assessRisks(input.tenderId, country);
     }),
 
   proposeClarifications: protectedProcedure
     .input(z.object({ tenderId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
-      return aiLegalAnalyzer.proposeClarifications(input.tenderId);
+      const country = await getTenderCountry(input.tenderId);
+      return aiLegalAnalyzer.proposeClarifications(input.tenderId, country);
     }),
 
   updateClarification: protectedProcedure
@@ -448,7 +459,8 @@ export const aiRolesRouter = router({
     .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en', 'nl']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
-      return aiFinancial.extractFinancialRequirements(input.tenderId, input.language);
+      const country = await getTenderCountry(input.tenderId);
+      return aiFinancial.extractFinancialRequirements(input.tenderId, input.language, country);
     }),
 
   checkFinancialEligibility: protectedProcedure
@@ -524,14 +536,16 @@ export const aiRolesRouter = router({
     .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en', 'nl']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
-      return aiTechnical.analyzeTechnicalRequirements(input.tenderId, input.language);
+      const country = await getTenderCountry(input.tenderId);
+      return aiTechnical.analyzeTechnicalRequirements(input.tenderId, input.language, country);
     }),
 
   generateProposal: protectedProcedure
     .input(z.object({ tenderId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const { tenantId } = await ensureTenderAccess(input.tenderId, ctx.tenantId);
-      return aiTechnical.generateTechnicalProposal(input.tenderId, tenantId);
+      const country = await getTenderCountry(input.tenderId);
+      return aiTechnical.generateTechnicalProposal(input.tenderId, tenantId, country);
     }),
 
   flagTechRisks: protectedProcedure
