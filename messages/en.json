@@ -208,7 +208,8 @@
     "resetPasswordSuccess": "Your password has been changed! You can now sign in.",
     "resetPasswordError": "This link is invalid or has expired.",
     "resetPassword": "Change Password",
-    "backToLogin": "Back to sign in"
+    "backToLogin": "Back to sign in",
+    "country": "Country"
   },
   "chat": {
     "title": "TEC",
@@ -365,7 +366,12 @@
     "name": "Name",
     "namePlaceholder": "Your name",
     "email": "Email",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "countriesTab": "Countries",
+    "countriesTitle": "Active Countries",
+    "countriesSub": "Countries where your company operates",
+    "addCountry": "Add Country",
+    "upgradeForCountries": "Upgrade for more countries"
   },
   "company": {
     "title": "Company",

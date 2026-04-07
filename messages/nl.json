@@ -208,7 +208,8 @@
     "resetPasswordSuccess": "Uw wachtwoord is gewijzigd! U kunt nu aanmelden.",
     "resetPasswordError": "Deze link is ongeldig of verlopen.",
     "resetPassword": "Wachtwoord wijzigen",
-    "backToLogin": "Terug naar aanmelden"
+    "backToLogin": "Terug naar aanmelden",
+    "country": "Land"
   },
   "chat": {
     "title": "TEC",
@@ -367,7 +368,12 @@
     "name": "Naam",
     "namePlaceholder": "Uw naam",
     "email": "E-mail",
-    "saveChanges": "Wijzigingen opslaan"
+    "saveChanges": "Wijzigingen opslaan",
+    "countriesTab": "Landen",
+    "countriesTitle": "Actieve Landen",
+    "countriesSub": "Landen waarin uw bedrijf actief is",
+    "addCountry": "Land toevoegen",
+    "upgradeForCountries": "Upgrade voor meer landen"
   },
   "company": {
     "title": "Bedrijf",

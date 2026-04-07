@@ -208,7 +208,8 @@
     "resetPasswordSuccess": "Ο κωδικός σας άλλαξε επιτυχώς! Μπορείτε να συνδεθείτε.",
     "resetPasswordError": "Ο σύνδεσμος είναι άκυρος ή έχει λήξει.",
     "resetPassword": "Αλλαγή Κωδικού",
-    "backToLogin": "Επιστροφή στη σύνδεση"
+    "backToLogin": "Επιστροφή στη σύνδεση",
+    "country": "Χώρα"
   },
   "chat": {
     "title": "TEC",
@@ -365,7 +366,12 @@
     "name": "Όνομα",
     "namePlaceholder": "Το όνομά σας",
     "email": "Email",
-    "saveChanges": "Αποθήκευση Αλλαγών"
+    "saveChanges": "Αποθήκευση Αλλαγών",
+    "countriesTab": "Χώρες",
+    "countriesTitle": "Ενεργές Χώρες",
+    "countriesSub": "Χώρες στις οποίες δραστηριοποιείστε",
+    "addCountry": "Προσθήκη Χώρας",
+    "upgradeForCountries": "Αναβαθμίστε για περισσότερες χώρες"
   },
   "company": {
     "title": "Εταιρεία",
