@@ -14,6 +14,7 @@ import {
   Globe,
   Plus,
   Lock as LockIcon,
+  Loader2,
 } from 'lucide-react';
 import { AnimatedTabsTrigger } from '@/components/ui/animated-tabs';
 import { Button } from '@/components/ui/button';
@@ -80,6 +81,7 @@ export default function SettingsPage() {
   const { data: tenantData, refetch: refetchTenant } = trpc.tenant.get.useQuery();
   const addCountryMutation = trpc.tenant.addCountry.useMutation({
     onSuccess: () => { refetchTenant(); },
+    onError: (err) => { alert(err.message); },
   });
   const { data: members, isLoading, refetch } = trpc.tenant.getMembers.useQuery();
   const inviteMutation = trpc.tenant.invite.useMutation({
@@ -334,19 +336,23 @@ export default function SettingsPage() {
                     return (
                       <Button
                         variant="outline"
-                        disabled={!canAdd}
+                        disabled={!canAdd || addCountryMutation.isPending}
                         className="gap-2 cursor-pointer"
                         onClick={() => {
                           const next = availableCountries[0];
                           if (next) addCountryMutation.mutate({ country: next.code });
                         }}
                       >
-                        {canAdd ? (
+                        {addCountryMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : canAdd ? (
                           <Plus className="h-4 w-4" />
                         ) : (
                           <LockIcon className="h-4 w-4" />
                         )}
-                        {canAdd ? t('settings.addCountry') : t('settings.upgradeForCountries')}
+                        {addCountryMutation.isPending
+                          ? '...'
+                          : canAdd ? t('settings.addCountry') : t('settings.upgradeForCountries')}
                       </Button>
                     );
                   })()}
