@@ -142,16 +142,18 @@ export const tenderRouter = router({
         );
       }
 
-      // Fire-and-forget: fetch documents in background (don't block the response)
+      // Must await — Vercel serverless kills fire-and-forget promises after response
       if (sourceUrl) {
-        fetchDocumentsForTender({
-          tenderId: tender.id,
-          tenantId: ctx.tenantId,
-          sourceUrl,
-          platform: input.platform || 'OTHER',
-        }).catch((err) => {
-          console.error(`[tender.create] Background document fetch failed for ${tender.id}:`, err);
-        });
+        try {
+          await fetchDocumentsForTender({
+            tenderId: tender.id,
+            tenantId: ctx.tenantId,
+            sourceUrl,
+            platform: input.platform || 'OTHER',
+          });
+        } catch (err) {
+          console.error(`[tender.create] Document fetch failed for ${tender.id}:`, err);
+        }
       }
 
       return { id: tender.id };
