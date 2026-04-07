@@ -75,6 +75,12 @@ export function getDefaultEnabledSourceIds(): string[] {
   return TENDER_SOURCES.filter(s => s.defaultEnabled).map(s => s.id);
 }
 
+export function getDefaultSourcesForCountry(countryCode: string): string[] {
+  return TENDER_SOURCES
+    .filter(s => s.country === countryCode && s.defaultEnabled)
+    .map(s => s.id);
+}
+
 export function getSourceById(id: string): TenderSource | undefined {
   return TENDER_SOURCES.find(s => s.id === id);
 }

@@ -89,7 +89,7 @@ class AIFinancialService {
    * Updates TenderRequirement records with category=FINANCIAL_REQUIREMENTS
    * and stores structured data in evidenceRefs JSON.
    */
-  async extractFinancialRequirements(tenderId: string, language: 'el' | 'en' = 'el'): Promise<ExtractedFinancialRequirement[]> {
+  async extractFinancialRequirements(tenderId: string, language: 'el' | 'en' | 'nl' = 'el'): Promise<ExtractedFinancialRequirement[]> {
     await requireDocuments(tenderId);
     const tender = await db.tender.findUniqueOrThrow({
       where: { id: tenderId },

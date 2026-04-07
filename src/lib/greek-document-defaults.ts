@@ -1,4 +1,4 @@
-import { LegalDocType } from '@prisma/client';
+
 
 export interface DocumentDefault {
   type: string;
@@ -137,8 +137,8 @@ export const GREEK_DOCUMENT_DEFAULTS: DocumentDefault[] = [
   },
 ];
 
-// Maps DeadlinePlanItem.documentType → LegalDocType (for matching existing docs)
-export const DOC_TYPE_TO_LEGAL_DOC_TYPE: Record<string, LegalDocType | null> = {
+// Maps DeadlinePlanItem.documentType → LegalDocument.type (for matching existing docs)
+export const DOC_TYPE_TO_LEGAL_DOC_TYPE: Record<string, string | null> = {
   CRIMINAL_RECORD: 'CRIMINAL_RECORD',
   TAX_CLEARANCE: 'TAX_CLEARANCE',
   SOCIAL_SECURITY_CLEARANCE: 'SOCIAL_SECURITY_CLEARANCE',

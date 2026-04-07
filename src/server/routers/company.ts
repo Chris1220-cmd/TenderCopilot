@@ -11,7 +11,7 @@ export const companyRouter = router({
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
     }
 
-    return ctx.db.companyProfile.findUnique({
+    return ctx.db.companyProfile.findFirst({
       where: { tenantId: ctx.tenantId },
     });
   }),
@@ -42,13 +42,19 @@ export const companyRouter = router({
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
       }
 
-      return ctx.db.companyProfile.upsert({
+      const existing = await ctx.db.companyProfile.findFirst({
         where: { tenantId: ctx.tenantId },
-        create: {
-          tenantId: ctx.tenantId,
-          ...input,
-        },
-        update: input,
+      });
+
+      if (existing) {
+        return ctx.db.companyProfile.update({
+          where: { id: existing.id },
+          data: input,
+        });
+      }
+
+      return ctx.db.companyProfile.create({
+        data: { tenantId: ctx.tenantId, ...input },
       });
     }),
 

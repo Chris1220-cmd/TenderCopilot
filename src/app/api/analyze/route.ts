@@ -18,7 +18,7 @@ export const maxDuration = 60;
 
 const inputSchema = z.object({
   tenderId: z.string(),
-  language: z.enum(['el', 'en']).default('el'),
+  language: z.enum(['el', 'en', 'nl']).default('el'),
 });
 
 export async function POST(req: NextRequest) {

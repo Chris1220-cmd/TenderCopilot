@@ -19,11 +19,13 @@ import {
   Lock,
   User,
   Building2,
+  Globe,
   Eye,
   EyeOff,
   ArrowRight,
   Loader2,
 } from 'lucide-react';
+import { SUPPORTED_COUNTRIES } from '@/lib/country-config';
 
 const registerSchema = z.object({
   name: z.string().min(1, 'auth.nameRequired'),
@@ -32,6 +34,7 @@ const registerSchema = z.object({
     .string()
     .min(8, 'auth.passwordMin'),
   companyName: z.string().min(1, 'auth.companyRequired'),
+  country: z.string().length(2),
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
@@ -77,6 +80,7 @@ export default function RegisterPage() {
     formState: { errors },
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
+    defaultValues: { country: 'GR' },
   });
 
   const passwordValue = watch('password') || '';
@@ -257,6 +261,31 @@ export default function RegisterPage() {
                 {errors.companyName && (
                   <p className="text-xs text-red-400">{t(errors.companyName.message || 'auth.companyRequired')}</p>
                 )}
+              </div>
+
+              {/* Country */}
+              <div className="space-y-2">
+                <Label htmlFor="country" className="text-sm text-foreground/80">
+                  {t('auth.country')}
+                </Label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 z-10" />
+                  <select
+                    id="country"
+                    className={cn(
+                      'h-11 w-full rounded-xl bg-background border border-border pl-10 pr-4 text-sm text-foreground',
+                      'focus:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:outline-none',
+                      'appearance-none cursor-pointer'
+                    )}
+                    {...register('country')}
+                  >
+                    {SUPPORTED_COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.name} ({c.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Terms checkbox */}

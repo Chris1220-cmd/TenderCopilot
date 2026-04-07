@@ -95,7 +95,7 @@ export const aiRolesRouter = router({
   // ═══════════════════════════════════════════════════════════
 
   summarizeTender: protectedProcedure
-    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en', 'nl']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
 
@@ -112,7 +112,7 @@ export const aiRolesRouter = router({
     }),
 
   goNoGo: protectedProcedure
-    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en', 'nl']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       const { tenantId } = await ensureTenderAccess(input.tenderId, ctx.tenantId);
       return aiBidOrchestrator.goNoGoAnalysis(input.tenderId, tenantId, input.language);
@@ -221,7 +221,7 @@ export const aiRolesRouter = router({
   // ═══════════════════════════════════════════════════════════
 
   extractLegalClauses: protectedProcedure
-    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en', 'nl']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
       return aiLegalAnalyzer.extractClauses(input.tenderId, input.language);
@@ -444,7 +444,7 @@ export const aiRolesRouter = router({
     }),
 
   extractFinancials: protectedProcedure
-    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en', 'nl']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
       return aiFinancial.extractFinancialRequirements(input.tenderId, input.language);
@@ -520,7 +520,7 @@ export const aiRolesRouter = router({
   // ═══════════════════════════════════════════════════════════
 
   analyzeTechRequirements: protectedProcedure
-    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en', 'nl']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       await ensureTenderAccess(input.tenderId, ctx.tenantId);
       return aiTechnical.analyzeTechnicalRequirements(input.tenderId, input.language);
@@ -639,7 +639,7 @@ export const aiRolesRouter = router({
   // ─── Evaluation Criteria Writing Assistant ────────────────
 
   analyzeCriteria: protectedProcedure
-    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en', 'nl']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       const { tenantId } = await ensureTenderAccess(input.tenderId, ctx.tenantId);
       return aiCriteriaAnalyzer.analyzeCriteria(input.tenderId, tenantId, input.language);
@@ -685,7 +685,7 @@ export const aiRolesRouter = router({
     }),
 
   generateIntelligence: protectedProcedure
-    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en']).default('el') }))
+    .input(z.object({ tenderId: z.string(), language: z.enum(['el', 'en', 'nl']).default('el') }))
     .mutation(async ({ ctx, input }) => {
       const { tenantId } = await ensureTenderAccess(input.tenderId, ctx.tenantId);
       return tenderIntelligence.generateIntelligence(input.tenderId, tenantId, input.language);

@@ -11,6 +11,9 @@ import {
   UserPlus,
   Trash2,
   Crown,
+  Globe,
+  Plus,
+  Lock as LockIcon,
 } from 'lucide-react';
 import { AnimatedTabsTrigger } from '@/components/ui/animated-tabs';
 import { Button } from '@/components/ui/button';
@@ -39,6 +42,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getInitials } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from '@/lib/i18n';
+import { SUPPORTED_COUNTRIES, getCountryConfig } from '@/lib/country-config';
 import { BlurFade } from '@/components/ui/blur-fade';
 import { Particles } from '@/components/ui/particles';
 
@@ -73,6 +77,7 @@ export default function SettingsPage() {
     EXTERNAL_COLLABORATOR: t('roles.externalCollaborator'),
   };
 
+  const { data: tenantData } = trpc.tenant.get.useQuery();
   const { data: members, isLoading, refetch } = trpc.tenant.getMembers.useQuery();
   const inviteMutation = trpc.tenant.invite.useMutation({
     onSuccess: () => {
@@ -120,6 +125,10 @@ export default function SettingsPage() {
             <AnimatedTabsTrigger value="profile" activeValue={activeTab}>
               <Shield className="h-3.5 w-3.5" />
               {t('settings.profileTab')}
+            </AnimatedTabsTrigger>
+            <AnimatedTabsTrigger value="countries" activeValue={activeTab}>
+              <Globe className="h-3.5 w-3.5" />
+              {t('settings.countriesTab')}
             </AnimatedTabsTrigger>
           </TabsList>
 
@@ -277,6 +286,66 @@ export default function SettingsPage() {
                       <Button className="cursor-pointer">{t('settings.saveChanges')}</Button>
                     </div>
                   </div>
+                </TabsContent>
+
+                <TabsContent value="countries" className="space-y-4 mt-0">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h2 className="text-lg font-semibold">{t('settings.countriesTitle')}</h2>
+                      <p className="text-sm text-muted-foreground">
+                        {t('settings.countriesSub')}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {(tenantData?.countries ?? ['GR']).map((code) => {
+                      const config = getCountryConfig(code);
+                      return (
+                        <div
+                          key={code}
+                          className="rounded-xl border border-border/60 bg-card p-4 flex items-center gap-3"
+                        >
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-semibold text-sm">
+                            {code}
+                          </div>
+                          <div>
+                            <div className="font-medium">{config.name}</div>
+                            <div className="text-xs text-muted-foreground">{config.legalFramework.name}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {(() => {
+                    const maxCountries = tenantData?.subscription?.plan?.maxCountries;
+                    const currentCount = tenantData?.countries?.length ?? 1;
+                    const canAdd = maxCountries === null || maxCountries === undefined || currentCount < maxCountries;
+                    const availableCountries = SUPPORTED_COUNTRIES.filter(
+                      c => !(tenantData?.countries ?? []).includes(c.code)
+                    );
+
+                    if (availableCountries.length === 0) return null;
+
+                    return (
+                      <Button
+                        variant="outline"
+                        disabled={!canAdd}
+                        className="gap-2 cursor-pointer"
+                        onClick={() => {
+                          // TODO (SP1 follow-up): implement addCountry mutation
+                        }}
+                      >
+                        {canAdd ? (
+                          <Plus className="h-4 w-4" />
+                        ) : (
+                          <LockIcon className="h-4 w-4" />
+                        )}
+                        {canAdd ? t('settings.addCountry') : t('settings.upgradeForCountries')}
+                      </Button>
+                    );
+                  })()}
                 </TabsContent>
               </motion.div>
             </AnimatePresence>

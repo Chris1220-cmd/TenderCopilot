@@ -190,7 +190,7 @@ export async function exportGeneratedDocToDocx(
 
   if (!genDoc) throw new Error('DOCUMENT_NOT_FOUND');
 
-  const company = await db.companyProfile.findUnique({ where: { tenantId } });
+  const company = await db.companyProfile.findFirst({ where: { tenantId } });
   if (!company) throw new Error('NO_COMPANY_PROFILE');
 
   let doc: Document;

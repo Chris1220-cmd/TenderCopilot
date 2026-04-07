@@ -12,10 +12,11 @@ export const authRouter = router({
         password: z.string().min(8, 'Password must be at least 8 characters'),
         name: z.string().min(1, 'Name is required'),
         companyName: z.string().min(1, 'Company name is required'),
+        country: z.string().length(2).default('GR'),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { email, password, name, companyName } = input;
+      const { email, password, name, companyName, country } = input;
 
       try {
         // Check if user already exists
@@ -46,8 +47,16 @@ export const authRouter = router({
           slug = `${slug}-${Date.now()}`;
         }
 
+        const { getCountryConfig } = await import('@/lib/country-config');
+        const countryConfig = getCountryConfig(country);
+
         const tenant = await ctx.db.tenant.create({
-          data: { name: companyName, slug },
+          data: {
+            name: companyName,
+            slug,
+            countries: [country],
+            language: countryConfig.defaultLanguage,
+          },
         });
 
         // Link user to tenant
@@ -57,7 +66,7 @@ export const authRouter = router({
 
         // Create empty company profile
         await ctx.db.companyProfile.create({
-          data: { tenantId: tenant.id, legalName: companyName, taxId: '' },
+          data: { tenantId: tenant.id, legalName: companyName, taxId: '', country },
         });
 
         // Create trial subscription (Professional plan, 14 days)

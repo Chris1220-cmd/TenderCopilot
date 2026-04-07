@@ -72,7 +72,7 @@ export const chatRouter = router({
       });
 
       // Build smart context + history in parallel (default locale 'el' for tRPC)
-      const locale: 'el' | 'en' = 'el';
+      const locale: 'el' | 'en' | 'nl' = 'el';
       const [context, { summary, recentMessages }] = await Promise.all([
         buildContext(tenderId, tenantId, question, locale),
         getSmartHistory(tenderId, tenantId),

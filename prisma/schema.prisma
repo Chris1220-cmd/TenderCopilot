@@ -17,11 +17,13 @@ model Tenant {
   id        String   @id @default(cuid())
   name      String
   slug      String   @unique
+  countries String[] @default(["GR"])
+  language  String   @default("el")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   users          TenantUser[]
-  companyProfile CompanyProfile?
+  companyProfiles CompanyProfile[]
   certificates   Certificate[]
   legalDocs      LegalDocument[]
   projects       Project[]
@@ -178,11 +180,13 @@ model CompanyProfile {
   description         String?  @db.Text
   guaranteeCreditLine Float?   // Total credit line for guarantee letters (EUR)
 
-  tenantId String @unique
+  tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, country])
 }
 
 model Certificate {
@@ -208,7 +212,7 @@ model Certificate {
 
 model LegalDocument {
   id          String           @id @default(cuid())
-  type        LegalDocType
+  type        String
   title       String
   issueDate   DateTime?
   expiryDate  DateTime?
@@ -226,14 +230,7 @@ model LegalDocument {
   updatedAt DateTime @updatedAt
 }
 
-enum LegalDocType {
-  TAX_CLEARANCE           // Φορολογική ενημερότητα
-  SOCIAL_SECURITY_CLEARANCE // Ασφαλιστική ενημερότητα
-  GEMI_CERTIFICATE        // ΓΕΜΗ
-  CRIMINAL_RECORD         // Ποινικό μητρώο
-  JUDICIAL_CERTIFICATE    // Δικαστικό πιστοποιητικό
-  OTHER
-}
+
 
 model Project {
   id              String    @id @default(cuid())
@@ -1215,6 +1212,7 @@ model Plan {
   maxSearchesPerMonth   Int?
   maxStorageMB          Int?
   maxUsers              Int?
+  maxCountries          Int?
 
   features       Json     @default("{}")
   isActive       Boolean  @default(true)

@@ -195,7 +195,20 @@
     "showcaseSubtitle": "Analyze documents, check eligibility, and prepare proposals 90% faster with TenderCopilot.",
     "statDocs": "Documents Analyzed",
     "statTime": "Time Saved",
-    "statWinRate": "Win Rate"
+    "statWinRate": "Win Rate",
+    "forgotPasswordTitle": "Reset Password",
+    "forgotPasswordSubtitle": "Enter your email and we'll send you a reset link.",
+    "forgotPasswordSuccess": "If an account exists with that email, you'll receive a reset link.",
+    "sendResetLink": "Send Reset Link",
+    "resetPasswordTitle": "New Password",
+    "resetPasswordSubtitle": "Enter your new password.",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "passwordMismatch": "Passwords do not match",
+    "resetPasswordSuccess": "Your password has been changed! You can now sign in.",
+    "resetPasswordError": "This link is invalid or has expired.",
+    "resetPassword": "Change Password",
+    "backToLogin": "Back to sign in"
   },
   "chat": {
     "title": "TEC",

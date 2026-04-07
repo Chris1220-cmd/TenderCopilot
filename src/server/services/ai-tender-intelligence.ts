@@ -74,7 +74,7 @@ class TenderIntelligenceService {
   async generateIntelligence(
     tenderId: string,
     tenantId: string,
-    language: 'el' | 'en' = 'el',
+    language: 'el' | 'en' | 'nl' = 'el',
   ) {
     // 1. Load tender
     const tender = await db.tender.findUniqueOrThrow({
@@ -296,7 +296,7 @@ class TenderIntelligenceService {
     repeat: RepeatTenderInfo,
     prepTime: PrepTimeEstimate,
     ownHistory: any[],
-    language: 'el' | 'en',
+    language: 'el' | 'en' | 'nl',
   ): Promise<{ bullets: string[] }> {
     const ctx: string[] = [];
     ctx.push(`Τρέχων διαγωνισμός: ${tender.title}`);
