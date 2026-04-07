@@ -1,9 +1,11 @@
 import { greekHolidays } from './greek-holidays';
 
-function getHolidaysForRange(startDate: Date, endDate: Date): Date[] {
+type HolidaysFn = (year: number) => Date[];
+
+function getHolidaysForRange(startDate: Date, endDate: Date, holidaysFn: HolidaysFn): Date[] {
   const holidays: Date[] = [];
   for (let y = startDate.getFullYear(); y <= endDate.getFullYear(); y++) {
-    holidays.push(...greekHolidays(y));
+    holidays.push(...holidaysFn(y));
   }
   return holidays;
 }
@@ -20,11 +22,16 @@ export function isBusinessDay(date: Date, holidays?: Date[]): boolean {
   );
 }
 
-export function subtractBusinessDays(fromDate: Date, businessDays: number): Date {
+export function subtractBusinessDays(
+  fromDate: Date,
+  businessDays: number,
+  holidaysFn: HolidaysFn = greekHolidays,
+): Date {
   if (businessDays === 0) return new Date(fromDate);
   const holidays = getHolidaysForRange(
     new Date(fromDate.getFullYear() - 1, 0, 1),
-    fromDate
+    fromDate,
+    holidaysFn,
   );
   const result = new Date(fromDate);
   let remaining = businessDays;
@@ -35,11 +42,16 @@ export function subtractBusinessDays(fromDate: Date, businessDays: number): Date
   return result;
 }
 
-export function addBusinessDays(fromDate: Date, businessDays: number): Date {
+export function addBusinessDays(
+  fromDate: Date,
+  businessDays: number,
+  holidaysFn: HolidaysFn = greekHolidays,
+): Date {
   if (businessDays === 0) return new Date(fromDate);
   const holidays = getHolidaysForRange(
     fromDate,
-    new Date(fromDate.getFullYear() + 1, 11, 31)
+    new Date(fromDate.getFullYear() + 1, 11, 31),
+    holidaysFn,
   );
   const result = new Date(fromDate);
   let remaining = businessDays;
@@ -50,8 +62,12 @@ export function addBusinessDays(fromDate: Date, businessDays: number): Date {
   return result;
 }
 
-export function businessDaysBetween(startDate: Date, endDate: Date): number {
-  const holidays = getHolidaysForRange(startDate, endDate);
+export function businessDaysBetween(
+  startDate: Date,
+  endDate: Date,
+  holidaysFn: HolidaysFn = greekHolidays,
+): number {
+  const holidays = getHolidaysForRange(startDate, endDate, holidaysFn);
   let count = 0;
   const current = new Date(startDate);
   while (current < endDate) {
