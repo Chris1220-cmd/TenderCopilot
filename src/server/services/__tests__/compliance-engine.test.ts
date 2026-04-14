@@ -3,6 +3,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock Prisma
 vi.mock('@/lib/db', () => ({
   db: {
+    tenant: {
+      findUnique: vi.fn(),
+    },
+    user: {
+      findUnique: vi.fn(),
+    },
     tenderRequirement: {
       findMany: vi.fn(),
       update: vi.fn(),
@@ -11,7 +17,10 @@ vi.mock('@/lib/db', () => ({
     legalDocument: { findMany: vi.fn() },
     project: { findMany: vi.fn() },
     contentLibraryItem: { findMany: vi.fn() },
-    tender: { update: vi.fn() },
+    tender: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
     activity: { create: vi.fn() },
     requirementMapping: { create: vi.fn() },
   },
@@ -25,6 +34,12 @@ const engine = new ComplianceEngine();
 describe('ComplianceEngine', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: tender has no explicit country → fallback chain takes over
+    vi.mocked(db.tender.findUnique).mockResolvedValue({ country: null } as any);
+    // Default: user has no active country → falls through to tenant.countries[0]
+    vi.mocked(db.user.findUnique).mockResolvedValue({ activeCountry: null } as any);
+    // Default: tenant resolves to GR country so getPromptContext returns valid keywords
+    vi.mocked(db.tenant.findUnique).mockResolvedValue({ countries: ['GR'] } as any);
   });
 
   describe('compliance score calculation', () => {
@@ -65,8 +80,8 @@ describe('ComplianceEngine', () => {
       ];
 
       const legalDocs = [
-        { id: 'ld-1', type: 'TAX_CLEARANCE', title: 'Φορολογική Ενημερότητα', tenantId: 't1', expiryDate: new Date('2025-12-31') },
-        { id: 'ld-2', type: 'SOCIAL_SECURITY_CLEARANCE', title: 'Ασφαλιστική Ενημερότητα', tenantId: 't1', expiryDate: new Date('2025-12-31') },
+        { id: 'ld-1', type: 'TAX_CLEARANCE', title: 'Φορολογική Ενημερότητα', tenantId: 't1', expiryDate: new Date(Date.now() + 365 * 24 * 3600 * 1000) },
+        { id: 'ld-2', type: 'SOCIAL_SECURITY_CLEARANCE', title: 'Ασφαλιστική Ενημερότητα', tenantId: 't1', expiryDate: new Date(Date.now() + 365 * 24 * 3600 * 1000) },
       ];
 
       vi.mocked(db.tenderRequirement.findMany).mockResolvedValue(requirements as any);

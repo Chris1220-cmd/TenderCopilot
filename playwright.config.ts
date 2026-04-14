@@ -11,6 +11,9 @@ export default defineConfig({
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // App detects locale via navigator.language when no localStorage value is set.
+    // Force el-GR so the Greek UI is rendered for tests that assert on Greek strings.
+    locale: 'el-GR',
   },
 
   projects: [

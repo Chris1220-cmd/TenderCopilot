@@ -1,6 +1,7 @@
 import { router } from '@/server/trpc';
 import { authRouter } from '@/server/routers/auth';
 import { tenantRouter } from '@/server/routers/tenant';
+import { userRouter } from '@/server/routers/user';
 import { companyRouter } from '@/server/routers/company';
 import { tenderRouter } from '@/server/routers/tender';
 import { requirementRouter } from '@/server/routers/requirement';
@@ -25,6 +26,7 @@ import { adminRouter } from '@/server/routers/admin';
 export const appRouter = router({
   auth: authRouter,
   tenant: tenantRouter,
+  user: userRouter,
   company: companyRouter,
   tender: tenderRouter,
   requirement: requirementRouter,

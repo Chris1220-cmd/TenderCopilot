@@ -128,12 +128,13 @@ export const tenderRouter = router({
 
       const { sourceUrl, country: inputCountry, ...tenderData } = input;
 
-      // Default country from tenant's primary country
-      let country = inputCountry;
-      if (!country) {
-        const tenant = await ctx.db.tenant.findUnique({ where: { id: ctx.tenantId }, select: { countries: true } });
-        country = tenant?.countries?.[0] ?? 'GR';
-      }
+      // Default country: explicit input > user.activeCountry > tenant.countries[0] > 'GR'
+      const { resolveCountry } = await import('@/lib/active-country');
+      const country = await resolveCountry({
+        tenderCountry: inputCountry,
+        userId: ctx.user.id,
+        tenantId: ctx.tenantId,
+      });
 
       const tender = await ctx.db.tender.create({
         data: {

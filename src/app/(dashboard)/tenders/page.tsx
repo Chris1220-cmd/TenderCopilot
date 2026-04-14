@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { EmptyStateIllustration } from '@/components/ui/empty-state';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { cn, formatDate } from '@/lib/utils';
 import { trpc } from '@/lib/trpc';
 import { motion } from 'motion/react';
@@ -63,13 +63,39 @@ const itemVariants = {
   },
 };
 
+const COUNTRY_FLAG: Record<string, string> = {
+  GR: '🇬🇷',
+  NL: '🇳🇱',
+};
+
 export default function TendersPage() {
   const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Multi-country context for tab filtering
+  const { data: tenantData } = trpc.tenant.get.useQuery();
+  const { data: meData } = trpc.user.me.useQuery();
+  const tenantCountries: string[] = tenantData?.countries ?? [];
+  const isMultiCountry = tenantCountries.length >= 2;
+  const activeCountry = meData?.activeCountry ?? tenantCountries[0] ?? 'GR';
+  const countryFilter = searchParams.get('country') ?? activeCountry;
+
+  function setCountryFilter(value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === 'all') {
+      params.delete('country');
+    } else {
+      params.set('country', value);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+  }
 
   const statusLabels: Record<string, string> = {
     DRAFT: t('tenders.statusDraft'),
@@ -111,6 +137,7 @@ export default function TendersPage() {
   const tenderToDelete = deleteId ? tenders.find((t: any) => t.id === deleteId) : null;
 
   const filteredTenders = tenders.filter((tender) => {
+    if (isMultiCountry && countryFilter !== 'all' && tender.country !== countryFilter) return false;
     if (statusFilter !== 'all' && tender.status !== statusFilter) return false;
     if (platformFilter !== 'all' && tender.platform !== platformFilter) return false;
     if (searchQuery) {
@@ -123,6 +150,14 @@ export default function TendersPage() {
     }
     return true;
   });
+
+  // Country-scoped counts (ignore other filters so the tab shows total size per country)
+  const countryCounts: Record<string, number> = {};
+  for (const tender of tenders) {
+    const c = (tender as any).country ?? 'GR';
+    countryCounts[c] = (countryCounts[c] ?? 0) + 1;
+  }
+  const allCount = tenders.length;
 
   return (
     <motion.div
@@ -151,6 +186,44 @@ export default function TendersPage() {
           </Button>
         </motion.div>
       </BlurFade>
+
+      {/* Country Tabs (multi-country tenants only) */}
+      {isMultiCountry && (
+        <BlurFade delay={0.12}>
+          <motion.div
+            variants={itemVariants}
+            className="flex items-center gap-1 rounded-lg border border-border/60 bg-muted/30 p-1 w-fit"
+          >
+            {[
+              activeCountry,
+              ...tenantCountries.filter((c) => c !== activeCountry),
+              'all',
+            ].map((value) => {
+              const isAll = value === 'all';
+              const count = isAll ? allCount : countryCounts[value] ?? 0;
+              const label = isAll
+                ? `${t('tenders.allCountries') || 'All'} (${count})`
+                : `${COUNTRY_FLAG[value] ?? '🏳️'} ${value} (${count})`;
+              const selected = countryFilter === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setCountryFilter(value)}
+                  className={cn(
+                    'px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer',
+                    selected
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </motion.div>
+        </BlurFade>
+      )}
 
       {/* Filters */}
       <BlurFade delay={0.15}>

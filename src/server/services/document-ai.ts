@@ -24,12 +24,58 @@ export interface DocumentAIResult {
 
 // ─── Configuration ──────────────────────────────────────────
 
+// Cache the private-key health check result so we don't re-parse on every call.
+let keyHealthChecked = false;
+let keyHealthOk = false;
+
+function isPrivateKeyHealthy(): boolean {
+  if (keyHealthChecked) return keyHealthOk;
+  keyHealthChecked = true;
+
+  try {
+    // Read the service account JSON from whichever env var is set.
+    let pk: string | undefined;
+    const jsonEnv = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    if (jsonEnv) {
+      pk = JSON.parse(jsonEnv).private_key;
+    } else {
+      const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      if (credPath) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const fs = require('fs');
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const path = require('path');
+        const resolved = path.isAbsolute(credPath) ? credPath : path.resolve(process.cwd(), credPath);
+        if (fs.existsSync(resolved)) {
+          pk = JSON.parse(fs.readFileSync(resolved, 'utf8')).private_key;
+        }
+      }
+    }
+    if (!pk) return (keyHealthOk = false);
+
+    // Try to parse the private key — catches corrupt keys before they hit gRPC
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const crypto = require('crypto');
+    crypto.createPrivateKey({ key: pk, format: 'pem' });
+    return (keyHealthOk = true);
+  } catch {
+    return (keyHealthOk = false);
+  }
+}
+
 function getConfig() {
   const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
   const processorId = process.env.DOCUMENT_AI_PROCESSOR_ID;
   const location = process.env.GOOGLE_CLOUD_LOCATION || 'eu';
 
   if (!projectId || !processorId) {
+    return null;
+  }
+
+  // If the service account private key is unparseable, skip Document AI
+  // entirely so the Gemini Vision fallback runs cleanly instead of waiting
+  // for a gRPC auth failure and polluting logs with DECODER errors.
+  if (!isPrivateKeyHealthy()) {
     return null;
   }
 
