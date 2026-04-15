@@ -34,7 +34,7 @@ async function main() {
   }
   console.log(`  ✓ Target: ${target.title?.slice(0, 80)}`);
   console.log(`    URL: ${target.sourceUrl}`);
-  console.log(`    Budget: ${target.estimatedBudget ? `€${target.estimatedBudget.toLocaleString()}` : 'unknown'}`);
+  console.log(`    Budget: ${target.budget ? `€${target.budget.toLocaleString()}` : 'unknown'}`);
   console.log(`    Authority: ${target.contractingAuthority ?? 'unknown'}`);
 
   // ── 2. Load Dutch prompt context ──
@@ -87,7 +87,7 @@ async function main() {
   const summary = [
     `Title: ${target.title ?? ''}`,
     `Authority: ${target.contractingAuthority ?? ''}`,
-    `Budget: ${target.estimatedBudget ? `€${target.estimatedBudget}` : 'unknown'}`,
+    `Budget: ${target.budget ? `€${target.budget}` : 'unknown'}`,
     `Deadline: ${target.submissionDeadline ?? 'unknown'}`,
     `Description: ${(target as any).description ?? ''}`,
     `Notice text sample: ${pageText.slice(0, 3000)}`,
