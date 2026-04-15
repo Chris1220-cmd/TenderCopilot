@@ -34,6 +34,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials } from '@/lib/utils';
 import { useTranslation } from '@/lib/i18n';
 import { LanguageToggle } from '@/components/ui/language-toggle';
+import { CountrySwitcher } from '@/components/ui/country-switcher';
+import { CountryModeBadge } from '@/components/ui/country-mode-badge';
 import { useState, useEffect, useCallback } from 'react';
 
 const navItems = [
@@ -153,6 +155,12 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
             Ctrl K
           </kbd>
         </Button>
+
+        {/* Non-primary country indicator (hidden when operating in default country) */}
+        <CountryModeBadge className="mr-1" />
+
+        {/* Country Switcher (hidden for single-country tenants) */}
+        <CountrySwitcher className="bg-foreground/[0.04] border-border/60" />
 
         {/* Language Toggle */}
         <LanguageToggle className="bg-foreground/[0.04] border-border/60" />

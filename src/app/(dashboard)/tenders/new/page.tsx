@@ -99,15 +99,17 @@ export default function NewTenderPage() {
 
   // Country selector (for multi-country tenants)
   const { data: tenantData } = trpc.tenant.get.useQuery();
+  const { data: meData } = trpc.user.me.useQuery();
   const tenantCountries = tenantData?.countries ?? ['GR'];
   const [selectedCountry, setSelectedCountry] = useState<string>('');
 
-  // Set default country when tenant data loads
+  // Set default country when tenant/user data loads:
+  // prefer user.activeCountry, fall back to tenant.countries[0]
   useEffect(() => {
     if (tenantData?.countries?.length && !selectedCountry) {
-      setSelectedCountry(tenantData.countries[0]);
+      setSelectedCountry(meData?.activeCountry ?? tenantData.countries[0]);
     }
-  }, [tenantData, selectedCountry]);
+  }, [tenantData, meData, selectedCountry]);
 
   // File upload state
   const [files, setFiles] = useState<File[]>([]);

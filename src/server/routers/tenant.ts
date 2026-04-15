@@ -59,6 +59,35 @@ export const tenantRouter = router({
       return { success: true };
     }),
 
+  setActiveCountry: protectedProcedure
+    .input(z.object({ country: z.string().length(2).nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.tenantId) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'No tenant associated.' });
+      }
+
+      // If clearing, skip the membership check
+      if (input.country !== null) {
+        const tenant = await ctx.db.tenant.findUniqueOrThrow({
+          where: { id: ctx.tenantId },
+          select: { countries: true },
+        });
+        if (!tenant.countries.includes(input.country)) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: `Country ${input.country} is not enabled for this tenant.`,
+          });
+        }
+      }
+
+      await ctx.db.user.update({
+        where: { id: ctx.user.id },
+        data: { activeCountry: input.country },
+      });
+
+      return { activeCountry: input.country };
+    }),
+
   getMembers: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.tenantId) {
       throw new TRPCError({

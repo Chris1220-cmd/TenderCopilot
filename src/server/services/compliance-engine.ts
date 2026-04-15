@@ -36,14 +36,29 @@ export class ComplianceEngine {
   /**
    * Run compliance check for all requirements of a tender.
    */
-  async runComplianceCheck(tenderId: string, tenantId: string): Promise<{
+  async runComplianceCheck(
+    tenderId: string,
+    tenantId: string,
+    opts: { userId?: string } = {}
+  ): Promise<{
     score: number;
     results: MatchResult[];
   }> {
-    // Load country-specific compliance keywords
+    // Load country-specific compliance keywords via the full fallback chain.
+    // tender.country wins so existing tenders keep their original legal context
+    // even when the user has switched active country.
     const { getPromptContext } = await import('@/lib/prompts');
-    const tenant = await db.tenant.findUnique({ where: { id: tenantId }, select: { countries: true } });
-    const country = tenant?.countries?.[0] ?? 'GR';
+    const { resolveCountry } = await import('@/lib/active-country');
+
+    const tenderRecord = await db.tender.findUnique({
+      where: { id: tenderId },
+      select: { country: true },
+    });
+    const country = await resolveCountry({
+      tenderCountry: tenderRecord?.country,
+      userId: opts.userId,
+      tenantId,
+    });
     this._docTypeKeywords = getPromptContext(country).docTypeKeywords;
 
     // Load requirements

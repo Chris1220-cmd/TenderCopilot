@@ -156,7 +156,7 @@ export default function RegisterPage() {
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
               {/* Name */}
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm text-foreground/80">

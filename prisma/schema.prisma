@@ -66,6 +66,7 @@ model User {
   hashedPassword String?
   image          String?
   emailVerified  DateTime?
+  activeCountry  String?   // ISO 2-letter. null → fallback to tenant.countries[0]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
