@@ -18,6 +18,7 @@ import {
   CheckSquare,
   Sun,
   Moon,
+  Receipt,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -226,6 +227,11 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
             <DropdownMenuItem asChild className="cursor-pointer">
               <Link href="/settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" /> {t('commandPalette.settings')}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link href="/billing" className="flex items-center gap-2">
+                <Receipt className="h-4 w-4" /> Χρέωση
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

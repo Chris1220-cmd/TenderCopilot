@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Badge } from '@/components/ui/badge';
+import { UpgradeModal } from '@/components/billing/upgrade-modal';
 import {
   Tooltip,
   TooltipContent,
@@ -11,6 +13,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 
 export function UsageIndicator() {
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const { data } = trpc.subscription.current.useQuery(undefined, {
     staleTime: 60_000,
   });
@@ -52,6 +55,22 @@ export function UsageIndicator() {
               >
                 {warningMetric.percentage}%
               </Badge>
+            )}
+            {warningMetric && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowUpgrade(true)}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Αναβάθμιση
+                </button>
+                <UpgradeModal
+                  open={showUpgrade}
+                  onClose={() => setShowUpgrade(false)}
+                  reason="Πλησιάζεις το όριο AI credits του πλάνου σου."
+                />
+              </>
             )}
             {trialEnd && (
               <Badge
