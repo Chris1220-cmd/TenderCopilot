@@ -23,6 +23,7 @@ import { resourcesRouter } from '@/server/routers/resources';
 import { subscriptionRouter } from '@/server/routers/subscription';
 import { adminRouter } from '@/server/routers/admin';
 import { inviteRouter } from '@/server/routers/invite';
+import { onboardingRouter } from '@/server/routers/onboarding';
 
 export const appRouter = router({
   auth: authRouter,
@@ -49,6 +50,7 @@ export const appRouter = router({
   subscription: subscriptionRouter,
   admin: adminRouter,
   invite: inviteRouter,
+  onboarding: onboardingRouter,
 });
 
 export type AppRouter = typeof appRouter;
