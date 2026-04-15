@@ -78,6 +78,12 @@ export default function SettingsPage() {
     EXTERNAL_COLLABORATOR: t('roles.externalCollaborator'),
   };
 
+  const [profileName, setProfileName] = useState(session?.user?.name ?? '');
+  const updateProfile = trpc.user.updateProfile.useMutation({
+    onSuccess: () => toast({ title: 'Αποθηκεύτηκε', description: 'Το προφίλ ενημερώθηκε.' }),
+    onError: (e) => toast({ title: 'Σφάλμα', description: e.message, variant: 'destructive' }),
+  });
+
   const { data: tenantData, refetch: refetchTenant } = trpc.tenant.get.useQuery();
   const addCountryMutation = trpc.tenant.addCountry.useMutation({
     onSuccess: () => { refetchTenant(); },
@@ -275,7 +281,8 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                           <Label>{t('settings.name')}</Label>
                           <Input
-                            defaultValue={session?.user?.name || ''}
+                            value={profileName}
+                            onChange={e => setProfileName(e.target.value)}
                             placeholder={t('settings.namePlaceholder')}
                           />
                         </div>
@@ -288,7 +295,13 @@ export default function SettingsPage() {
                           />
                         </div>
                       </div>
-                      <Button className="cursor-pointer">{t('settings.saveChanges')}</Button>
+                      <Button
+                        className="cursor-pointer"
+                        onClick={() => updateProfile.mutate({ name: profileName })}
+                        disabled={updateProfile.isPending || !profileName.trim()}
+                      >
+                        {t('settings.saveChanges')}
+                      </Button>
                     </div>
                   </div>
                 </TabsContent>

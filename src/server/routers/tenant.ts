@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '@/server/trpc';
+import { sendInvitationEmail } from '@/server/services/email';
 
 export const tenantRouter = router({
   get: protectedProcedure.query(async ({ ctx }) => {
@@ -152,6 +153,11 @@ export const tenantRouter = router({
         }
       }
 
+      const tenant = await ctx.db.tenant.findUnique({
+        where: { id: ctx.tenantId },
+        select: { name: true },
+      });
+
       // Create invitation
       const invitation = await ctx.db.invitation.upsert({
         where: {
@@ -173,7 +179,13 @@ export const tenantRouter = router({
         },
       });
 
-      // TODO: Send invitation email via nodemailer
+      const inviteUrl = `${process.env.NEXTAUTH_URL}/invite/${invitation.token}`;
+      sendInvitationEmail(
+        input.email,
+        ctx.user.name ?? 'Μέλος ομάδας',
+        tenant?.name ?? 'η ομάδα σας',
+        inviteUrl
+      ).catch(err => console.error('[Invite] Email send failed:', err));
 
       return invitation;
     }),
