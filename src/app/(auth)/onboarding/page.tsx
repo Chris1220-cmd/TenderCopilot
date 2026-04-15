@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 import { Loader2, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
@@ -18,6 +18,23 @@ export default function OnboardingPage() {
   const [kadInput, setKadInput] = useState('');
   const [kadCodes, setKadCodes] = useState<string[]>([]);
 
+  // Pre-fill from existing tenant/company profile (Bug #3 fix)
+  const { data: tenantData } = trpc.tenant.get.useQuery();
+  const { data: companyProfile } = trpc.company.getProfile.useQuery();
+
+  useEffect(() => {
+    if (companyProfile?.legalName && !companyName) {
+      setCompanyName(companyProfile.legalName);
+    } else if (tenantData?.name && !companyName) {
+      setCompanyName(tenantData.name);
+    }
+    if (companyProfile?.taxId && !taxId) setTaxId(companyProfile.taxId);
+    if (companyProfile?.city && !city) setCity(companyProfile.city);
+    if (companyProfile?.kadCodes?.length && kadCodes.length === 0) {
+      setKadCodes(companyProfile.kadCodes);
+    }
+  }, [tenantData, companyProfile]);
+
   const completeMutation = trpc.onboarding.complete.useMutation({
     onSuccess: () => { setStep(3); },
   });
@@ -25,7 +42,9 @@ export default function OnboardingPage() {
     onSuccess: () => { router.push('/dashboard'); },
   });
 
-  const progress = ((step - 1) / 2) * 100;
+  // Bug #4 fix: progress should reflect step position out of total steps
+  // Step 1 = 50% (you're 1/2 of the way through), Step 2 = 100%
+  const progress = (step / 2) * 100;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">

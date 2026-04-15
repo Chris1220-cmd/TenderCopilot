@@ -345,40 +345,47 @@ export default function TendersPage() {
                       duration: 0.25,
                       ease: [0.16, 1, 0.3, 1] as const,
                     }}
-                    className="group flex items-center gap-4 px-6 py-3 min-h-[48px] border-b border-border/30 last:border-0 transition-colors duration-150 cursor-pointer hover:bg-muted/50"
-                    onClick={() => router.push(`/tenders/${tender.id}`)}
+                    className="group relative border-b border-border/30 last:border-0 transition-colors duration-150 hover:bg-muted/50"
                   >
-                    {/* Status */}
-                    <div className="w-24 shrink-0">
-                      <Badge variant={statusVariant} className="text-[10px]">
-                        {statusLabel}
-                      </Badge>
-                    </div>
+                    <Link
+                      href={`/tenders/${tender.id}`}
+                      className="flex items-center gap-4 px-6 py-3 min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                    >
+                      {/* Status */}
+                      <div className="w-24 shrink-0">
+                        <Badge variant={statusVariant} className="text-[10px]">
+                          {statusLabel}
+                        </Badge>
+                      </div>
 
-                    {/* Title + Reference */}
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-body font-medium text-foreground group-hover:text-primary transition-colors">
-                        {tender.title}
-                      </p>
-                      <p className="text-caption truncate">{tender.referenceNumber}</p>
-                    </div>
+                      {/* Title + Reference */}
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-body font-medium text-foreground group-hover:text-primary transition-colors">
+                          {tender.title}
+                        </p>
+                        <p className="text-caption truncate">{tender.referenceNumber}</p>
+                      </div>
 
-                    {/* Platform */}
-                    <span className="text-caption w-28 shrink-0 hidden md:block">
-                      {platformLabel}
-                    </span>
+                      {/* Platform */}
+                      <span className="text-caption w-28 shrink-0 hidden md:block">
+                        {platformLabel}
+                      </span>
 
-                    {/* Deadline */}
-                    <span className="text-caption w-28 shrink-0 hidden lg:block">
-                      {tender.submissionDeadline ? formatDate(tender.submissionDeadline) : '—'}
-                    </span>
+                      {/* Deadline */}
+                      <span className="text-caption w-28 shrink-0 hidden lg:block">
+                        {tender.submissionDeadline ? formatDate(tender.submissionDeadline) : '—'}
+                      </span>
 
-                    {/* Score */}
-                    <span className={cn('text-body font-semibold tabular-nums w-20 shrink-0 text-right', complianceColor)}>
-                      {score}%
-                    </span>
+                      {/* Score */}
+                      <span className={cn('text-body font-semibold tabular-nums w-20 shrink-0 text-right', complianceColor)}>
+                        {score}%
+                      </span>
 
-                    {/* Delete */}
+                      {/* Spacer for delete button */}
+                      <span className="w-8 shrink-0" />
+                    </Link>
+
+                    {/* Delete (positioned absolutely so it's not inside the link) */}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -386,8 +393,9 @@ export default function TendersPage() {
                         e.stopPropagation();
                         setDeleteId(tender.id);
                       }}
-                      className="w-8 shrink-0 flex items-center justify-center h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive/10 text-destructive cursor-pointer"
+                      className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center justify-center h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive/10 text-destructive cursor-pointer focus:opacity-100"
                       title={t('tenders.delete')}
+                      aria-label={t('tenders.delete')}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

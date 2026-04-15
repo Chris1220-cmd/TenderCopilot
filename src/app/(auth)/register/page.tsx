@@ -289,9 +289,10 @@ export default function RegisterPage() {
               </div>
 
               {/* Terms checkbox */}
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <div className="relative flex items-center justify-center pt-0.5">
+              <div className="flex items-start gap-3">
+                <label htmlFor="terms-checkbox" className="relative flex items-center justify-center pt-0.5 cursor-pointer">
                   <input
+                    id="terms-checkbox"
                     type="checkbox"
                     checked={termsAccepted}
                     onChange={(e) => setTermsAccepted(e.target.checked)}
@@ -312,18 +313,21 @@ export default function RegisterPage() {
                       </svg>
                     )}
                   </div>
-                </div>
+                </label>
                 <span className="text-xs text-muted-foreground leading-relaxed">
-                  {t('auth.termsAgree')}{' '}
+                  <label htmlFor="terms-checkbox" className="cursor-pointer select-none">
+                    {t('auth.termsAgree')}
+                  </label>{' '}
                   <Link
                     href="/terms"
-                    className="text-primary hover:text-primary/80 underline transition-colors duration-200 cursor-pointer"
-                    onClick={(e) => e.stopPropagation()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:text-primary/80 underline transition-colors duration-200"
                   >
                     {t('auth.termsLink')}
                   </Link>
                 </span>
-              </label>
+              </div>
 
               <Button
                 type="submit"

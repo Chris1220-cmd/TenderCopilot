@@ -105,6 +105,7 @@ export function TenderPhaseSidebar({
               return (
                 <button
                   key={section.value}
+                  type="button"
                   onClick={() => onSectionChange(section.value)}
                   className={cn(
                     'w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors cursor-pointer',
