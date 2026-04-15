@@ -22,6 +22,7 @@ import { teamMemberRouter } from '@/server/routers/team-member';
 import { resourcesRouter } from '@/server/routers/resources';
 import { subscriptionRouter } from '@/server/routers/subscription';
 import { adminRouter } from '@/server/routers/admin';
+import { inviteRouter } from '@/server/routers/invite';
 
 export const appRouter = router({
   auth: authRouter,
@@ -47,6 +48,7 @@ export const appRouter = router({
   resources: resourcesRouter,
   subscription: subscriptionRouter,
   admin: adminRouter,
+  invite: inviteRouter,
 });
 
 export type AppRouter = typeof appRouter;
