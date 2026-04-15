@@ -90,6 +90,11 @@ export const authRouter = router({
           });
         }
 
+        // Fire-and-forget welcome email — don't await, don't fail registration if email fails
+        import('@/server/services/email').then(({ sendWelcomeEmail }) => {
+          sendWelcomeEmail(email, name).catch(console.error);
+        });
+
         return {
           success: true,
           userId: user.id,

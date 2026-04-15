@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
       });
 
       const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`;
-      console.log(`\n[PASSWORD RESET] ${resetUrl}\n`);
+      const { sendPasswordResetEmail } = await import('@/server/services/email');
+      await sendPasswordResetEmail(email, resetUrl);
     }
 
     // Always return success (no email enumeration)
