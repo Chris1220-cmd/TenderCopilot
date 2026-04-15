@@ -1,11 +1,10 @@
 'use client';
-import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 import { Loader2 } from 'lucide-react';
 
-export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = use(params);
+export default function InvitePage({ params }: { params: { token: string } }) {
+  const { token } = params;
   const router = useRouter();
 
   const { data: invitation, isLoading, error } = trpc.invite.getByToken.useQuery({ token });

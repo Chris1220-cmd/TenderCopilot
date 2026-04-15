@@ -44,14 +44,15 @@ export const inviteRouter = router({
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Το invitation δεν ανήκει σε αυτό το email.' });
       }
 
-      await ctx.db.tenantUser.create({
-        data: { tenantId: invitation.tenantId, userId: ctx.user.id, role: invitation.role },
-      });
-
-      await ctx.db.invitation.update({
-        where: { token: input.token },
-        data: { status: 'ACCEPTED' },
-      });
+      await ctx.db.$transaction([
+        ctx.db.tenantUser.create({
+          data: { tenantId: invitation.tenantId, userId: ctx.user.id, role: invitation.role },
+        }),
+        ctx.db.invitation.update({
+          where: { token: input.token },
+          data: { status: 'ACCEPTED' },
+        }),
+      ]);
 
       return { tenantId: invitation.tenantId };
     }),
