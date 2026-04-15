@@ -98,7 +98,7 @@ export default function RegisterPage() {
           // Registration succeeded but auto-login failed — redirect to login
           window.location.href = '/login';
         } else {
-          window.location.href = '/dashboard';
+          window.location.href = '/onboarding';
         }
       } catch {
         window.location.href = '/login';
