@@ -79,6 +79,22 @@ model User {
   activities    Activity[]
   isSuperAdmin  Boolean  @default(false)
   loginEvents   LoginEvent[]
+  notifications Notification[]
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String    // DEADLINE_APPROACHING | NEW_MATCHING_TENDER | DOCUMENT_READY | TEAM_ACTIVITY
+  title     String
+  body      String?
+  linkUrl   String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
 }
 
 model TenantUser {
