@@ -11,7 +11,6 @@ import {
   FolderCheck,
   BarChart3,
   Shield,
-  Bell,
   Search,
   LogOut,
   Settings,
@@ -36,6 +35,7 @@ import { useTranslation } from '@/lib/i18n';
 import { LanguageToggle } from '@/components/ui/language-toggle';
 import { CountrySwitcher } from '@/components/ui/country-switcher';
 import { CountryModeBadge } from '@/components/ui/country-mode-badge';
+import { NotificationDropdown } from '@/components/ui/notification-dropdown';
 import { useState, useEffect, useCallback } from 'react';
 
 const navItems = [
@@ -182,14 +182,7 @@ export function TopNav({ onOpenCommandPalette }: { onOpenCommandPalette?: () => 
           </Button>
         )}
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative text-muted-foreground hover:text-foreground/70 hover:bg-foreground/[0.04] cursor-pointer h-8 w-8"
-        >
-          <Bell className="h-[15px] w-[15px]" />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
-        </Button>
+        <NotificationDropdown />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
