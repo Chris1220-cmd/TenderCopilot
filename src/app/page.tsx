@@ -7,6 +7,9 @@ import {
   faqSchema,
 } from '@/components/seo/json-ld';
 
+export const dynamic = 'force-static';
+export const revalidate = 3600; // revalidate every hour
+
 export default function RootPage() {
   return (
     <div className="bg-white text-[#1a1a2e]">
