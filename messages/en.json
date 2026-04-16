@@ -381,7 +381,8 @@
     "legalDocsTab": "Legal Documents",
     "projectsTab": "Experience Projects",
     "libraryTab": "Content Library",
-    "teamTab": "Project Team"
+    "teamTab": "Project Team",
+    "subcontractorsTab": "Subcontractors"
   },
   "teamMembers": {
     "title": "Project Team",

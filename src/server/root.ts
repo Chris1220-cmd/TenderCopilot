@@ -26,6 +26,7 @@ import { inviteRouter } from '@/server/routers/invite';
 import { onboardingRouter } from '@/server/routers/onboarding';
 import { notificationRouter } from '@/server/routers/notification';
 import { pricingIntelligenceRouter } from '@/server/routers/pricing-intelligence';
+import { subcontractorDirectoryRouter } from '@/server/routers/subcontractor-directory';
 
 export const appRouter = router({
   auth: authRouter,
@@ -55,6 +56,7 @@ export const appRouter = router({
   onboarding: onboardingRouter,
   notification: notificationRouter,
   pricingIntelligence: pricingIntelligenceRouter,
+  subcontractorDirectory: subcontractorDirectoryRouter,
 });
 
 export type AppRouter = typeof appRouter;

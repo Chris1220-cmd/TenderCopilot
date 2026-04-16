@@ -381,7 +381,8 @@
     "legalDocsTab": "Νομικά Έγγραφα",
     "projectsTab": "Έργα Εμπειρίας",
     "libraryTab": "Βιβλιοθήκη Κειμένων",
-    "teamTab": "Ομάδα Έργου"
+    "teamTab": "Ομάδα Έργου",
+    "subcontractorsTab": "Υπεργολάβοι"
   },
   "teamMembers": {
     "title": "Ομάδα Έργου",

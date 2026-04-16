@@ -383,7 +383,8 @@
     "legalDocsTab": "Juridische documenten",
     "projectsTab": "Ervaringsprojecten",
     "libraryTab": "Inhoudsbibliotheek",
-    "teamTab": "Projectteam"
+    "teamTab": "Projectteam",
+    "subcontractorsTab": "Onderaannemers"
   },
   "teamMembers": {
     "title": "Projectteam",
