@@ -3,150 +3,236 @@
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 
 export function HeroSection() {
   const { t } = useTranslation();
 
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#FAFAFA] via-[#F5F5F5] to-[#EEEEEE]">
-      {/* Subtle radial glow */}
+    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#0A0A1A]">
+      {/* Animated gradient mesh background */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div
+          className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] animate-aurora opacity-30"
+          style={{
+            background:
+              'conic-gradient(from 180deg at 50% 50%, #48A4D6 0deg, #0A0A1A 120deg, #7DD3FC 240deg, #48A4D6 360deg)',
+            filter: 'blur(120px)',
+          }}
+        />
+      </div>
+
+      {/* Dot grid pattern */}
       <div
-        className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[800px] opacity-40"
+        className="absolute inset-0 opacity-[0.03]"
         style={{
-          background: 'radial-gradient(ellipse at center, rgba(72,164,214,0.08), transparent 70%)',
+          backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
+          backgroundSize: '32px 32px',
         }}
       />
 
+      {/* Grain texture */}
+      <div
+        className="absolute inset-0 opacity-20 mix-blend-overlay pointer-events-none"
+        style={{ filter: 'url(#grain)' }}
+      />
+      <svg className="hidden" aria-hidden="true">
+        <filter id="grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+        </filter>
+      </svg>
+
+      {/* Decorative star/sparkle dots */}
+      <div className="absolute inset-0 pointer-events-none">
+        {[
+          { top: '12%', left: '8%', size: 2 },
+          { top: '22%', left: '18%', size: 1.5 },
+          { top: '35%', left: '5%', size: 1 },
+          { top: '55%', left: '12%', size: 2 },
+          { top: '15%', right: '10%', size: 1.5 },
+          { top: '30%', right: '6%', size: 1 },
+          { top: '48%', right: '15%', size: 2 },
+          { top: '65%', right: '8%', size: 1.5 },
+          { top: '8%', left: '45%', size: 1 },
+          { top: '72%', left: '30%', size: 1.5 },
+          { top: '78%', right: '35%', size: 1 },
+        ].map((dot, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full bg-white/30"
+            style={{
+              top: dot.top,
+              left: 'left' in dot ? dot.left : undefined,
+              right: 'right' in dot ? dot.right : undefined,
+              width: `${dot.size * 2}px`,
+              height: `${dot.size * 2}px`,
+            }}
+          />
+        ))}
+      </div>
+
       {/* Content */}
-      <div className="relative z-10 mx-auto max-w-[900px] px-6 pt-32 pb-16 text-center">
-        {/* Main heading */}
+      <div className="relative z-10 mx-auto max-w-[1000px] px-6 pt-32 pb-16 text-center">
+        {/* Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-1.5 mb-8"
+        >
+          <Sparkles className="h-3.5 w-3.5 text-[#7DD3FC]" />
+          <span className="text-xs font-medium text-white/70">AI-Powered Tender Management</span>
+        </motion.div>
+
+        {/* Heading */}
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-[80px] font-semibold leading-[1.05] tracking-[-0.03em] text-[#1a1a2e]"
-          style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
+          transition={{ duration: 1, delay: 0.2 }}
+          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[1.05] tracking-[-0.04em] text-white"
         >
           {t('hero.title')}{' '}
-          <span className="italic">{t('hero.titleEmphasis')}</span>
+          <span className="bg-gradient-to-r from-[#48A4D6] via-[#7DD3FC] to-[#48A4D6] bg-clip-text text-transparent">
+            {t('hero.titleEmphasis')}
+          </span>
         </motion.h1>
 
         {/* Subtitle */}
         <motion.p
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.0, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-          className="mt-6 text-lg sm:text-xl text-[#1a1a2e]/60 max-w-[600px] mx-auto leading-relaxed"
-          style={{ fontFamily: "'Inter', sans-serif" }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="mt-6 text-lg sm:text-xl text-white/50 max-w-xl mx-auto leading-relaxed"
         >
           {t('hero.subtitle')}
         </motion.p>
 
-        {/* CTA Button */}
+        {/* CTA Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.0, delay: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
-          className="mt-10"
+          transition={{ duration: 0.8, delay: 0.8 }}
+          className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <Link
             href="/register"
-            className="group inline-flex items-center gap-3 rounded-full bg-[#121212] px-7 py-4 text-[15px] font-medium text-white transition-all hover:bg-[#1C1C1C] hover:shadow-xl cursor-pointer"
+            className="group relative inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#48A4D6] to-[#7DD3FC] px-8 py-4 text-[15px] font-semibold text-white transition-all hover:shadow-[0_0_40px_rgba(72,164,214,0.4)] cursor-pointer"
           >
             {t('hero.cta')}
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 transition-colors group-hover:bg-white/30">
-              <ArrowRight className="h-4 w-4" />
-            </span>
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+          <Link
+            href="#features"
+            className="inline-flex items-center gap-2 rounded-full border border-white/20 px-8 py-4 text-[15px] font-medium text-white/70 transition-all hover:bg-white/5 hover:text-white cursor-pointer"
+          >
+            Δες πώς λειτουργεί
           </Link>
         </motion.div>
       </div>
 
-      {/* Floating product mockups */}
+      {/* Product mockup with glow */}
       <motion.div
-        initial={{ opacity: 0, y: 50 }}
+        initial={{ opacity: 0, y: 60 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1.4, delay: 0.9, ease: [0.25, 0.1, 0.25, 1] }}
-        className="relative z-10 mx-auto w-full max-w-[1200px] px-6 pb-8"
+        transition={{ duration: 1.2, delay: 1.0 }}
+        className="relative z-10 mx-auto w-full max-w-[1100px] px-6 pb-8"
       >
-        <div className="relative">
-          {/* Main dashboard mockup */}
-          <div className="relative mx-auto max-w-[900px] rounded-2xl bg-white/80 backdrop-blur-sm shadow-2xl shadow-black/5 border border-white/60 overflow-hidden">
+        <div className="relative" style={{ perspective: '1200px' }}>
+          {/* Glow behind mockup */}
+          <div className="absolute inset-0 -m-8 rounded-3xl bg-[#48A4D6]/20 blur-3xl" />
+
+          {/* Main mockup */}
+          <div
+            className="relative mx-auto max-w-[950px] rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-[#48A4D6]/10"
+            style={{ transform: 'rotateX(2deg)' }}
+          >
             <Image
               src="/images/dashboard-mockup.png"
-              alt="TenderCopilot Dashboard — AI-powered tender management interface"
-              width={900}
-              height={563}
+              alt="TenderCopilot Dashboard"
+              width={950}
+              height={594}
               className="w-full h-auto"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 900px"
               priority
             />
           </div>
 
-          {/* Floating AI chat card — left side */}
+          {/* Floating AI chat card — left */}
           <motion.div
-            initial={{ opacity: 0, x: -40, y: 25 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ duration: 1.2, delay: 1.5, ease: [0.25, 0.1, 0.25, 1] }}
-            className="absolute -left-4 sm:left-4 lg:-left-8 top-[15%] w-[280px] sm:w-[320px] rounded-2xl bg-[#1C1C1C]/95 backdrop-blur-xl p-5 shadow-2xl shadow-black/20 border border-white/10"
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 1, delay: 1.5 }}
+            className="absolute -left-4 lg:-left-12 top-[15%] w-[280px] sm:w-[300px]"
           >
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-6 w-6 rounded-full bg-[#48A4D6] flex items-center justify-center">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7L12 12L22 7L12 2Z"/></svg>
+            <motion.div
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              className="rounded-2xl bg-white/5 backdrop-blur-2xl p-5 border border-white/10 shadow-2xl shadow-black/40"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-6 w-6 rounded-full bg-gradient-to-r from-[#48A4D6] to-[#7DD3FC] flex items-center justify-center">
+                  <Sparkles className="h-3 w-3 text-white" />
+                </div>
+                <span className="text-[13px] text-white/70 font-medium">{t('hero.aiChat')}</span>
               </div>
-              <span className="text-[13px] text-white/80 font-medium">{t('hero.aiChat')}</span>
-            </div>
-            <p className="text-[13px] text-white/60 leading-relaxed">
-              {t('hero.aiMessage')} <span className="text-emerald-400 font-semibold">94%</span>
-            </p>
-            <div className="mt-3 flex items-center gap-2">
-              <div className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
-                <span className="text-[12px] text-white/30">{t('hero.aiPlaceholder')}</span>
+              <p className="text-[13px] text-white/50 leading-relaxed">
+                {t('hero.aiMessage')} <span className="text-[#7DD3FC] font-semibold">94%</span>
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <div className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+                  <span className="text-[12px] text-white/20">{t('hero.aiPlaceholder')}</span>
+                </div>
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-r from-[#48A4D6] to-[#7DD3FC] flex items-center justify-center cursor-pointer">
+                  <ArrowRight className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
-              <div className="h-8 w-8 rounded-lg bg-[#48A4D6] flex items-center justify-center cursor-pointer">
-                <ArrowRight className="h-3.5 w-3.5 text-white" />
-              </div>
-            </div>
+            </motion.div>
           </motion.div>
 
-          {/* Floating stats card — right side */}
+          {/* Floating stats card — right */}
           <motion.div
-            initial={{ opacity: 0, x: 40, y: 25 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ duration: 1.2, delay: 1.8, ease: [0.25, 0.1, 0.25, 1] }}
-            className="absolute -right-4 sm:right-4 lg:-right-8 top-[25%] w-[240px] sm:w-[260px] rounded-2xl bg-white/90 backdrop-blur-xl p-5 shadow-2xl shadow-black/10 border border-white/60"
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 1, delay: 1.8 }}
+            className="absolute -right-4 lg:-right-12 top-[25%] w-[240px] sm:w-[260px]"
           >
-            <div className="text-[11px] uppercase tracking-widest text-[#1a1a2e]/40 font-medium">{t('hero.winRate')}</div>
-            <div className="mt-2 text-[36px] font-semibold tracking-[-0.02em] text-[#1a1a2e]" style={{ fontFamily: "'Georgia', serif" }}>
-              68<span className="text-[24px] text-[#1a1a2e]/40">%</span>
-            </div>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="text-[12px] font-medium text-emerald-600">+12%</span>
-              <span className="text-[12px] text-[#1a1a2e]/40">{t('hero.vsLastQuarter')}</span>
-            </div>
-            {/* Mini sparkline */}
-            <svg className="mt-3 w-full h-[32px]" viewBox="0 0 200 32" fill="none">
-              <path
-                d="M0 28 C30 24, 40 20, 60 18 S90 8, 120 12 S150 6, 170 4 S190 2, 200 2"
-                stroke="url(#sparkGrad)"
-                strokeWidth="2"
-                strokeLinecap="round"
-                fill="none"
-              />
-              <defs>
-                <linearGradient id="sparkGrad" x1="0" y1="0" x2="200" y2="0">
-                  <stop offset="0%" stopColor="#48A4D6" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="#48A4D6" stopOpacity="0.6" />
-                </linearGradient>
-              </defs>
-            </svg>
+            <motion.div
+              animate={{ y: [0, 8, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+              className="rounded-2xl bg-white/5 backdrop-blur-2xl p-5 border border-white/10 shadow-2xl shadow-black/40"
+            >
+              <div className="text-[11px] uppercase tracking-widest text-white/30 font-medium">
+                {t('hero.winRate')}
+              </div>
+              <div className="mt-2 text-[36px] font-bold tracking-[-0.02em] text-white">
+                68<span className="text-[24px] text-white/30">%</span>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className="text-[12px] font-medium text-[#7DD3FC]">+12%</span>
+                <span className="text-[12px] text-white/30">{t('hero.vsLastQuarter')}</span>
+              </div>
+              <svg className="mt-3 w-full h-[32px]" viewBox="0 0 200 32" fill="none">
+                <path
+                  d="M0 28 C30 24, 40 20, 60 18 S90 8, 120 12 S150 6, 170 4 S190 2, 200 2"
+                  stroke="url(#sparkGrad2)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <defs>
+                  <linearGradient id="sparkGrad2" x1="0" y1="0" x2="200" y2="0">
+                    <stop offset="0%" stopColor="#48A4D6" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#7DD3FC" stopOpacity="0.8" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </motion.div>
           </motion.div>
         </div>
       </motion.div>
 
-      {/* Bottom gradient fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent" />
+      {/* Bottom gradient: dark to white transition */}
+      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-white via-white/80 to-transparent" />
     </section>
   );
 }

@@ -260,3 +260,15 @@
     color: hsl(var(--muted-foreground));
   }
 }
+
+/* ─── Aurora animation — hero section dark background ───────── */
+@keyframes aurora {
+  0%   { transform: rotate(0deg) scale(1); }
+  33%  { transform: rotate(120deg) scale(1.1); }
+  66%  { transform: rotate(240deg) scale(0.9); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+.animate-aurora {
+  animation: aurora 20s linear infinite;
+}
