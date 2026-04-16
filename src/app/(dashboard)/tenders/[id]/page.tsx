@@ -39,6 +39,8 @@ import { FakelosTab } from '@/components/tender/fakelos-tab';
 import { CriteriaTab } from '@/components/tender/criteria-tab';
 import { TenderIntelligencePanel } from '@/components/tender/intelligence-panel';
 import { DeadlinePlannerTab } from '@/components/tender/deadline-planner-tab';
+import { PricingInsightCard } from '@/components/tender/pricing-insight-card';
+import { PricingIntelligenceTab } from '@/components/tender/pricing-intelligence-tab';
 import { useTranslation } from '@/lib/i18n';
 import {
   ChevronRight,
@@ -464,9 +466,13 @@ export default function TenderDetailPage() {
                           </span>
                         </div>
                       )}
-                      <div className="grid gap-4 lg:grid-cols-2">
+                      <div className="grid gap-4 lg:grid-cols-3">
                         <AIBriefPanel tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
                         <GoNoGoPanel tenderId={tenderId} sourceUrl={sourceUrl} platform={tenderPlatform} />
+                        <PricingInsightCard
+                          tenderId={tenderId}
+                          onViewDetails={() => setActiveTab('pricing')}
+                        />
                       </div>
                       <TenderIntelligencePanel tenderId={tenderId} />
                       <OverviewTab tender={tender} />
@@ -507,6 +513,9 @@ export default function TenderDetailPage() {
                 </TabsContent>
                 <TabsContent value="activity" forceMount={activeTab === 'activity' ? true : undefined}>
                   <ActivityTab tenderId={tenderId} />
+                </TabsContent>
+                <TabsContent value="pricing" forceMount={activeTab === 'pricing' ? true : undefined}>
+                  <PricingIntelligenceTab tenderId={tenderId} />
                 </TabsContent>
               </motion.div>
               </AnimatePresence>

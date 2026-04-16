@@ -534,6 +534,7 @@
     "technicalTab": "Technical Proposal",
     "activityTab": "Activity",
     "criteriaTab": "Criteria",
+    "pricingTab": "Pricing",
     "deleteTitle": "Delete Tender",
     "deleteConfirm": "Are you sure you want to delete this tender? This action is irreversible.",
     "cancel": "Cancel",

@@ -6,7 +6,7 @@ import { useTranslation } from '@/lib/i18n';
 import {
   Eye, ClipboardList, Award, Scale, Wrench, Banknote,
   FileText, FolderCheck, ListTodo, CalendarClock, Activity,
-  PanelLeftClose, PanelLeft,
+  PanelLeftClose, PanelLeft, BarChart3,
 } from 'lucide-react';
 import { SectionStatusIcon, type SectionStatus } from './section-status-icon';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ const phases: Phase[] = [
       { value: 'overview', labelKey: 'tender.overviewTab', icon: Eye },
       { value: 'requirements', labelKey: 'tender.requirementsTab', icon: ClipboardList },
       { value: 'criteria', labelKey: 'tender.criteriaTab', icon: Award },
+      { value: 'pricing', labelKey: 'tender.pricingTab', icon: BarChart3 },
     ],
   },
   {
@@ -139,7 +140,7 @@ export function TenderPhaseSidebar({
           <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
             <div
               className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-              style={{ width: `${(completedCount / 11) * 100}%` }}
+              style={{ width: `${(completedCount / 12) * 100}%` }}
             />
           </div>
           <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
