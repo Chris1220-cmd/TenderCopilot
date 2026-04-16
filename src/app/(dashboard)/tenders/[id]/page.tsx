@@ -41,6 +41,7 @@ import { TenderIntelligencePanel } from '@/components/tender/intelligence-panel'
 import { DeadlinePlannerTab } from '@/components/tender/deadline-planner-tab';
 import { PricingInsightCard } from '@/components/tender/pricing-insight-card';
 import { PricingIntelligenceTab } from '@/components/tender/pricing-intelligence-tab';
+import { BidWizard } from '@/components/tender/bid-wizard';
 import { useTranslation } from '@/lib/i18n';
 import {
   ChevronRight,
@@ -63,6 +64,7 @@ import {
   MessageSquare,
   Award,
   Menu,
+  BookOpen,
 } from 'lucide-react';
 
 const containerVariants = {
@@ -108,6 +110,7 @@ export default function TenderDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
+  const [wizardMode, setWizardMode] = useState(false);
   const [analysisStep, setAnalysisStep] = useState<string | null>(null);
   const [fullAnalysisLangModalOpen, setFullAnalysisLangModalOpen] = useState(false);
 
@@ -440,6 +443,11 @@ export default function TenderDetailPage() {
           </div>
 
           {/* Tab content with crossfade */}
+          {wizardMode ? (
+            <div className="p-6">
+              <BidWizard tenderId={tenderId} onExit={() => setWizardMode(false)} />
+            </div>
+          ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="p-6">
               <AnimatePresence mode="wait">
@@ -455,6 +463,20 @@ export default function TenderDetailPage() {
                     <OverviewTabSkeleton />
                   ) : (
                     <div className="space-y-6">
+                      {(tender?.status === 'DISCOVERY' || tender?.status === 'IN_PROGRESS' || tender?.status === 'GO_NO_GO') && !wizardMode && (
+                        <div className="flex items-center gap-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                            <BookOpen className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-semibold text-sm">Πρώτη φορά σε διαγωνισμό;</p>
+                            <p className="text-xs text-muted-foreground">Ακολούθησε τον οδηγό βήμα-βήμα για να ετοιμάσεις την προσφορά σου.</p>
+                          </div>
+                          <Button size="sm" onClick={() => setWizardMode(true)} type="button">
+                            Ξεκίνα τον Οδηγό
+                          </Button>
+                        </div>
+                      )}
                       {unreadCount > 0 && (
                         <div
                           onClick={() => setActiveTab('legal')}
@@ -521,6 +543,7 @@ export default function TenderDetailPage() {
               </AnimatePresence>
             </div>
           </Tabs>
+          )}
         </div>
       </motion.div>
 
