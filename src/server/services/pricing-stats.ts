@@ -321,17 +321,17 @@ export async function computePricingAdvice(
 
   // Compute recommended range based on budget * ratio percentiles
   let recommendedRange: { low: number; mid: number; high: number } | null = null;
-  if (tender.budget && cpvStats.ratioStats.p25 != null && cpvStats.ratioStats.p50 != null && cpvStats.ratioStats.p75 != null) {
+  if (tender.budget && cpvStats.ratioStats.p25 != null && cpvStats.ratioStats.median != null && cpvStats.ratioStats.p75 != null) {
     recommendedRange = {
       low: Math.round(tender.budget * cpvStats.ratioStats.p25),
-      mid: Math.round(tender.budget * cpvStats.ratioStats.p50),
+      mid: Math.round(tender.budget * cpvStats.ratioStats.median),
       high: Math.round(tender.budget * cpvStats.ratioStats.p75),
     };
   } else if (tender.budget && cpvStats.amountStats.p25 != null) {
     // Fallback: use amount percentiles directly
     recommendedRange = {
       low: Math.round(cpvStats.amountStats.p25!),
-      mid: Math.round(cpvStats.amountStats.p50!),
+      mid: Math.round(cpvStats.amountStats.median!),
       high: Math.round(cpvStats.amountStats.p75!),
     };
   }
