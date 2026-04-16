@@ -245,7 +245,17 @@ export async function fetchDiavgeiaByDateRange(
             amount: amount ? Number(amount) : null,
             authority: d.organizationLabel || d.organization?.label || '',
             date: safeDate(d.submissionTimestamp || d.issueDate),
-            cpvCodes: [],
+            cpvCodes: (() => {
+              const cpvs: string[] = [];
+              if (d.extraFieldValues?.cpvs) {
+                const cpvData = Array.isArray(d.extraFieldValues.cpvs) ? d.extraFieldValues.cpvs : [d.extraFieldValues.cpvs];
+                for (const cpv of cpvData) {
+                  const code = typeof cpv === 'string' ? cpv : cpv?.cpvCode || cpv?.code || cpv?.key;
+                  if (code && !cpvs.includes(code)) cpvs.push(code);
+                }
+              }
+              return cpvs;
+            })(),
             source: 'DIAVGEIA',
             sourceUrl: `https://diavgeia.gov.gr/decision/view/${d.ada}`,
             budgetAmount: d.extraFieldValues?.estimatedAmount?.amount ?? null,
@@ -275,8 +285,8 @@ export async function fetchKimdisByDateRange(
 ): Promise<PaginatedAwardResponse> {
   try {
     const body: Record<string, any> = {
-      fromDate: fromDate.toISOString().split('T')[0],
-      toDate: toDate.toISOString().split('T')[0],
+      dateFrom: fromDate.toISOString().split('T')[0],
+      dateTo: toDate.toISOString().split('T')[0],
     };
 
     const res = await fetch(
