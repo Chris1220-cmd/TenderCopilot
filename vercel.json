@@ -5,6 +5,15 @@
     },
     "src/app/api/trpc/[trpc]/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/cron/ingest-awards/route.ts": {
+      "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/ingest-awards",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }
