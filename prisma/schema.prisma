@@ -1305,3 +1305,58 @@ model LoginEvent {
   @@index([userId])
   @@index([createdAt])
 }
+
+// ─── Pricing Intelligence: Historical Awards ────────────────
+
+enum AwardSource {
+  DIAVGEIA
+  KIMDIS
+  TED
+}
+
+model HistoricalAward {
+  id                  String      @id @default(cuid())
+
+  // Source tracking
+  source              AwardSource
+  sourceUrl           String      @unique
+  sourceRefId         String?
+
+  // Core award data
+  title               String
+  winner              String
+  winnerNormalized    String
+  awardAmount         Decimal?    @db.Decimal(15, 2)
+  budgetAmount        Decimal?    @db.Decimal(15, 2)
+  awardRatio          Float?
+
+  // Authority & geography
+  authority           String
+  authorityNormalized String
+  region              String?
+
+  // Categorization
+  cpvCodes            String[]
+  cpvPrimary          String?
+  tenderType          String?
+  procedureType       String?
+
+  // Dates
+  awardDate           DateTime
+  publishedDate       DateTime?
+
+  // Bid details
+  numberOfBids        Int?
+
+  // Raw data
+  rawJson             Json?
+
+  // Audit
+  ingestedAt          DateTime    @default(now())
+
+  @@index([cpvPrimary, awardDate])
+  @@index([authorityNormalized])
+  @@index([winnerNormalized])
+  @@index([source, awardDate])
+  @@index([tenderType, cpvPrimary])
+}
