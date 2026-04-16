@@ -983,6 +983,36 @@ model SubcontractorNeed {
   @@index([tenderId])
 }
 
+// ─── Subcontractor Directory ────────────────────────────────
+
+model SubcontractorContact {
+  id             String              @id @default(cuid())
+  tenantId       String
+
+  // Contact info
+  companyName    String
+  contactPerson  String?
+  email          String?
+  phone          String?
+
+  // Capabilities
+  specialties    String[]            // ["Ηλεκτρολόγος", "Υδραυλικός"]
+  kind           SubcontractorKind   @default(SUBCONTRACTOR)
+  certifications String[]            // ["ISO 9001", "Άδεια ΥΔΕ"]
+  regions        String[]            // ["Αττική", "Θεσσαλονίκη"]
+  cpvCodes       String[]            // CPV codes they serve
+
+  // Track record
+  rating         Int?                // 1-5 stars
+  notes          String?  @db.Text
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, kind])
+}
+
 // ─── Evaluation Criteria Writing Assistant ──────────────────
 
 enum CriterionStatus {
