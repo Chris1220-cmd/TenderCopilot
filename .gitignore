@@ -48,3 +48,7 @@ competencyhub-e5d2f-*.json
 .playwright-mcp/
 cookies.txt
 *.png
+
+# Backfill script state
+.backfill-state.json
+.backfill-errors.log

@@ -21,7 +21,8 @@
     "e2e:ui": "npx playwright test --ui",
     "e2e:report": "npx playwright show-report",
     "worker": "tsx src/server/jobs/worker.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "backfill:awards": "tsx scripts/backfill-awards.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
@@ -50,7 +51,9 @@
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-toast": "^1.2.4",
     "@radix-ui/react-tooltip": "^1.1.6",
+    "@react-email/components": "^1.0.12",
     "@react-three/drei": "^10.7.7",
+    "@stripe/stripe-js": "^9.2.0",
     "@tanstack/react-query": "^5.62.16",
     "@tanstack/react-table": "^8.20.6",
     "@trpc/client": "^11.0.0-rc.682",
@@ -83,7 +86,9 @@
     "react-hook-form": "^7.54.2",
     "react-use-measure": "^2.1.7",
     "recharts": "^2.15.0",
+    "resend": "^6.11.0",
     "simplex-noise": "^4.0.3",
+    "stripe": "^22.0.1",
     "superjson": "^2.2.2",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
